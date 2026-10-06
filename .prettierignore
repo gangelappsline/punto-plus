@@ -1,0 +1,8 @@
+node_modules
+dist
+.arena
+image-search
+package-lock.json
+public
+playwright-report
+test-results
