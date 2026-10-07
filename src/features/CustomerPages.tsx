@@ -143,7 +143,7 @@ export function CardsPage() {
             Un café, un antojo, un sello más.
             <br className="mobile-only" /> Sigue haciendo de lo cotidiano algo especial.
           </p>
-          <Link to="/explorar" className="text-link">
+          <Link to="/app/explorar" className="text-link">
             Encuentra tu próximo favorito <ArrowRight size={16} />
           </Link>
         </div>
@@ -191,7 +191,7 @@ export function CardsPage() {
             <small>Cada visita tiene su premio</small>
           </div>
         </div>
-        <Link className="stat reward-stat" to="/recompensas">
+        <Link className="stat reward-stat" to="/app/recompensas">
           <span className="stat-icon purple">
             <Gift size={20} />
           </span>
@@ -252,7 +252,7 @@ export function CardsPage() {
               }
             >
               <Button asChild variant="outline">
-                <Link to="/explorar">Explorar negocios</Link>
+                <Link to="/app/explorar">Explorar negocios</Link>
               </Button>
             </EmptyState>
           ))}
@@ -265,7 +265,7 @@ export function CardsPage() {
               Algo nuevo que te va a encantar <Sparkles size={19} className="inline-sparkle" />
             </h2>
           </div>
-          <Link to="/explorar" className="text-link subtle-link">
+          <Link to="/app/explorar" className="text-link subtle-link">
             Explorar todo <ArrowRight size={16} />
           </Link>
         </div>

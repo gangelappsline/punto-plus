@@ -1,4 +1,4 @@
-import { lazy, Suspense, useCallback, useEffect, useState } from 'react';
+import { lazy, Suspense, useCallback, useEffect, useState, type ReactNode } from 'react';
 import {
   Link,
   NavLink,
@@ -42,22 +42,25 @@ import {
 } from './features/CustomerPages';
 import { QRDialog, CardDialog, PromotionDialog } from './features/Dialogs';
 import { Login } from './features/Login';
+import { LandingPage } from './features/LandingPage';
+import { AdminLayout, AdminDashboard } from './features/AdminShell';
 import { Button } from './components/ui/button';
 import { Dialog } from './components/ui/dialog';
 import { Scanner } from './components/Scanner';
 import { useAuth, demoUser } from './stores/auth';
 import { useLoyalty } from './lib/queries';
-import { isDemo } from './lib/utils';
+import { isDemo, panelPathFor } from './lib/utils';
 import { api } from './services/api';
 import type { LoyaltyCard, Promotion } from './lib/types';
+import logo from './assets/images/logo-alpha.webp';
 const BusinessPage = lazy(() =>
   import('./features/BusinessPage').then((m) => ({ default: m.BusinessPage })),
 );
-const navigation = [
-  { path: '/', icon: CreditCard, title: 'Mis tarjetas' },
-  { path: '/explorar', icon: Compass, title: 'Explorar' },
-  { path: '/recompensas', icon: Gift, title: 'Recompensas' },
-  { path: '/actividad', icon: History, title: 'Mi actividad' },
+const customerNavigation = [
+  { path: '/app', icon: CreditCard, title: 'Mis tarjetas' },
+  { path: '/app/explorar', icon: Compass, title: 'Explorar' },
+  { path: '/app/recompensas', icon: Gift, title: 'Recompensas' },
+  { path: '/app/actividad', icon: History, title: 'Mi actividad' },
 ];
 interface InstallEvent extends Event {
   prompt: () => Promise<void>;
@@ -90,45 +93,81 @@ export default function App() {
         <p>Un momento, estamos preparando tus favoritos…</p>
       </div>
     );
-  if (!isDemo && !user) return <Login />;
-  const canManage = isDemo || user?.role === 'business' || user?.role === 'admin';
   return (
     <Routes>
-      <Route element={<Layout />}>
+      <Route path="/" element={<LandingPage />} />
+      <Route path="/login" element={<LoginGate />} />
+      <Route
+        path="/app"
+        element={
+          <CustomerGate>
+            <CustomerLayout />
+          </CustomerGate>
+        }
+      >
         <Route index element={<CardsPage />} />
         <Route path="explorar" element={<ExplorePage />} />
         <Route path="recompensas" element={<RewardsPage />} />
         <Route path="actividad" element={<ActivityPage />} />
+      </Route>
+      <Route
+        path="/admin"
+        element={
+          <AdminGate>
+            <AdminLayout />
+          </AdminGate>
+        }
+      >
+        <Route index element={<AdminDashboard />} />
         <Route
           path="negocio"
           element={
-            canManage ? (
-              <Suspense fallback={<div className="app-loading">Preparando tu negocio…</div>}>
-                <BusinessPage />
-              </Suspense>
-            ) : (
-              <Navigate to="/" replace />
-            )
-          }
-        />
-        <Route
-          path="*"
-          element={
-            <div className="not-found">
-              <Compass size={48} />
-              <h1>Nos salimos del barrio.</h1>
-              <p>Esta página no existe, pero tus favoritos siguen aquí.</p>
-              <Button asChild>
-                <Link to="/">Volver a mis tarjetas</Link>
-              </Button>
-            </div>
+            <Suspense fallback={<div className="app-loading">Preparando tu negocio…</div>}>
+              <BusinessPage />
+            </Suspense>
           }
         />
       </Route>
+      <Route path="*" element={<NotFoundPage />} />
     </Routes>
   );
 }
-function Layout() {
+function LoginGate() {
+  const user = useAuth((s) => s.user);
+  if (!isDemo && user) return <Navigate to={panelPathFor(user.role)} replace />;
+  return <Login />;
+}
+function CustomerGate({ children }: { children: ReactNode }) {
+  const user = useAuth((s) => s.user);
+  if (!isDemo && !user) return <Navigate to="/login" replace />;
+  return <>{children}</>;
+}
+function AdminGate({ children }: { children: ReactNode }) {
+  const user = useAuth((s) => s.user);
+  if (!isDemo) {
+    if (!user) return <Navigate to="/login" replace />;
+    if (user.role === 'customer') return <Navigate to="/app" replace />;
+  }
+  return <>{children}</>;
+}
+function NotFoundPage() {
+  return (
+    <div className="not-found">
+      <img src={logo} alt="Punto Plus" className="not-found-logo" />
+      <h1>Nos salimos del barrio.</h1>
+      <p>Esta página no existe, pero tus favoritos siguen aquí.</p>
+      <div className="not-found-actions">
+        <Button asChild>
+          <Link to="/">Ir al inicio</Link>
+        </Button>
+        <Button variant="outline" asChild>
+          <Link to="/app">Mis tarjetas</Link>
+        </Button>
+      </div>
+    </div>
+  );
+}
+function CustomerLayout() {
   const realUser = useAuth((s) => s.user);
   const user = isDemo ? demoUser : realUser!;
   const { cards, activity } = useLoyalty();
@@ -161,10 +200,9 @@ function Layout() {
     return () => window.removeEventListener('keydown', escape);
   }, [mobileNav]);
   const ready = cards.data?.filter((c) => c.joined && c.stamps >= c.goal).length || 0;
-  const isBusiness = location.pathname === '/negocio';
-  const title = isBusiness
-    ? 'Mi negocio'
-    : navigation.find((n) => n.path === location.pathname)?.title || 'Punto Plus';
+  const canManage = isDemo || user.role === 'business' || user.role === 'admin';
+  const title =
+    customerNavigation.find((n) => n.path === location.pathname)?.title || 'Punto Plus';
   useEffect(() => {
     setSearch('');
     setMobileNav(false);
@@ -239,17 +277,13 @@ function Layout() {
         >
           <X size={17} />
         </button>
-        <Link to="/" className="brand">
-          <img src="/icon.svg" alt="" />
-          <span>
-            punto<span className="brand-plus">plus</span>
-            <sup>®</sup>
-          </span>
+        <Link to="/" className="brand" aria-label="Punto Plus · Inicio">
+          <img src={logo} alt="Punto Plus" />
         </Link>
         <div className="community-label">TU COMUNIDAD, TUS RECOMPENSAS</div>
         <div className="sidebar-section-label">MI ESPACIO</div>
         <nav aria-label="Navegación principal">
-          {navigation.map(({ path, icon: Icon, title: label }) => (
+          {customerNavigation.map(({ path, icon: Icon, title: label }) => (
             <NavLink
               key={path}
               to={path}
@@ -258,8 +292,10 @@ function Layout() {
             >
               <Icon size={19} strokeWidth={1.65} />
               <span>{label}</span>
-              {path === '/recompensas' && ready > 0 && <span className="nav-count">{ready}</span>}
-              {path === '/' && <span className="active-nav-dot" />}
+              {path === '/app/recompensas' && ready > 0 && (
+                <span className="nav-count">{ready}</span>
+              )}
+              {path === '/app' && <span className="active-nav-dot" />}
             </NavLink>
           ))}
         </nav>
@@ -281,8 +317,8 @@ function Layout() {
           <QrCode size={17} /> Escanear un negocio
         </button>
         <div className="sidebar-bottom">
-          {(isDemo || user.role !== 'customer') && (
-            <NavLink to="/negocio" className={`business-nav ${isBusiness ? 'active' : ''}`}>
+          {canManage && (
+            <NavLink to="/admin" className="business-nav">
               <Store size={18} />
               <span>Mi negocio</span>
               <ArrowIcon />
@@ -317,9 +353,8 @@ function Layout() {
             <span className="breadcrumb">
               Mi espacio <ChevronRight size={13} /> <strong>{title}</strong>
             </span>
-            <Link to="/" className="mobile-brand">
-              <img src="/icon.svg" alt="" />
-              punto<span>plus</span>
+            <Link to="/" className="mobile-brand" aria-label="Punto Plus · Inicio">
+              <img src={logo} alt="Punto Plus" />
             </Link>
           </div>
           <div className="header-actions">
@@ -362,27 +397,23 @@ function Layout() {
         )}
         <main id="main-content">
           <div className="main-topline">
-            <span className="section-eyebrow">
-              {isBusiness ? 'CRECE CON TU COMUNIDAD' : 'PEQUEÑAS VISITAS. GRANDES RECOMPENSAS.'}
-            </span>
-            {!isBusiness && (
-              <div className="search-box">
-                <Search size={16} />
-                <input
-                  aria-label="Buscar negocios o tarjetas"
-                  placeholder="Buscar un negocio, una tarjeta…"
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                />
-                {search ? (
-                  <button aria-label="Limpiar búsqueda" onClick={() => setSearch('')}>
-                    <X size={14} />
-                  </button>
-                ) : (
-                  <span aria-hidden="true" />
-                )}
-              </div>
-            )}
+            <span className="section-eyebrow">PEQUEÑAS VISITAS. GRANDES RECOMPENSAS.</span>
+            <div className="search-box">
+              <Search size={16} />
+              <input
+                aria-label="Buscar negocios o tarjetas"
+                placeholder="Buscar un negocio, una tarjeta…"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+              />
+              {search ? (
+                <button aria-label="Limpiar búsqueda" onClick={() => setSearch('')}>
+                  <X size={14} />
+                </button>
+              ) : (
+                <span aria-hidden="true" />
+              )}
+            </div>
           </div>
           <Outlet context={context} />
           <footer className="main-footer">
@@ -394,7 +425,7 @@ function Layout() {
         </main>
       </div>
       <nav className="bottom-nav" aria-label="Navegación móvil">
-        {navigation.map(({ path, icon: Icon, title: label }) => (
+        {customerNavigation.map(({ path, icon: Icon, title: label }) => (
           <NavLink key={path} end to={path}>
             <Icon size={21} />
             <span>
@@ -440,7 +471,7 @@ function Layout() {
             <button
               onClick={() => {
                 setNotifications(false);
-                navigate('/recompensas');
+                navigate('/app/recompensas');
               }}
             >
               <span className="stat-icon purple">
@@ -460,7 +491,7 @@ function Layout() {
               key={a.id}
               onClick={() => {
                 setNotifications(false);
-                navigate('/actividad');
+                navigate('/app/actividad');
               }}
             >
               <span className="stat-icon green">
@@ -523,6 +554,7 @@ function Layout() {
                 client.clear();
                 setProfile(false);
                 setLoggingOut(false);
+                navigate('/');
               }
             }}
           >

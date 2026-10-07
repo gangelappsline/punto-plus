@@ -120,6 +120,7 @@ export const api = {
       .object({ user: userSchema, accessToken: z.string() })
       .parse((await http.post('/auth/login', input)).data);
     useAuth.getState().setSession(session.user, session.accessToken);
+    return session;
   },
   restore: async () => {
     await refreshAccessToken();
