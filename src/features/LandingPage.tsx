@@ -22,7 +22,7 @@ import { LoyaltyCard } from '../components/LoyaltyCard';
 import { Button } from '../components/ui/button';
 import { useAuth } from '../stores/auth';
 import { isDemo, panelPathFor } from '../lib/utils';
-import logo from '../assets/images/logo-alpha.webp';
+import logo from '../assets/images/logo_2.webp';
 import type { LoyaltyCard as Card } from '../lib/types';
 
 const heroCards: Card[] = [

@@ -52,7 +52,7 @@ import { useLoyalty } from './lib/queries';
 import { isDemo, panelPathFor } from './lib/utils';
 import { api } from './services/api';
 import type { LoyaltyCard, Promotion } from './lib/types';
-import logo from './assets/images/logo-alpha.webp';
+import logo from './assets/images/logo_2.webp';
 const BusinessPage = lazy(() =>
   import('./features/BusinessPage').then((m) => ({ default: m.BusinessPage })),
 );

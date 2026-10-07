@@ -8,7 +8,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { api } from '../services/api';
 import { Button } from '../components/ui/button';
 import { isDemo, panelPathFor } from '../lib/utils';
-import logo from '../assets/images/logo-alpha.webp';
+import logo from '../assets/images/logo_2.webp';
 const schema = z.object({
   email: z.string().email('Escribe un correo válido'),
   password: z.string().min(1, 'Escribe tu contraseña'),

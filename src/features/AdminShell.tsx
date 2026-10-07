@@ -23,7 +23,7 @@ import { useLoyalty } from '../lib/queries';
 import { isDemo } from '../lib/utils';
 import { api } from '../services/api';
 import { Button } from '../components/ui/button';
-import logo from '../assets/images/logo-alpha.webp';
+import logo from '../assets/images/logo_2.webp';
 
 const adminNavigation = [
   { path: '/admin', icon: LayoutDashboard, title: 'Resumen', end: true },
@@ -49,8 +49,8 @@ export function AdminLayout() {
         Saltar al contenido
       </a>
       <aside className="sidebar admin-sidebar">
-        <Link to="/" className="admin-brand" aria-label="Punto Plus · Inicio">
-          <img src={logo} alt="Punto Plus" />
+        <Link to="/" className="admin-brand block" aria-label="Punto Plus · Inicio">
+          <img src={logo} alt="Punto Plus" className="block mx-auto"/>
         </Link>
         <div className="admin-label">PANEL DE ADMINISTRACIÓN</div>
         <nav className="admin-nav" aria-label="Navegación de administración">
