@@ -4,26 +4,35 @@ import { z } from 'zod';
 import { useMutation } from '@tanstack/react-query';
 import { ArrowRight, Eye, EyeOff, ShieldCheck } from 'lucide-react';
 import { useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import { api } from '../services/api';
 import { Button } from '../components/ui/button';
+import { isDemo, panelPathFor } from '../lib/utils';
+import logo from '../assets/images/logo-alpha.webp';
 const schema = z.object({
   email: z.string().email('Escribe un correo válido'),
   password: z.string().min(1, 'Escribe tu contraseña'),
 });
 export function Login() {
   const [visible, setVisible] = useState(false);
+  const navigate = useNavigate();
   const {
     register,
     handleSubmit,
     formState: { errors },
   } = useForm<z.infer<typeof schema>>({ resolver: zodResolver(schema) });
-  const login = useMutation({ mutationFn: api.login });
+  const login = useMutation({
+    mutationFn: api.login,
+    onSuccess: (session) => {
+      navigate(panelPathFor(session.user.role), { replace: true });
+    },
+  });
   return (
     <main className="login-page">
       <div className="login-photo">
         <img src="/images/coffee.webp" alt="Un café esperando tu próxima visita" />
         <div>
-          <img src="/icon.svg" alt="" />
+          <img src={logo} alt="Punto Plus" />
           <h1>
             Tus favoritos,
             <br />
@@ -33,20 +42,20 @@ export function Login() {
         </div>
       </div>
       <div className="login-content">
-        <a href="/" className="brand">
-          <img src="/icon.svg" alt="" />
-          <span>
-            punto<span className="brand-plus">plus</span>
-            <sup>®</sup>
-          </span>
-        </a>
+        <Link to="/" className="brand" aria-label="Punto Plus · Inicio">
+          <img src={logo} alt="Punto Plus" />
+        </Link>
         <div className="eyebrow">QUÉ BUENO TENERTE AQUÍ</div>
         <h2>
           Volver siempre tiene
           <br />
           su recompensa.
         </h2>
-        <p className="muted">Inicia sesión para encontrar tus tarjetas.</p>
+        <p className="muted">
+          {isDemo
+            ? 'Inicia sesión para encontrar tus tarjetas.'
+            : 'Inicia sesión con tu cuenta de cliente o de negocio.'}
+        </p>
         <form className="modal-form" onSubmit={handleSubmit((v) => login.mutate(v))}>
           <label>
             Correo electrónico

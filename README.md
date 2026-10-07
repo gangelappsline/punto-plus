@@ -1,6 +1,22 @@
 # Punto Plus
 
-SPA de fidelidad **React 19 + TypeScript + Vite 6**, en español, responsive y preparada como PWA. Incluye una experiencia de cliente y un panel de negocio.
+SPA de fidelidad **React 19 + TypeScript + Vite 6**, en español, responsive y preparada como PWA. Incluye una **landing pública**, un **panel de clientes** y un **panel de administración independientes**.
+
+## Rutas y paneles
+
+| Ruta             | Vista                                                                             | Acceso                 |
+| ---------------- | --------------------------------------------------------------------------------- | ---------------------- |
+| `/`              | Landing de marca y publicidad (qué, cómo funciona, para negocios, historias, CTA) | Público                |
+| `/login`         | Inicio de sesión (redirige al panel según rol)                                    | Público                |
+| `/app`           | Panel de cliente: mis tarjetas, explorar, recompensas, actividad                  | Cliente (o demo)       |
+| `/admin`         | Panel de administración independiente: resumen + espacio de negocio               | Negocio/admin (o demo) |
+| `/admin/negocio` | Tarjeta del negocio, registro de compras y promociones (lazy)                     | Negocio/admin (o demo) |
+
+En **modo demo** (`VITE_DATA_MODE=demo`, valor por defecto) cualquier ruta de panel está abierta con datos ficticios y sin backend. En **modo API** los guards del router redirigen a `/login` y, tras autenticar, a `/app` o `/admin` según el rol del usuario.
+
+## Paleta de marca
+
+Tokens definidos en `@theme` de `src/index.css` (Tailwind v4): `#F5BE8B` (arena, acentos), `#254865` (azul, tarjetas/estado), `#FBFBFA` (crema, superficies), `#2399A0` (teal, marca y acciones), `#022F53` (marino, texto y panel de administración). El logo (`src/assets/images/`) se aplica en landing, login, barras de cada panel y estados de carga; los iconos PWA (`public/icon.svg`, `icon-192/512.png`) siguen la misma paleta.
 
 > **Estado de integración:** la API `https://api.punto-plus.com.mx` no resolvió por DNS desde el entorno de desarrollo el 6 de octubre de 2026. No se recibió un contrato OpenAPI. Los endpoints de `src/services/api.ts` son una **propuesta explícita**, no una integración de producción verificada. La aplicación inicia en **modo demo**, identificado en la interfaz, sin enviar compras ni datos personales al backend.
 
@@ -75,7 +91,9 @@ src/
 │   ├── Scanner.tsx            # Cámara lazy, limpieza y entrada manual
 │   └── ui/                   # Base estilo shadcn: Button (CVA), Dialog (Radix)
 ├── features/
+│   ├── LandingPage.tsx        # Landing pública: marca, pasos, negocios, CTA
 │   ├── CustomerPages.tsx      # Tarjetas, exploración, recompensas e historial
+│   ├── AdminShell.tsx         # Shell + dashboard del panel de administración
 │   ├── BusinessPage.tsx       # Configuración, compras y promociones (lazy)
 │   ├── Dialogs.tsx            # QR, detalle, canje y promoción
 │   └── Login.tsx
@@ -88,6 +106,7 @@ src/
 │   ├── http.ts               # Axios y refresh single-flight
 │   └── demo.ts               # Fixtures, persistencia y reglas demo
 ├── stores/auth.ts            # Zustand, usuario y token solo en memoria
+├── assets/images/            # Logo de marca (webp original + versión alfa)
 └── test/                     # Tests unitarios, de interfaz y HTTP
 e2e/                          # Escenarios Playwright desktop y móvil
 public/                       # Iconos PWA e imágenes locales optimizadas
