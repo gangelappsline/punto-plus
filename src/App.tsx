@@ -201,8 +201,7 @@ function CustomerLayout() {
   }, [mobileNav]);
   const ready = cards.data?.filter((c) => c.joined && c.stamps >= c.goal).length || 0;
   const canManage = isDemo || user.role === 'business' || user.role === 'admin';
-  const title =
-    customerNavigation.find((n) => n.path === location.pathname)?.title || 'Punto Plus';
+  const title = customerNavigation.find((n) => n.path === location.pathname)?.title || 'Punto Plus';
   useEffect(() => {
     setSearch('');
     setMobileNav(false);

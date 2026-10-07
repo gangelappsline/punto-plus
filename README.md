@@ -4,13 +4,13 @@ SPA de fidelidad **React 19 + TypeScript + Vite 6**, en español, responsive y p
 
 ## Rutas y paneles
 
-| Ruta | Vista | Acceso |
-| --- | --- | --- |
-| `/` | Landing de marca y publicidad (qué, cómo funciona, para negocios, historias, CTA) | Público |
-| `/login` | Inicio de sesión (redirige al panel según rol) | Público |
-| `/app` | Panel de cliente: mis tarjetas, explorar, recompensas, actividad | Cliente (o demo) |
-| `/admin` | Panel de administración independiente: resumen + espacio de negocio | Negocio/admin (o demo) |
-| `/admin/negocio` | Tarjeta del negocio, registro de compras y promociones (lazy) | Negocio/admin (o demo) |
+| Ruta             | Vista                                                                             | Acceso                 |
+| ---------------- | --------------------------------------------------------------------------------- | ---------------------- |
+| `/`              | Landing de marca y publicidad (qué, cómo funciona, para negocios, historias, CTA) | Público                |
+| `/login`         | Inicio de sesión (redirige al panel según rol)                                    | Público                |
+| `/app`           | Panel de cliente: mis tarjetas, explorar, recompensas, actividad                  | Cliente (o demo)       |
+| `/admin`         | Panel de administración independiente: resumen + espacio de negocio               | Negocio/admin (o demo) |
+| `/admin/negocio` | Tarjeta del negocio, registro de compras y promociones (lazy)                     | Negocio/admin (o demo) |
 
 En **modo demo** (`VITE_DATA_MODE=demo`, valor por defecto) cualquier ruta de panel está abierta con datos ficticios y sin backend. En **modo API** los guards del router redirigen a `/login` y, tras autenticar, a `/app` o `/admin` según el rol del usuario.
 

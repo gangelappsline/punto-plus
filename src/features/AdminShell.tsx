@@ -286,7 +286,9 @@ export function AdminDashboard() {
               </div>
               <p>{text}</p>
               <Button size="sm" asChild>
-                <Link to="/admin/negocio">Abrir mi negocio <ArrowUpRight size={14} /></Link>
+                <Link to="/admin/negocio">
+                  Abrir mi negocio <ArrowUpRight size={14} />
+                </Link>
               </Button>
             </div>
           ))}

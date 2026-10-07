@@ -90,7 +90,9 @@ export function LandingPage() {
           </nav>
           <div className="hidden items-center gap-3 md:flex">
             <Button asChild variant="ghost" className="text-navy">
-              <Link to={myPanel}>{user ? 'Mi panel' : isDemo ? 'Ir a mi demo' : 'Iniciar sesión'}</Link>
+              <Link to={myPanel}>
+                {user ? 'Mi panel' : isDemo ? 'Ir a mi demo' : 'Iniciar sesión'}
+              </Link>
             </Button>
             <Button asChild>
               <Link to={primaryCta}>
@@ -334,10 +336,7 @@ export function LandingPage() {
                 text: 'Sesión segura y sellos que solo el personal del negocio puede otorgar.',
               },
             ].map(({ icon: Icon, title, text }) => (
-              <div
-                key={title}
-                className="flex gap-4 rounded-2xl border border-line bg-cream p-6"
-              >
+              <div key={title} className="flex gap-4 rounded-2xl border border-line bg-cream p-6">
                 <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-line bg-white text-brand">
                   <Icon size={20} strokeWidth={1.8} />
                 </span>
@@ -352,7 +351,10 @@ export function LandingPage() {
       </section>
 
       {/* Para negocios */}
-      <section id="negocios" className="relative scroll-mt-24 overflow-hidden bg-navy py-24 text-white">
+      <section
+        id="negocios"
+        className="relative scroll-mt-24 overflow-hidden bg-navy py-24 text-white"
+      >
         <div
           aria-hidden="true"
           className="pointer-events-none absolute -top-32 right-0 h-96 w-96 rounded-full bg-brand/20 blur-3xl"
@@ -385,10 +387,7 @@ export function LandingPage() {
               ))}
             </ul>
             <div className="mt-9 flex flex-wrap gap-3">
-              <Button
-                asChild
-                className="h-12 bg-sand px-6 text-sm text-navy hover:bg-[#efb279]"
-              >
+              <Button asChild className="h-12 bg-sand px-6 text-sm text-navy hover:bg-[#efb279]">
                 <Link to={isDemo ? '/admin' : '/login'}>
                   Abrir panel de negocio <LayoutDashboard size={16} />
                 </Link>
@@ -414,9 +413,7 @@ export function LandingPage() {
               </span>
               <div>
                 <strong className="block text-sm font-semibold">Tu comunidad, tus reglas</strong>
-                <small className="block text-xs text-muted">
-                  Desde el panel de administración
-                </small>
+                <small className="block text-xs text-muted">Desde el panel de administración</small>
               </div>
             </div>
           </div>
