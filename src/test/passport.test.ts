@@ -6,8 +6,13 @@ import type { ApiError as ApiErrorShape } from '../services/http';
  * Estas pruebas corren en modo API contra un Laravel Passport simulado:
  * verifican la petición del password grant y que los tokens queden guardados.
  */
+// El entorno se fija aquí para que el `.env` local de cada quien no altere el resultado.
 vi.stubEnv('VITE_DATA_MODE', 'api');
 vi.stubEnv('VITE_AUTH_LOGIN_MODE', 'passport');
+vi.stubEnv('VITE_AUTH_LOGIN_PATH', '/oauth/token');
+vi.stubEnv('VITE_AUTH_REFRESH_PATH', '/oauth/token');
+vi.stubEnv('VITE_AUTH_REGISTER_PATH', '/api/register');
+vi.stubEnv('VITE_AUTH_PROFILE_PATH', '/api/me');
 vi.stubEnv('VITE_PASSPORT_CLIENT_ID', 'client-id-123');
 
 vi.resetModules();

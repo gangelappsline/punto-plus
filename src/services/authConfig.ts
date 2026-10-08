@@ -25,15 +25,19 @@ function path(value: string | undefined, fallback: string) {
   return trimmed.startsWith('/') ? trimmed : `/${trimmed}`;
 }
 
+/** `passport` → POST al token endpoint de Passport. `json` → controlador propio. */
+const loginMode: LoginMode =
+  (env.VITE_AUTH_LOGIN_MODE || 'passport').toLowerCase() === 'json' ? 'json' : 'passport';
+
 export const authConfig = {
-  /** `passport` → POST al token endpoint de Passport. `json` → controlador propio. */
-  loginMode:
-    ((env.VITE_AUTH_LOGIN_MODE || 'passport') as LoginMode).toLowerCase() === 'json'
-      ? 'json'
-      : 'passport',
+  loginMode,
   /** Passport: `/oauth/token`. Controlador propio: `/api/login`, `/auth/login`… */
-  loginPath: path(env.VITE_AUTH_LOGIN_PATH, '/oauth/token'),
-  refreshPath: path(env.VITE_AUTH_REFRESH_PATH, '/oauth/token'),
+  loginPath: path(env.VITE_AUTH_LOGIN_PATH, loginMode === 'json' ? '/api/login' : '/oauth/token'),
+  /** Passport: `/oauth/token`. Controlador propio: `/api/refresh`. */
+  refreshPath: path(
+    env.VITE_AUTH_REFRESH_PATH,
+    loginMode === 'json' ? '/api/refresh' : '/oauth/token',
+  ),
   registerPath: path(env.VITE_AUTH_REGISTER_PATH, '/api/register'),
   logoutPath: path(env.VITE_AUTH_LOGOUT_PATH, '/api/logout'),
   profilePath: path(env.VITE_AUTH_PROFILE_PATH, '/api/me'),
@@ -43,15 +47,32 @@ export const authConfig = {
   passportScope: env.VITE_PASSPORT_SCOPE || '',
 } as const;
 
-/** Rutas de autenticación: nunca se les aplica el reintento con refresh. */
-const AUTH_PATH_PREFIXES = ['/oauth/', '/auth/', '/login', '/logout', '/register', '/password'];
+/**
+ * Rutas de autenticación: nunca se les aplica el reintento con refresh.
+ *
+ * Se comparan los segmentos de la ruta en vez de prefijos fijos para cubrir
+ * tanto Passport (`/oauth/token`) como un controlador propio (`/api/login`,
+ * `/auth/login`). Un 401 ahí son credenciales inválidas, no una sesión vencida;
+ * `/api/me` queda fuera porque sí debe intentar el refresh.
+ */
+const AUTH_PATH_SEGMENTS = [
+  'oauth',
+  'login',
+  'logout',
+  'register',
+  'refresh',
+  'password',
+  'token',
+  'sanctum',
+];
 
 export function isAuthPath(url?: string) {
   if (!url) return false;
-  const clean = url.replace(/^https?:\/\/[^/]+/, '');
-  return AUTH_PATH_PREFIXES.some(
-    (prefix) => clean === prefix.slice(0, -1) || clean.startsWith(prefix),
-  );
+  const path = url.replace(/^https?:\/\/[^/]+/, '').split('?')[0];
+  return path
+    .split('/')
+    .filter(Boolean)
+    .some((segment) => AUTH_PATH_SEGMENTS.includes(segment));
 }
 
 /** Cuerpo de login según el modo configurado. */

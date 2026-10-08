@@ -61,6 +61,11 @@ pintarlos junto a cada input.
 > memoria. **Confirmar** CORS con orígenes explícitos, preflight de `Authorization` y
 > `Content-Type`, y la revocación real de tokens en logout (`DELETE /oauth/tokens/{id}`).
 
+**Paneles protegidos.** El access token guardado es lo que abre los paneles: `/app` exige
+rol `customer` y `/admin` exige `business` o `admin`. La comprobación del frontend es de
+conveniencia (evita mostrar un panel vacío); cada endpoint privado debe validar el token y
+el rol en el servidor. Un 401 definitivo cierra la sesión y devuelve a `/login`.
+
 ## Cliente
 
 | Método y ruta                   | Entrada | Respuesta                                                            |

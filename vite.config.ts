@@ -52,5 +52,8 @@ export default defineConfig({
     environment: 'jsdom',
     setupFiles: ['./src/test/setup.ts'],
     css: false,
+    // Las pruebas de interfaz recorren los fixtures del demo. Las de la API real
+    // (guards, Passport, cliente HTTP) fijan su propio modo con `vi.stubEnv`.
+    env: { VITE_DATA_MODE: 'demo' },
   },
 });

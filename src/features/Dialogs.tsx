@@ -1,5 +1,4 @@
 import { useEffect, useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
 import { QRCodeSVG } from 'qrcode.react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -18,8 +17,7 @@ import {
 import { Dialog } from '../components/ui/dialog';
 import { Button } from '../components/ui/button';
 import { LoyaltyCard } from '../components/LoyaltyCard';
-import { useAction, useLoyalty } from '../lib/queries';
-import { api } from '../services/api';
+import { useJoin, useLoyalty, useMyQR, useRedeem, useToggleFavorite } from '../lib/queries';
 import { isDemo } from '../lib/utils';
 import type { LoyaltyCard as Card, Promotion } from '../lib/types';
 export function QRDialog({
@@ -31,14 +29,8 @@ export function QRDialog({
   onOpenChange: (open: boolean) => void;
   name: string;
 }) {
-  const qr = useQuery({
-    queryKey: ['qr'],
-    queryFn: api.qr,
-    enabled: open,
-    staleTime: 0,
-    gcTime: 0,
-    refetchOnWindowFocus: true,
-  });
+  // El QR se pide solo mientras el diálogo está abierto (token temporal de la API).
+  const qr = useMyQR(open);
   const [now, setNow] = useState(Date.now());
   useEffect(() => {
     if (!open) return;
@@ -128,16 +120,8 @@ export function CardDialog({
   useEffect(() => {
     setConfirm(false);
   }, [selected?.id]);
-  const join = useAction(
-    api.join,
-    '¡Un nuevo favorito! La tarjeta ya está en tu colección.',
-    onClose,
-  );
-  const redeem = useAction(
-    api.redeem,
-    isDemo ? '¡Recompensa canjeada en la demostración!' : '¡Disfruta tu recompensa!',
-    onClose,
-  );
+  const join = useJoin(onClose);
+  const redeem = useRedeem(onClose);
   if (!card) return null;
   const ready = card.stamps >= card.goal;
   return (
@@ -245,7 +229,7 @@ export function PromotionDialog({
   onClose: () => void;
 }) {
   const { favorites } = useLoyalty();
-  const favorite = useAction(api.toggleFavorite, 'Tus favoritos se actualizaron');
+  const favorite = useToggleFavorite();
   if (!promotion) return null;
   const saved = favorites.data?.includes(promotion.id);
   return (
