@@ -156,7 +156,7 @@ export function normalizeRole(role: unknown): User['role'] {
   if (['business', 'negocio', 'merchant', 'owner', 'empresa'].includes(value)) return 'business';
   if (['admin', 'administrator', 'administrador', 'superadmin', 'super-admin'].includes(value))
     return 'admin';
-  return 'customer';
+  return 'customer'; // incluye "cliente"
 }
 
 /* ---------------------------------- storage --------------------------------- */

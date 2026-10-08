@@ -4,8 +4,19 @@ import { isTokenExpired } from '../lib/tokenStorage';
 import { authConfig, isAuthPath, refreshBody, tokenRequestHeaders } from './authConfig';
 
 export const baseURL = import.meta.env.VITE_API_BASE_URL || 'https://api.punto-plus.com.mx';
-export const http = axios.create({ baseURL, timeout: 15000, withCredentials: true });
-const refreshClient = axios.create({ baseURL, timeout: 15000, withCredentials: true });
+const jsonHeaders = { 'Content-Type': 'application/json', Accept: 'application/json' };
+export const http = axios.create({
+  baseURL,
+  timeout: 15000,
+  withCredentials: false,
+  headers: jsonHeaders,
+});
+const refreshClient = axios.create({
+  baseURL,
+  timeout: 15000,
+  withCredentials: false,
+  headers: jsonHeaders,
+});
 
 /** Error de la API con el detalle que necesitan los formularios (422 de Laravel). */
 export class ApiError extends Error {

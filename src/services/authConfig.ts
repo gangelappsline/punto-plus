@@ -102,9 +102,11 @@ export function refreshBody(refreshToken: string) {
   return params;
 }
 
-/** Passport espera form-urlencoded en `/oauth/token`. */
+/** Siempre JSON; solo el password grant de Passport envía form-urlencoded. */
 export function tokenRequestHeaders(body: unknown) {
-  return body instanceof URLSearchParams
-    ? { 'Content-Type': 'application/x-www-form-urlencoded', Accept: 'application/json' }
-    : { Accept: 'application/json' };
+  return {
+    'Content-Type':
+      body instanceof URLSearchParams ? 'application/x-www-form-urlencoded' : 'application/json',
+    Accept: 'application/json',
+  };
 }

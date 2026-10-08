@@ -14,17 +14,17 @@ import { readDB, redeemDemo, updateDB } from './demo';
 // Proposed API contract. These routes and envelopes MUST be confirmed with the backend.
 export const api = {
   cards: async () =>
-    isDemo ? readDB().cards : z.array(cardSchema).parse((await http.get('/cards')).data),
+    isDemo ? readDB().cards : z.array(cardSchema).parse((await http.get('/customer/cards')).data),
   promotions: async () =>
     isDemo
       ? readDB().promotions
-      : z.array(promotionSchema).parse((await http.get('/promotions')).data),
+      : z.array(promotionSchema).parse((await http.get('/customer/promotions')).data),
   activity: async () =>
     isDemo
       ? readDB().activity
-      : z.array(activitySchema).parse((await http.get('/me/activity')).data),
+      : z.array(activitySchema).parse((await http.get('/customer/me/activity')).data),
   favorites: async () =>
-    isDemo ? readDB().favorites : z.array(z.string()).parse((await http.get('/me/favorites')).data),
+    isDemo ? readDB().favorites : z.array(z.string()).parse((await http.get('/customer/me/favorites')).data),
   toggleFavorite: async (id: string) =>
     isDemo
       ? updateDB((db) => {
@@ -32,9 +32,9 @@ export const api = {
             ? db.favorites.filter((f) => f !== id)
             : [...db.favorites, id];
         })
-      : http.post(`/me/favorites/${encodeURIComponent(id)}/toggle`),
+      : http.post(`/customer/me/favorites/${encodeURIComponent(id)}/toggle`),
   join: async (id: string) => {
-    if (!isDemo) return http.post(`/cards/${encodeURIComponent(id)}/join`);
+    if (!isDemo) return http.post(`/customer/cards/${encodeURIComponent(id)}/join`);
     return updateDB((db) => {
       const card = db.cards.find((c) => c.id === id);
       if (!card) throw new Error('No se encontró el negocio.');
@@ -54,7 +54,7 @@ export const api = {
     isDemo
       ? redeemDemo(id)
       : http.post(
-          `/cards/${encodeURIComponent(id)}/redeem`,
+          `/customer/cards/${encodeURIComponent(id)}/redeem`,
           {},
           { headers: { 'Idempotency-Key': crypto.randomUUID() } },
         ),
@@ -63,7 +63,7 @@ export const api = {
       ? { token: 'punto-plus:demo:sofia', expiresAt: null }
       : z
           .object({ token: z.string(), expiresAt: z.string().datetime() })
-          .parse((await http.post('/me/qr')).data),
+          .parse((await http.post('/customer/me/qr')).data),
   businessPromotions: async () =>
     z.array(promotionSchema).parse((await http.get('/business/promotions')).data),
   business: async () =>
