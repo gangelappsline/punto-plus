@@ -1,5 +1,4 @@
 import { useCallback, useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -15,10 +14,15 @@ import {
   Store,
 } from 'lucide-react';
 import { toast } from 'sonner';
-import { api } from '../services/api';
 import { businessSchema, type BusinessConfig, type LoyaltyCard as Card } from '../lib/types';
 import { isDemo } from '../lib/utils';
-import { useAction } from '../lib/queries';
+import {
+  useAddPromotion,
+  useBusiness,
+  useBusinessPromotions,
+  useSaveBusiness,
+  useStamp,
+} from '../lib/queries';
 import { LoyaltyCard } from '../components/LoyaltyCard';
 import { Button } from '../components/ui/button';
 import { Dialog } from '../components/ui/dialog';
@@ -57,7 +61,7 @@ function BusinessEditor({ config }: { config: BusinessConfig }) {
     formState: { errors, isDirty },
   } = useForm<BusinessConfig>({ resolver: zodResolver(businessSchema), defaultValues: config });
   const values = watch();
-  const mutation = useAction(api.saveBusiness, 'La tarjeta de tu negocio se guardó');
+  const mutation = useSaveBusiness();
   const [preview, setPreview] = useState(false);
   const card: Card = {
     ...values,
@@ -182,23 +186,17 @@ function BusinessEditor({ config }: { config: BusinessConfig }) {
   );
 }
 export function BusinessPage() {
-  const business = useQuery({ queryKey: ['business'], queryFn: api.business });
+  const business = useBusiness();
   const [tab, setTab] = useState('card');
   const [scanOpen, setScanOpen] = useState(false);
   const [scanned, setScanned] = useState<string | null>(null);
   const [promotionOpen, setPromotionOpen] = useState(false);
-  const promotions = useQuery({
-    queryKey: ['business-promotions'],
-    queryFn: async () =>
-      isDemo
-        ? (await api.promotions()).filter((p) => p.businessId === 'b1')
-        : api.businessPromotions(),
-  });
-  const stamp = useAction(api.stamp, '¡Compra registrada! Tu cliente tiene un sello más.', () => {
+  const promotions = useBusinessPromotions();
+  const stamp = useStamp(() => {
     setScanned(null);
     setScanOpen(false);
   });
-  const promotion = useAction(api.addPromotion, 'Promoción publicada', () => {
+  const promotion = useAddPromotion(() => {
     setPromotionOpen(false);
     form.reset();
   });

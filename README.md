@@ -4,22 +4,29 @@ SPA de fidelidad **React 19 + TypeScript + Vite 6**, en español, responsive y p
 
 ## Rutas y paneles
 
-| Ruta             | Vista                                                                             | Acceso                 |
-| ---------------- | --------------------------------------------------------------------------------- | ---------------------- |
-| `/`              | Landing de marca y publicidad (qué, cómo funciona, para negocios, historias, CTA) | Público                |
-| `/login`         | Inicio de sesión con Passport (redirige al panel según rol)                       | Público                |
-| `/registro`      | Alta de cuentas: clientes y negocios (lazy)                                       | Público                |
-| `/app`           | Panel de cliente: mis tarjetas, explorar, recompensas, actividad                  | Cliente (o demo)       |
-| `/admin`         | Panel de administración independiente: resumen + espacio de negocio               | Negocio/admin (o demo) |
-| `/admin/negocio` | Tarjeta del negocio, registro de compras y promociones (lazy)                     | Negocio/admin (o demo) |
+| Ruta             | Vista                                                                             | Acceso                            |
+| ---------------- | --------------------------------------------------------------------------------- | --------------------------------- |
+| `/`              | Landing de marca y publicidad (qué, cómo funciona, para negocios, historias, CTA) | Público                           |
+| `/login`         | Inicio de sesión contra la API (redirige al panel según rol)                      | Público; con sesión va a su panel |
+| `/registro`      | Alta de cuentas: clientes y negocios (lazy)                                       | Público; con sesión va a su panel |
+| `/app`           | Panel de cliente: mis tarjetas, explorar, recompensas, actividad                  | Cliente con token vigente         |
+| `/admin`         | Panel de negocio: resumen del negocio                                             | Negocio o admin con token vigente |
+| `/admin/negocio` | Tarjeta del negocio, registro de compras y promociones (lazy)                     | Negocio o admin con token vigente |
 
-En **modo demo** (`VITE_DATA_MODE=demo`, valor por defecto) cualquier ruta de panel está abierta con datos ficticios y sin backend. En **modo API** los guards del router redirigen a `/login` y, tras autenticar, a `/app` o `/admin` según el rol del usuario.
+Cada panel es un **layout independiente** (`CustomerShell.tsx` y `AdminShell.tsx`) y se monta detrás de su guarda en `src/features/Guards.tsx`:
+
+- **Sin token** → `/login`, recordando la ruta pedida en `state.from` para volver ahí tras autenticar.
+- **Token vigente, rol que no corresponde** → redirección al panel propio (`/app` para clientes, `/admin` para negocios y administradores).
+- **Token vencido** → se intenta renovar con el refresh token antes de decidir; si el backend lo rechaza, la sesión se cierra y se vuelve a `/login`.
+- **Sesión iniciada en `/login` o `/registro`** → se devuelve al panel de la cuenta.
+
+La validez se resuelve **en local** (access token presente y no vencido, con el margen de `EXPIRY_SKEW_MS`): entrar a un panel no dispara una petición extra. La renovación y el cierre por 401 los hacen el interceptor de Axios y la consulta de sesión (`useSession`), que solo llama a la API cuando falta el perfil o el token ya venció. En **modo demo** (`VITE_DATA_MODE=demo`, opt-in) los paneles siguen abiertos: los datos son locales y no hay sesión real que proteger.
 
 ## Paleta de marca
 
 Tokens definidos en `@theme` de `src/index.css` (Tailwind v4): `#F5BE8B` (arena, acentos), `#254865` (azul, tarjetas/estado), `#FBFBFA` (crema, superficies), `#2399A0` (teal, marca y acciones), `#022F53` (marino, texto y panel de administración). El logo (`src/assets/images/`) se aplica en landing, login, barras de cada panel y estados de carga; los iconos PWA (`public/icon.svg`, `icon-192/512.png`) siguen la misma paleta.
 
-> **Estado de integración:** la API `https://api.punto-plus.com.mx` no resolvió por DNS desde el entorno de desarrollo el 6 de octubre de 2026. No se recibió un contrato OpenAPI. Los endpoints de `src/services/api.ts` son una **propuesta explícita**, no una integración de producción verificada. La aplicación inicia en **modo demo**, identificado en la interfaz, sin enviar compras ni datos personales al backend.
+> **Estado de integración:** la API `https://api.punto-plus.com.mx` no resolvió por DNS desde el entorno de desarrollo el 6 de octubre de 2026. No se recibió un contrato OpenAPI. Los endpoints de `src/services/api.ts` son una **propuesta explícita**, no una integración de producción verificada. La aplicación apunta a la API por defecto; con `VITE_DATA_MODE=demo` arranca en modo demostración, identificado en la interfaz, sin enviar compras ni datos personales al backend.
 
 ## Inicio rápido
 
@@ -36,11 +43,11 @@ Abrir `http://localhost:5173`. El servidor escucha en `0.0.0.0` y permite el dom
 ```bash
 npm run build         # TypeScript estricto + build y service worker
 npm run preview       # Compilación de producción en :4173
-npm test              # Vitest + React Testing Library: 48 pruebas
+npm test              # Vitest + React Testing Library: 60 pruebas
 npm run typecheck
 npm run format:check
 npx playwright install --with-deps chromium
-npm run test:e2e      # 10 pruebas: escritorio + móvil
+npm run test:e2e      # 10 pruebas: escritorio + móvil (corren en modo demo)
 ```
 
 `.npmrc` activa `legacy-peer-deps` para evitar un error de resolución de peers opcionales de Vitest en npm 10. El lockfile fija las versiones instaladas. No se emplea para eludir incompatibilidades conocidas entre React, Router, Query o Vite.
@@ -49,7 +56,8 @@ npm run test:e2e      # 10 pruebas: escritorio + móvil
 
 ### Acceso
 
-- Inicio de sesión contra **Laravel Passport** (`Bearer` + `refresh_token`) en `/login`.
+- Inicio de sesión en `/login` contra la API real (Passport `Bearer` + `refresh_token` o el controlador propio del backend, según `VITE_AUTH_LOGIN_MODE`). El formulario envía las credenciales con `useLogin`, guarda el token que responde el servidor y entra al panel del rol; vuelve a la ruta que se intentó abrir si le corresponde.
+- Los paneles quedan protegidos por token y rol (ver [Rutas y paneles](#rutas-y-paneles)).
 - Alta de **clientes y negocios** desde la misma página `/registro`: el selector de tipo de cuenta muestra los datos del negocio (nombre comercial, categoría, teléfono, dirección, ciudad y RFC opcional) solo cuando corresponde.
 - Validación con Zod en el navegador y traducción de los errores **422** de Laravel al campo correspondiente.
 - Contraseña con confirmación, medidor de seguridad y envío deshabilitado mientras hay petición en vuelo.
@@ -73,11 +81,13 @@ npm run test:e2e      # 10 pruebas: escritorio + móvil
 - Promociones con imagen opcional, validación, condiciones y vigencia.
 - Escaneo mediante cámara tras permiso explícito o entrada manual del código.
 - Confirmación de compra antes de otorgar un sello.
-- Guarda de ruta por rol en modo API. **La autorización definitiva siempre debe realizarse en el servidor.**
+- Guarda de ruta por rol: un cliente no entra a `/admin` y un negocio no entra a `/app`. **La autorización definitiva siempre debe realizarse en el servidor.**
 
 No se implementa dashboard de administrador (opcional en la solicitud). Recuperación de contraseña, geolocalización, push y analítica no se presentan como funcionalidades disponibles: necesitan requisitos y contratos adicionales. El registro sí está implementado; su ruta exacta debe confirmarse con el backend (ver [docs/API_CONTRACT.md](docs/API_CONTRACT.md)). La ciudad, distancia y negocios del demo son datos ilustrativos, no resultados de geolocalización.
 
 ## Probar los flujos sin backend
+
+Definir `VITE_DATA_MODE=demo` en `.env` y reiniciar Vite.
 
 1. **Canje:** abrir Matcha & Co. → Canjear → Confirmar. Se consumen cinco sellos y se registra un evento.
 2. **Compra:** Mi negocio → Registrar una compra → Probar con un QR de demostración → Confirmar. Agrega un sello a Café Avellaneda; una tarjeta completa no admite más sellos hasta canjear.
@@ -91,28 +101,34 @@ Los datos demo se validan con Zod y se guardan únicamente en el navegador. Los 
 
 ```text
 src/
-├── App.tsx                    # Router, shell, navegación y guards
-├── main.tsx                   # Providers, ErrorBoundary y notificaciones
+├── App.tsx                    # Router: rutas públicas y los dos paneles protegidos
+├── main.tsx                   # Providers, hidratación de sesión y ErrorBoundary
 ├── index.css                  # Tailwind v4 + estilos responsive y tokens
 ├── components/
+│   ├── AppSplash.tsx          # Pantalla de espera de arranque y rutas diferidas
 │   ├── LoyaltyCard.tsx        # Tarjeta, sello y marca
 │   ├── PromotionCard.tsx
 │   ├── Scanner.tsx            # Cámara lazy, limpieza y entrada manual
 │   └── ui/                   # Base estilo shadcn: Button (CVA), Dialog (Radix)
 ├── features/
 │   ├── LandingPage.tsx        # Landing pública: marca, pasos, negocios, CTA
+│   ├── Guards.tsx             # PanelGate y GuestOnly: acceso por token y rol
+│   ├── CustomerShell.tsx      # Layout del panel de cliente
 │   ├── CustomerPages.tsx      # Tarjetas, exploración, recompensas e historial
-│   ├── AdminShell.tsx         # Shell + dashboard del panel de administración
+│   ├── AdminShell.tsx         # Layout del panel de negocio
+│   ├── AdminDashboard.tsx     # Resumen del negocio
 │   ├── BusinessPage.tsx       # Configuración, compras y promociones (lazy)
 │   ├── Dialogs.tsx            # QR, detalle, canje y promoción
 │   ├── AuthLayout.tsx         # Columna de marca + formulario (login y registro)
 │   ├── Login.tsx              # Inicio de sesión
-│   └── Register.tsx           # Alta de clientes y negocios (lazy)
+│   ├── Register.tsx           # Alta de clientes y negocios (lazy)
+│   └── NotFoundPage.tsx       # Ruta inexistente
 ├── lib/
 │   ├── types.ts              # Schemas Zod y tipos inferidos
-│   ├── queries.ts            # TanStack Query, mutaciones e invalidación
+│   ├── queries.ts            # Consultas y mutaciones de datos (TanStack Query)
+│   ├── session.ts            # Sesión: restore, login, registro y logout (Query)
 │   ├── tokenStorage.ts       # Normaliza y persiste access/refresh token de Passport
-│   └── utils.ts
+│   └── utils.ts              # Modo demo/API, paneles por rol y mensajes de error
 ├── services/
 │   ├── api.ts                # Frontera demo/API, contrato provisional
 │   ├── auth.ts               # login, register, logout y restore
@@ -126,18 +142,22 @@ e2e/                          # Escenarios Playwright desktop y móvil
 public/                       # Iconos PWA e imágenes locales optimizadas
 ```
 
-La caché remota pertenece a TanStack Query; Zustand contiene solo la sesión. Formularios con React Hook Form + Zod. No se duplican peticiones en loaders del router: Query gestiona carga, caché y revalidación. El scanner y el panel de negocio se cargan de forma diferida. Tipografías variables locales; no se depende de Google Fonts ni de imágenes remotas para el demo.
+**Todas las peticiones a la API pasan por TanStack Query.** Ningún componente llama a `services/api.ts` directamente: usa los hooks de `lib/queries.ts` (tarjetas, promociones, actividad, favoritos, QR, negocio) o los de `lib/session.ts` (restore, login, registro y logout). Cada hook fija su clave de caché, cuándo se ejecuta y qué se revalida; los guards solo leen el token del store, así que la navegación no dispara peticiones de más.
+
+Zustand contiene únicamente la sesión (usuario, access token y expiración), hidratada desde `tokenStorage` antes del primer render en `main.tsx`. Formularios con React Hook Form + Zod. No se duplican peticiones en loaders del router: Query gestiona carga, caché y revalidación. El scanner y el panel de negocio se cargan de forma diferida. Tipografías variables locales; no se depende de Google Fonts ni de imágenes remotas para el demo.
 
 ## Conectar la API real
 
-Leer [docs/API_CONTRACT.md](docs/API_CONTRACT.md) antes de habilitar:
+Es el modo por defecto: sin variables, la app consume el backend y exige sesión. Leer [docs/API_CONTRACT.md](docs/API_CONTRACT.md) para confirmar rutas y envelopes.
 
 ```dotenv
 VITE_API_BASE_URL=https://api.punto-plus.com.mx
-VITE_DATA_MODE=api
+VITE_DATA_MODE=api          # "demo" activa los fixtures locales y abre los paneles
 ```
 
 Reiniciar Vite o recompilar después de cambiar variables. **Todo `VITE_*` es público: nunca incluir secretos.** No hay fallback silencioso a datos demo si la API falla.
+
+Para recorrer la interfaz sin backend: `VITE_DATA_MODE=demo` (o `npm run test:e2e`, que levanta el servidor ya en ese modo).
 
 ### Autenticación con Laravel Passport
 

@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { MotionConfig } from 'framer-motion';
 import { Toaster } from 'sonner';
 import App from './App';
+import { hydrateAuthOnce } from './stores/auth';
 import './index.css';
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -32,6 +33,11 @@ class ErrorBoundary extends Component<{ children: ReactNode }, { failed: boolean
     );
   }
 }
+// La sesión guardada se lee antes del primer render: así los guards de los
+// paneles deciden con el token real desde el arranque, sin redirecciones de ida
+// y vuelta ni peticiones innecesarias.
+hydrateAuthOnce();
+
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <ErrorBoundary>

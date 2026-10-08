@@ -2,14 +2,13 @@ import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { useMutation } from '@tanstack/react-query';
 import { ArrowRight, Eye, EyeOff, ShieldCheck } from 'lucide-react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
-import { api } from '../services/api';
 import { ApiError } from '../services/http';
 import { Button } from '../components/ui/button';
-import { isDemo, panelPathFor } from '../lib/utils';
+import { useLogin } from '../lib/session';
+import { isDemo, panelAllows, panelForPath, panelPathFor } from '../lib/utils';
 import { AuthLayout } from './AuthLayout';
 
 const schema = z.object({
@@ -22,6 +21,7 @@ type LoginForm = z.infer<typeof schema>;
 export function Login() {
   const [visible, setVisible] = useState(false);
   const navigate = useNavigate();
+  const location = useLocation();
   const {
     register,
     handleSubmit,
@@ -29,24 +29,34 @@ export function Login() {
     formState: { errors },
   } = useForm<LoginForm>({ resolver: zodResolver(schema) });
 
-  const login = useMutation({
-    mutationFn: api.login,
-    onSuccess: (session) => {
-      toast.success(
-        `Qué bueno verte de nuevo${session.user ? `, ${session.user.name.split(' ')[0]}` : ''}.`,
-      );
-      navigate(panelPathFor(session.user?.role), { replace: true });
-    },
-    onError: (error) => {
-      // Laravel responde 422 con errores por campo; los mostramos junto al input.
-      if (error instanceof ApiError && Object.keys(error.fieldErrors).length) {
-        const email = error.fieldErrors.email?.[0];
-        const password = error.fieldErrors.password?.[0];
-        if (email) setError('email', { message: email });
-        if (password) setError('password', { message: password });
-      }
-    },
-  });
+  // `useLogin` es la mutación de TanStack Query que llama al endpoint de la API.
+  const login = useLogin();
+  const expired = Boolean((location.state as { expired?: boolean } | null)?.expired);
+
+  const onSubmit = handleSubmit((values) =>
+    login.mutate(values, {
+      onSuccess: (session) => {
+        toast.success(
+          `Qué bueno verte de nuevo${session.user ? `, ${session.user.name.split(' ')[0]}` : ''}.`,
+        );
+        // Si el guard nos dejó aquí al intentar abrir un panel, volvemos a esa ruta.
+        const from = (location.state as { from?: string } | null)?.from ?? '';
+        const panel = panelForPath(from);
+        const target =
+          panel && panelAllows(panel, session.user?.role) ? from : panelPathFor(session.user?.role);
+        navigate(target, { replace: true });
+      },
+      onError: (error) => {
+        // Laravel responde 422 con errores por campo; los mostramos junto al input.
+        if (error instanceof ApiError && Object.keys(error.fieldErrors).length) {
+          const email = error.fieldErrors.email?.[0];
+          const password = error.fieldErrors.password?.[0];
+          if (email) setError('email', { message: email });
+          if (password) setError('password', { message: password });
+        }
+      },
+    }),
+  );
 
   return (
     <AuthLayout
@@ -74,11 +84,13 @@ export function Login() {
           : 'Inicia sesión con tu cuenta de cliente o de negocio.'
       }
     >
-      <form
-        className="modal-form"
-        onSubmit={handleSubmit((values) => login.mutate(values))}
-        noValidate
-      >
+      <form className="modal-form" onSubmit={onSubmit} noValidate>
+        {expired && (
+          <div className="form-alert" role="status">
+            No pudimos recuperar tu sesión. Inicia sesión de nuevo para entrar a tu panel.
+          </div>
+        )}
+
         <div className="field">
           <label htmlFor="email">Correo electrónico</label>
           <input

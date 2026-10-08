@@ -51,6 +51,12 @@ export async function fetchProfile(): Promise<User> {
  */
 export async function login(credentials: LoginCredentials): Promise<StoredSession> {
   if (isDemo) return demoSession(credentials.email);
+  // Sin client_id el password grant de Passport fallaría con un 400 poco claro.
+  if (authConfig.loginMode === 'passport' && !authConfig.passportClientId)
+    throw new Error(
+      'Falta VITE_PASSPORT_CLIENT_ID para iniciar sesión con Passport. ' +
+        'Defínelo o usa VITE_AUTH_LOGIN_MODE=json con el controlador propio del backend.',
+    );
 
   const body = loginBody(credentials);
   const { data } = await http.post(authConfig.loginPath, body, {

@@ -2,14 +2,13 @@ import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { useMutation } from '@tanstack/react-query';
 import { ArrowRight, Check, Eye, EyeOff, ShieldCheck, Store, UserRound } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
-import { api } from '../services/api';
 import type { RegisterInput } from '../services/auth';
 import { ApiError } from '../services/http';
 import { Button } from '../components/ui/button';
+import { useRegister } from '../lib/session';
 import { isDemo, panelPathFor } from '../lib/utils';
 import { AuthLayout } from './AuthLayout';
 
@@ -191,22 +190,25 @@ export function Register() {
   const score = passwordScore(password ?? '');
   const isBusiness = role === 'business';
 
-  const mutation = useMutation({
-    mutationFn: api.register,
-    onSuccess: (session) => {
-      const effectiveRole = session.user?.role ?? (isBusiness ? 'business' : 'customer');
-      toast.success(
-        isBusiness
-          ? '¡Tu negocio ya es parte de Punto Plus!'
-          : '¡Cuenta creada! Empieza a juntar sellos.',
-      );
-      navigate(panelPathFor(effectiveRole), { replace: true });
-    },
-    onError: (error) => {
-      if (error instanceof ApiError && Object.keys(error.fieldErrors).length)
-        applyServerErrors(error.fieldErrors, (name, message) => setError(name, { message }));
-    },
-  });
+  // Alta contra la API con TanStack Query; la sesión queda guardada igual que en el login.
+  const mutation = useRegister();
+  const onSubmit = handleSubmit((values) =>
+    mutation.mutate(toRegisterInput(values), {
+      onSuccess: (session) => {
+        const effectiveRole = session.user?.role ?? (isBusiness ? 'business' : 'customer');
+        toast.success(
+          isBusiness
+            ? '¡Tu negocio ya es parte de Punto Plus!'
+            : '¡Cuenta creada! Empieza a juntar sellos.',
+        );
+        navigate(panelPathFor(effectiveRole), { replace: true });
+      },
+      onError: (error) => {
+        if (error instanceof ApiError && Object.keys(error.fieldErrors).length)
+          applyServerErrors(error.fieldErrors, (name, message) => setError(name, { message }));
+      },
+    }),
+  );
 
   function selectRole(next: 'customer' | 'business') {
     setValue('role', next, { shouldValidate: false });
@@ -303,11 +305,7 @@ export function Register() {
         </button>
       </div>
 
-      <form
-        className="modal-form auth-form"
-        onSubmit={handleSubmit((values) => mutation.mutate(toRegisterInput(values)))}
-        noValidate
-      >
+      <form className="modal-form auth-form" onSubmit={onSubmit} noValidate>
         <div className="field">
           <label htmlFor="name">{isBusiness ? 'Nombre del responsable' : 'Nombre completo'}</label>
           <input

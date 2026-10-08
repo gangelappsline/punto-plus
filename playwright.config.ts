@@ -20,6 +20,8 @@ export default defineConfig({
     command: 'npm run dev',
     url: 'http://localhost:5173',
     reuseExistingServer: !process.env.CI,
+    // Los escenarios end-to-end recorren los flujos con datos de demostración.
+    env: { VITE_DATA_MODE: 'demo' },
   },
   projects: [
     {
