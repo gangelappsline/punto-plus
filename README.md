@@ -7,7 +7,8 @@ SPA de fidelidad **React 19 + TypeScript + Vite 6**, en español, responsive y p
 | Ruta             | Vista                                                                             | Acceso                 |
 | ---------------- | --------------------------------------------------------------------------------- | ---------------------- |
 | `/`              | Landing de marca y publicidad (qué, cómo funciona, para negocios, historias, CTA) | Público                |
-| `/login`         | Inicio de sesión (redirige al panel según rol)                                    | Público                |
+| `/login`         | Inicio de sesión con Passport (redirige al panel según rol)                       | Público                |
+| `/registro`      | Alta de cuentas: clientes y negocios (lazy)                                       | Público                |
 | `/app`           | Panel de cliente: mis tarjetas, explorar, recompensas, actividad                  | Cliente (o demo)       |
 | `/admin`         | Panel de administración independiente: resumen + espacio de negocio               | Negocio/admin (o demo) |
 | `/admin/negocio` | Tarjeta del negocio, registro de compras y promociones (lazy)                     | Negocio/admin (o demo) |
@@ -35,7 +36,7 @@ Abrir `http://localhost:5173`. El servidor escucha en `0.0.0.0` y permite el dom
 ```bash
 npm run build         # TypeScript estricto + build y service worker
 npm run preview       # Compilación de producción en :4173
-npm test              # Vitest + React Testing Library: 19 pruebas
+npm test              # Vitest + React Testing Library: 48 pruebas
 npm run typecheck
 npm run format:check
 npx playwright install --with-deps chromium
@@ -45,6 +46,14 @@ npm run test:e2e      # 10 pruebas: escritorio + móvil
 `.npmrc` activa `legacy-peer-deps` para evitar un error de resolución de peers opcionales de Vitest en npm 10. El lockfile fija las versiones instaladas. No se emplea para eludir incompatibilidades conocidas entre React, Router, Query o Vite.
 
 ## Funcionalidades
+
+### Acceso
+
+- Inicio de sesión contra **Laravel Passport** (`Bearer` + `refresh_token`) en `/login`.
+- Alta de **clientes y negocios** desde la misma página `/registro`: el selector de tipo de cuenta muestra los datos del negocio (nombre comercial, categoría, teléfono, dirección, ciudad y RFC opcional) solo cuando corresponde.
+- Validación con Zod en el navegador y traducción de los errores **422** de Laravel al campo correspondiente.
+- Contraseña con confirmación, medidor de seguridad y envío deshabilitado mientras hay petición en vuelo.
+- En modo demo ninguna credencial sale del navegador: se crea una sesión local identificada como demo.
 
 ### Cliente
 
@@ -66,7 +75,7 @@ npm run test:e2e      # 10 pruebas: escritorio + móvil
 - Confirmación de compra antes de otorgar un sello.
 - Guarda de ruta por rol en modo API. **La autorización definitiva siempre debe realizarse en el servidor.**
 
-No se implementa dashboard de administrador (opcional en la solicitud). Registro, recuperación de contraseña, geolocalización, push y analítica no se presentan como funcionalidades disponibles: necesitan requisitos y contratos adicionales. La ciudad, distancia y negocios del demo son datos ilustrativos, no resultados de geolocalización.
+No se implementa dashboard de administrador (opcional en la solicitud). Recuperación de contraseña, geolocalización, push y analítica no se presentan como funcionalidades disponibles: necesitan requisitos y contratos adicionales. El registro sí está implementado; su ruta exacta debe confirmarse con el backend (ver [docs/API_CONTRACT.md](docs/API_CONTRACT.md)). La ciudad, distancia y negocios del demo son datos ilustrativos, no resultados de geolocalización.
 
 ## Probar los flujos sin backend
 
@@ -96,16 +105,21 @@ src/
 │   ├── AdminShell.tsx         # Shell + dashboard del panel de administración
 │   ├── BusinessPage.tsx       # Configuración, compras y promociones (lazy)
 │   ├── Dialogs.tsx            # QR, detalle, canje y promoción
-│   └── Login.tsx
+│   ├── AuthLayout.tsx         # Columna de marca + formulario (login y registro)
+│   ├── Login.tsx              # Inicio de sesión
+│   └── Register.tsx           # Alta de clientes y negocios (lazy)
 ├── lib/
 │   ├── types.ts              # Schemas Zod y tipos inferidos
 │   ├── queries.ts            # TanStack Query, mutaciones e invalidación
+│   ├── tokenStorage.ts       # Normaliza y persiste access/refresh token de Passport
 │   └── utils.ts
 ├── services/
 │   ├── api.ts                # Frontera demo/API, contrato provisional
-│   ├── http.ts               # Axios y refresh single-flight
+│   ├── auth.ts               # login, register, logout y restore
+│   ├── authConfig.ts         # Endpoints y modo de login (passport | json)
+│   ├── http.ts               # Axios, Bearer, refresh single-flight y ApiError
 │   └── demo.ts               # Fixtures, persistencia y reglas demo
-├── stores/auth.ts            # Zustand, usuario y token solo en memoria
+├── stores/auth.ts            # Zustand: sesión hidratada desde tokenStorage
 ├── assets/images/            # Logo de marca (webp original + versión alfa)
 └── test/                     # Tests unitarios, de interfaz y HTTP
 e2e/                          # Escenarios Playwright desktop y móvil
@@ -123,7 +137,54 @@ VITE_API_BASE_URL=https://api.punto-plus.com.mx
 VITE_DATA_MODE=api
 ```
 
-Reiniciar Vite o recompilar después de cambiar variables. **Todo `VITE_*` es público: nunca incluir secretos.** En este modo se restaura la sesión usando la cookie refresh o se muestra login. No hay fallback silencioso a datos demo si la API falla.
+Reiniciar Vite o recompilar después de cambiar variables. **Todo `VITE_*` es público: nunca incluir secretos.** No hay fallback silencioso a datos demo si la API falla.
+
+### Autenticación con Laravel Passport
+
+Por defecto el login usa el **password grant** de Passport:
+
+```http
+POST /oauth/token
+Content-Type: application/x-www-form-urlencoded
+
+grant_type=password&client_id=…&username=…&password=…&scope=
+```
+
+y guarda la respuesta tal cual llega:
+
+```json
+{
+  "token_type": "Bearer",
+  "expires_in": 31536000,
+  "access_token": "eyJ0…",
+  "refresh_token": "def502…"
+}
+```
+
+`src/lib/tokenStorage.ts` normaliza esa respuesta (también acepta camelCase y
+envoltorios como `{ user, authorization: { … } }`), calcula `expiresAt` desde
+`expires_in` y la persiste en `localStorage` bajo `punto-plus.auth.v1` con una copia
+en memoria como respaldo. Axios adjunta `Authorization: Bearer …`, renueva el token de
+forma preventiva cuando está por expirar y comparte una sola petición de refresh entre
+peticiones concurrentes (`grant_type=refresh_token`).
+
+Si el backend expone su propio controlador —lo recomendable para una SPA, porque así el
+`client_secret` nunca llega al navegador— solo cambian variables de entorno:
+
+```dotenv
+VITE_AUTH_LOGIN_MODE=json
+VITE_AUTH_LOGIN_PATH=/api/login
+VITE_AUTH_REFRESH_PATH=/api/refresh
+VITE_AUTH_REGISTER_PATH=/api/register
+VITE_AUTH_PROFILE_PATH=/api/me
+```
+
+**Riesgo asumido:** el `access_token` y el `refresh_token` viven en `localStorage`, que es
+legible por JavaScript del mismo origen. Es el esquema habitual en SPAs sin BFF, pero
+expone la sesión a XSS. Mitigar con CSP estricta y `expires_in` corto; la alternativa más
+segura es guardar el refresh token en una cookie `HttpOnly` de mismo origen (BFF) y
+mantener solo el access token en memoria. La autorización definitiva siempre corresponde
+al servidor.
 
 ## PWA, cámara y despliegue
 

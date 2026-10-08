@@ -89,6 +89,11 @@ export function LandingPage() {
             ))}
           </nav>
           <div className="hidden items-center gap-3 md:flex">
+            {!user && (
+              <Button asChild variant="ghost" className="text-navy">
+                <Link to="/registro">Crear cuenta</Link>
+              </Button>
+            )}
             <Button asChild variant="ghost" className="text-navy">
               <Link to={myPanel}>
                 {user ? 'Mi panel' : isDemo ? 'Ir a mi demo' : 'Iniciar sesión'}
@@ -548,6 +553,11 @@ export function LandingPage() {
               <li>
                 <Link to="/login" className="transition-colors hover:text-sand">
                   Iniciar sesión
+                </Link>
+              </li>
+              <li>
+                <Link to="/registro" className="transition-colors hover:text-sand">
+                  Crear cuenta
                 </Link>
               </li>
             </ul>
