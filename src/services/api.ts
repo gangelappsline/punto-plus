@@ -5,13 +5,12 @@ import {
   businessSchema,
   cardSchema,
   promotionSchema,
-  userSchema,
   type BusinessConfig,
   type Promotion,
 } from '../lib/types';
-import { http, refreshAccessToken } from './http';
+import { http } from './http';
+import * as authService from './auth';
 import { readDB, redeemDemo, updateDB } from './demo';
-import { useAuth } from '../stores/auth';
 // Proposed API contract. These routes and envelopes MUST be confirmed with the backend.
 export const api = {
   cards: async () =>
@@ -115,23 +114,9 @@ export const api = {
       });
     });
   },
-  login: async (input: { email: string; password: string }) => {
-    const session = z
-      .object({ user: userSchema, accessToken: z.string() })
-      .parse((await http.post('/auth/login', input)).data);
-    useAuth.getState().setSession(session.user, session.accessToken);
-    return session;
-  },
-  restore: async () => {
-    await refreshAccessToken();
-    const user = userSchema.parse((await http.get('/me')).data);
-    useAuth.getState().setSession(user, useAuth.getState().accessToken!);
-  },
-  logout: async () => {
-    try {
-      await http.post('/auth/logout');
-    } finally {
-      useAuth.getState().clear();
-    }
-  },
+  // Autenticación con Laravel Passport (Bearer token + refresh token).
+  login: authService.login,
+  register: authService.register,
+  restore: authService.restore,
+  logout: authService.logout,
 };

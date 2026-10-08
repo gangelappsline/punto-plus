@@ -4,7 +4,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { MemoryRouter } from 'react-router-dom';
 import { describe, expect, it } from 'vitest';
 import App from '../App';
-function setup(path = '/') {
+function setup(path = '/app') {
   const client = new QueryClient({
     defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
   });
@@ -49,7 +49,7 @@ describe('Experiencia de cliente', () => {
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
   });
   it('requiere confirmación y actualiza las recompensas al canjear', async () => {
-    const user = setup('/recompensas');
+    const user = setup('/app/recompensas');
     await user.click(await screen.findByRole('button', { name: /Ver tarjeta de Matcha/ }));
     await user.click(screen.getByRole('button', { name: 'Canjear mi recompensa' }));
     expect(screen.getByText(/Se utilizarán 5 sellos/)).toBeInTheDocument();
@@ -61,9 +61,7 @@ describe('Experiencia de cliente', () => {
   it('ofrece regreso al inicio en una ruta desconocida', () => {
     setup('/no-existe');
     expect(screen.getByRole('heading', { name: 'Nos salimos del barrio.' })).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: 'Volver a mis tarjetas' })).toHaveAttribute(
-      'href',
-      '/',
-    );
+    expect(screen.getByRole('link', { name: 'Ir al inicio' })).toHaveAttribute('href', '/');
+    expect(screen.getByRole('link', { name: 'Mis tarjetas' })).toHaveAttribute('href', '/app');
   });
 });

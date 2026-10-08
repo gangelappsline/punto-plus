@@ -50,7 +50,7 @@ export function AdminLayout() {
       </a>
       <aside className="sidebar admin-sidebar">
         <Link to="/" className="admin-brand block" aria-label="Punto Plus · Inicio">
-          <img src={logo} alt="Punto Plus" className="block mx-auto"/>
+          <img src={logo} alt="Punto Plus" className="block mx-auto" />
         </Link>
         <div className="admin-label">PANEL DE ADMINISTRACIÓN</div>
         <nav className="admin-nav" aria-label="Navegación de administración">

@@ -47,7 +47,7 @@ import { AdminLayout, AdminDashboard } from './features/AdminShell';
 import { Button } from './components/ui/button';
 import { Dialog } from './components/ui/dialog';
 import { Scanner } from './components/Scanner';
-import { useAuth, demoUser } from './stores/auth';
+import { useAuth, hydrateAuthOnce, demoUser } from './stores/auth';
 import { useLoyalty } from './lib/queries';
 import { isDemo, panelPathFor } from './lib/utils';
 import { api } from './services/api';
@@ -56,6 +56,7 @@ import logo from './assets/images/logo_2.webp';
 const BusinessPage = lazy(() =>
   import('./features/BusinessPage').then((m) => ({ default: m.BusinessPage })),
 );
+const Register = lazy(() => import('./features/Register').then((m) => ({ default: m.Register })));
 const customerNavigation = [
   { path: '/app', icon: CreditCard, title: 'Mis tarjetas' },
   { path: '/app/explorar', icon: Compass, title: 'Explorar' },
@@ -71,6 +72,8 @@ export default function App() {
   const [starting, setStarting] = useState(!isDemo);
   const client = useQueryClient();
   useEffect(() => {
+    // Repone la sesión guardada (access/refresh token de Passport) al recargar.
+    hydrateAuthOnce();
     if (isDemo) return;
     let active = true;
     void api
@@ -97,6 +100,16 @@ export default function App() {
     <Routes>
       <Route path="/" element={<LandingPage />} />
       <Route path="/login" element={<LoginGate />} />
+      <Route
+        path="/registro"
+        element={
+          <RegisterGate>
+            <Suspense fallback={<div className="app-loading">Preparando tu registro…</div>}>
+              <Register />
+            </Suspense>
+          </RegisterGate>
+        }
+      />
       <Route
         path="/app"
         element={
@@ -136,6 +149,12 @@ function LoginGate() {
   const user = useAuth((s) => s.user);
   if (!isDemo && user) return <Navigate to={panelPathFor(user.role)} replace />;
   return <Login />;
+}
+function RegisterGate({ children }: { children: ReactNode }) {
+  const user = useAuth((s) => s.user);
+  // Con la sesión ya iniciada no tiene sentido volver al registro.
+  if (!isDemo && user) return <Navigate to={panelPathFor(user.role)} replace />;
+  return <>{children}</>;
 }
 function CustomerGate({ children }: { children: ReactNode }) {
   const user = useAuth((s) => s.user);

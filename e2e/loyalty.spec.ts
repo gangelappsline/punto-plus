@@ -2,7 +2,7 @@ import { test, expect } from '@playwright/test';
 test('el dashboard carga imágenes y no desborda la pantalla', async ({ page }) => {
   const errors: string[] = [];
   page.on('pageerror', (e) => errors.push(e.message));
-  await page.goto('/');
+  await page.goto('/app');
   await expect(page.getByRole('heading', { name: 'Tus favoritos, te dan más.' })).toBeVisible();
   await expect(page.getByRole('button', { name: /Ver tarjeta de Café Avellaneda/ })).toBeVisible();
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(
@@ -23,7 +23,7 @@ test('el dashboard carga imágenes y no desborda la pantalla', async ({ page }) 
   expect(errors).toEqual([]);
 });
 test('busca, canjea con confirmación y conserva el historial', async ({ page }) => {
-  await page.goto('/');
+  await page.goto('/app');
   await page.getByRole('textbox', { name: 'Buscar negocios o tarjetas' }).fill('matcha');
   await expect(page.locator('.loyalty-grid .loyalty-card')).toHaveCount(1);
   await page.getByRole('button', { name: /Ver tarjeta de Matcha/ }).click();
@@ -31,13 +31,13 @@ test('busca, canjea con confirmación y conserva el historial', async ({ page })
   await expect(page.getByText('Canje de demostración. No tiene valor comercial.')).toBeVisible();
   await page.getByRole('button', { name: 'Confirmar canje' }).click();
   await expect(page.getByRole('dialog')).not.toBeVisible();
-  await page.goto('/actividad');
+  await page.goto('/app/actividad');
   await expect(
     page.getByRole('heading', { name: 'Canjeaste: Tu matcha favorito gratis' }),
   ).toBeVisible();
 });
 test('el QR demo del negocio permite agregar una tarjeta', async ({ page, isMobile }) => {
-  await page.goto('/');
+  await page.goto('/app');
   if (isMobile) await page.getByRole('button', { name: 'Abrir menú' }).click();
   await page.getByRole('button', { name: 'Escanear un negocio' }).click();
   await page.getByRole('button', { name: 'Probar con un QR de demostración' }).click();
@@ -47,7 +47,7 @@ test('el QR demo del negocio permite agregar una tarjeta', async ({ page, isMobi
   await expect(page.getByRole('button', { name: /Ver tarjeta de Casa Botánica/ })).toBeVisible();
 });
 test('configura la tarjeta y registra una compra con confirmación', async ({ page }) => {
-  await page.goto('/negocio');
+  await page.goto('/admin/negocio');
   await page.getByLabel('Nombre del negocio', { exact: true }).fill('Café de Sofía');
   await page.getByRole('button', { name: 'Guardar configuración' }).click();
   await expect(page.getByText('La tarjeta de tu negocio se guardó')).toBeVisible();
@@ -55,13 +55,13 @@ test('configura la tarjeta y registra una compra con confirmación', async ({ pa
   await page.getByRole('button', { name: 'Probar con un QR de demostración' }).click();
   await page.getByRole('button', { name: 'Confirmar compra y agregar sello' }).click();
   await expect(page.getByRole('dialog')).not.toBeVisible();
-  await page.goto('/');
+  await page.goto('/app');
   await expect(
     page.getByRole('button', { name: /Ver tarjeta de Café de Sofía, 7 de 8/ }),
   ).toBeVisible();
 });
 test('publica y guarda una promoción', async ({ page }) => {
-  await page.goto('/negocio');
+  await page.goto('/admin/negocio');
   await page.getByRole('button', { name: 'Promociones', exact: true }).click();
   await page.getByRole('button', { name: 'Nueva promoción' }).click();
   await page.getByLabel('Título', { exact: true }).fill('Un café para compartir');
@@ -71,7 +71,7 @@ test('publica y guarda una promoción', async ({ page }) => {
   await page.getByLabel('Válida hasta').fill('2030-12-31');
   await page.getByRole('button', { name: 'Publicar promoción' }).click();
   await expect(page.getByRole('dialog')).not.toBeVisible();
-  await page.goto('/explorar');
+  await page.goto('/app/explorar');
   await page
     .getByRole('textbox', { name: 'Buscar negocios o tarjetas' })
     .fill('Un café para compartir');

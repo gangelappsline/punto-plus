@@ -4,20 +4,62 @@ La API no resolvió por DNS durante el desarrollo. Ni las rutas, ni los nombres 
 
 La adaptación se concentra en `src/services/api.ts` y `src/services/http.ts`. Los schemas de `src/lib/types.ts` validan las respuestas; una forma de respuesta incompatible produce un estado de error en lugar de interpretar datos inválidos.
 
-## Autenticación asumida
+## Autenticación asumida (Laravel Passport)
 
-| Método y ruta        | Entrada                    | Respuesta esperada                                |
-| -------------------- | -------------------------- | ------------------------------------------------- |
-| `POST /auth/login`   | `{ email, password }`      | `{ user, accessToken }` y cookie refresh HttpOnly |
-| `POST /auth/refresh` | Cookie, sin body requerido | `{ accessToken }` y rotación de cookie            |
-| `GET /me`            | Bearer token               | `User`                                            |
-| `POST /auth/logout`  | Cookie y Bearer token      | 2xx; invalida refresh y limpia cookie             |
+La API usa **Passport**, así que el frontend trabaja con **Bearer tokens**. Dos modos,
+seleccionables por variable de entorno sin tocar el código:
+
+| Modo                                      | Endpoints                                                    | Cuándo usarlo                              |
+| ----------------------------------------- | ------------------------------------------------------------ | ------------------------------------------ |
+| `VITE_AUTH_LOGIN_MODE=passport` (defecto) | `POST /oauth/token` (password grant y refresh_token grant)   | La SPA habla directo con Passport          |
+| `VITE_AUTH_LOGIN_MODE=json`               | `POST /api/login`, `POST /api/refresh`, `POST /api/register` | El backend tiene sus propios controladores |
+
+| Operación | Petición (modo passport)                                                              | Respuesta esperada                                        |
+| --------- | ------------------------------------------------------------------------------------- | --------------------------------------------------------- |
+| Login     | `POST /oauth/token` form: `grant_type=password, client_id, username, password, scope` | `{ token_type, expires_in, access_token, refresh_token }` |
+| Refresh   | `POST /oauth/token` form: `grant_type=refresh_token, refresh_token, client_id, scope` | igual que el login, con tokens rotados                    |
+| Perfil    | `GET /api/me` con `Authorization: Bearer …`                                           | `User` (se acepta envuelto en `{ data: … }`)              |
+| Registro  | `POST /api/register` JSON                                                             | `User` y, opcionalmente, los tokens                       |
+| Logout    | `POST /api/logout`                                                                    | 2xx; el frontend limpia su sesión de todos modos          |
+
+**Registro — payload.** El campo `role` distingue cliente de negocio:
+
+```jsonc
+// Cliente
+{ "role": "customer", "name": "Sofía García", "email": "sofia@example.com",
+  "password": "…", "password_confirmation": "…", "phone": "55 1234 5678" }
+
+// Negocio
+{ "role": "business", "name": "Ana Ramírez", "email": "ana@example.com",
+  "password": "…", "password_confirmation": "…", "phone": "55 1234 5678",
+  "business": { "name": "Café Avellaneda", "category": "Cafetería",
+                "phone": "55 8765 4321", "address": "Av. Michoacán 120",
+                "city": "Ciudad de México", "rfc": "CAV190315AB1" } }
+```
+
+Si la respuesta de registro no trae tokens, el frontend inicia sesión de inmediato con
+las credenciales recién creadas. **Pendiente de confirmar con el backend:** la ruta real,
+los nombres de campo, si el negocio es una entidad separada con su propia tabla/relación,
+si `role` se llama de otra forma y si se exige verificación de correo o teléfono.
 
 `User`: `{ id: string, name: string, email: string, role: 'customer' | 'business' | 'admin' }`.
+El frontend tolera `id` numérico y roles del backend como `negocio`, `merchant`, `admin`
+o `administrador`, y los traduce a su vocabulario (`normalizeRole`).
 
-El access token vive **solo en memoria**. Axios adjunta `Authorization: Bearer …`, usa `withCredentials`, tiene timeout de 15 s y comparte una promesa de refresh entre peticiones concurrentes. Cada petición reintenta una sola vez tras 401. Login/refresh no disparan refresh recursivos. Una sesión inválida se elimina. Los errores 403, 429 y de red se traducen sin exponer detalles sensibles.
+**Almacenamiento de los tokens.** `src/lib/tokenStorage.ts` acepta la respuesta de
+Passport en snake_case, en camelCase y envuelta (`{ user, authorization: { … } }`), calcula
+`expiresAt = ahora + expires_in` y guarda todo en `localStorage` bajo `punto-plus.auth.v1`
+(con respaldo en memoria si el almacenamiento está bloqueado). El access token viaja como
+`Authorization: Bearer …`; el refresh token se usa una sola vez por ciclo y se comparte
+entre peticiones concurrentes (single-flight). Errores: 400 `invalid_credentials` y 401 se
+traducen a "Correo o contraseña incorrectos"; un 422 expone `errors` por campo para
+pintarlos junto a cada input.
 
-La cookie requiere configuración apropiada de `Secure`, `HttpOnly`, `SameSite`, ámbito y expiración. Los previews `.e2b.app` son cross-site respecto al backend: las cookies de terceros pueden estar bloqueadas; un BFF de mismo origen puede ser necesario. Un fallo al revocar logout se informa aunque la sesión local se elimine.
+> **Riesgo:** `localStorage` es legible por JavaScript del mismo origen, así que un XSS
+> robaría la sesión. Mitigar con CSP estricta y `expires_in` corto. La alternativa más
+> segura es un BFF con el refresh token en cookie `HttpOnly` y el access token solo en
+> memoria. **Confirmar** CORS con orígenes explícitos, preflight de `Authorization` y
+> `Content-Type`, y la revocación real de tokens en logout (`DELETE /oauth/tokens/{id}`).
 
 ## Cliente
 
@@ -95,6 +137,8 @@ La implementación demo acepta logo/imagen como data URL (JPG/PNG/WebP hasta 2 M
 - [ ] Acordar formato, firma, expiración y un solo uso de QR.
 - [ ] Resolver compras/canjes atómicos, concurrencia e idempotencia, incluyendo timeouts ambiguos.
 - [ ] Definir carga segura, límites y almacenamiento de imágenes.
-- [ ] Definir registro/recuperación de cuenta, privacidad y términos legales.
+- [ ] Confirmar ruta, campos y respuesta del registro (cliente y negocio), y si el negocio requiere aprobación.
+- [ ] Definir verificación de correo/teléfono, recuperación de contraseña, privacidad y términos legales.
+- [ ] Decidir el almacenamiento de tokens: `localStorage` actual o BFF con cookie `HttpOnly`.
 - [ ] Sustituir datos y recursos ilustrativos por contenido con licencia/consentimiento.
 - [ ] Realizar E2E con sandbox oficial y pruebas de cámara en dispositivos físicos.
