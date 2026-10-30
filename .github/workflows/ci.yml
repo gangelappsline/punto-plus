@@ -6,9 +6,6 @@ on:
 jobs:
   check:
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      pull-requests: write
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -20,27 +17,4 @@ jobs:
       - run: npm test
       - run: npm run build
       - run: npx playwright install --with-deps chromium
-      # TEMPORAL (diagnóstico): el entorno de desarrollo no puede descargar los
-      # navegadores de Playwright ni leer los logs de Actions, así que este paso
-      # publica el detalle de la falla e2e en el PR. Se retira al diagnosticar.
-      - name: Run npm run test:e2e
-        shell: bash
-        run: |
-          set -o pipefail
-          npm run test:e2e -- --reporter=list 2>&1 | tee e2e.log
-      - name: Report e2e output on the PR
-        if: failure() && github.event_name == 'pull_request'
-        shell: bash
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          PR_NUMBER: ${{ github.event.pull_request.number }}
-        run: |
-          test -f e2e.log || exit 0
-          {
-            echo '### Diagnóstico e2e (paso temporal)'
-            echo
-            echo '```'
-            tail -n 300 e2e.log
-            echo '```'
-          } > e2e-report.md
-          gh pr comment "$PR_NUMBER" --body-file e2e-report.md
+      - run: npm run test:e2e

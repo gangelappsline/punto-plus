@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { MemoryRouter } from 'react-router-dom';
@@ -91,6 +91,34 @@ describe('Formulario de promoción del negocio', () => {
     expect(await screen.findByPlaceholderText('Puntos')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /Agregar nivel/ })).toBeInTheDocument();
     expect(screen.queryByLabelText(/Después de cuántas compras/)).not.toBeInTheDocument();
+  });
+
+  it('publica una promoción directa con los valores por defecto del formulario', async () => {
+    const user = await openPromotionForm();
+
+    await user.type(screen.getByLabelText('Título'), 'Un café para compartir');
+    await user.type(
+      screen.getByLabelText('Descripción y condiciones'),
+      'Dos cafés por el precio de uno. Válido de lunes a viernes de 8 a 10 h.',
+    );
+    // `<input type="date">` sanitiza cada pulsación, así que se asigna el valor completo.
+    fireEvent.change(screen.getByLabelText('Válida hasta'), {
+      target: { value: '2030-12-31' },
+    });
+    await user.click(screen.getByRole('button', { name: /Publicar promoción/ }));
+
+    // Regresión: la fila de niveles arranca con el beneficio vacío y eso no debe
+    // impedir publicar una promoción de otro tipo (el diálogo se quedaba abierto).
+    await waitFor(() => expect(readDB().promotions[0]?.title).toBe('Un café para compartir'));
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+
+    const saved = readDB().promotions[0];
+    expect(saved.type).toBe('direct');
+    expect(saved.appliesAlways).toBe(true);
+    // Solo viajan las condiciones del tipo elegido.
+    expect(saved.tiers).toBeUndefined();
+    expect(saved.purchasesRequired).toBeUndefined();
+    expect(saved.weekdays).toBeUndefined();
   });
 
   it('revela los días y horarios de una promoción directa no permanente', async () => {

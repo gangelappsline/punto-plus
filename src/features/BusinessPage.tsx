@@ -29,6 +29,7 @@ import {
   useStamp,
 } from '../lib/queries';
 import { readImage } from '../lib/image';
+import type { PromotionInput } from '../services/api';
 import { LoyaltyCard } from '../components/LoyaltyCard';
 import { Button } from '../components/ui/button';
 import { Dialog } from '../components/ui/dialog';
@@ -51,12 +52,15 @@ const promotionFormSchema = z
     purchasesRequired: z.coerce.number().int().min(1, 'Elige al menos 1 compra').optional(),
     freeProduct: z.string().optional(),
     freeQuantity: z.coerce.number().int().min(1).optional(),
-    // Por pasos
+    // Por pasos: la fila inicial arranca con el beneficio vacío, así que la forma de
+    // cada nivel se relaja aquí y la obligación real se resuelve por tipo en
+    // `superRefine`. Si se exigiera `min(1)` desde la base, ningún tipo de promoción
+    // podría publicarse mientras exista una fila sin beneficio.
     tiers: z
       .array(
         z.object({
-          points: z.coerce.number().int().min(1, 'Puntos mínimos requeridos'),
-          benefit: z.string().min(1, 'Describe el beneficio'),
+          points: z.coerce.number(),
+          benefit: z.string(),
         }),
       )
       .optional(),
@@ -127,6 +131,41 @@ const promotionFormSchema = z
     }
   });
 type PromotionForm = z.infer<typeof promotionFormSchema>;
+/**
+ * Deja en el payload únicamente las condiciones del tipo elegido: el formulario
+ * conserva valores por defecto de los tres tipos y no tiene sentido enviar al
+ * backend niveles de puntos vacíos en una promoción directa.
+ */
+function promotionPayload(v: PromotionForm): PromotionInput {
+  const base = {
+    type: v.type,
+    title: v.title,
+    description: v.description,
+    expires: v.expires,
+    image: v.image,
+  };
+  if (v.type === 'simple')
+    return {
+      ...base,
+      purchasesRequired: v.purchasesRequired,
+      freeProduct: v.freeProduct,
+      freeQuantity: v.freeQuantity,
+    };
+  if (v.type === 'steps')
+    return {
+      ...base,
+      tiers: (v.tiers ?? []).map((t) => ({ points: t.points, benefit: t.benefit })),
+    };
+  return v.appliesAlways
+    ? { ...base, appliesAlways: true }
+    : {
+        ...base,
+        appliesAlways: false,
+        weekdays: v.weekdays ?? [],
+        startTime: v.startTime,
+        endTime: v.endTime,
+      };
+}
 function BusinessEditor({ config }: { config: BusinessConfig }) {
   const {
     register,
@@ -441,7 +480,10 @@ export function BusinessPage() {
         title="Algo bueno para tus clientes"
         description="Publica una promoción con sus condiciones y vigencia."
       >
-        <form className="modal-form" onSubmit={form.handleSubmit((v) => promotion.mutate(v))}>
+        <form
+          className="modal-form"
+          onSubmit={form.handleSubmit((v) => promotion.mutate(promotionPayload(v)))}
+        >
           <label>
             Tipo de promoción
             <select {...form.register('type')}>
