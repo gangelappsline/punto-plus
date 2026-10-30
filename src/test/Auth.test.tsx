@@ -86,27 +86,26 @@ describe('Página de registro', () => {
     });
   });
 
-  it('muestra los datos del negocio solo al elegir esa cuenta', async () => {
+  it('pide los mismos campos al elegir cliente o negocio', async () => {
     const user = setup(<Register />, '/registro');
     expect(screen.queryByLabelText('Nombre comercial')).not.toBeInTheDocument();
     await user.click(screen.getByRole('radio', { name: /Tengo un negocio/ }));
-    expect(await screen.findByLabelText('Nombre comercial')).toBeInTheDocument();
-    expect(screen.getByLabelText('Categoría')).toBeInTheDocument();
-    expect(screen.getByLabelText('Dirección del local')).toBeInTheDocument();
-    expect(screen.getByLabelText(/RFC/)).toBeInTheDocument();
+    // Los datos del negocio (logo, menú, categorías…) se capturan después de iniciar sesión,
+    // no en el formulario de creación de la cuenta.
+    expect(screen.queryByLabelText('Nombre comercial')).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('Categoría')).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('Dirección del local')).not.toBeInTheDocument();
+    expect(screen.queryByLabelText(/RFC/)).not.toBeInTheDocument();
+    expect(await screen.findByLabelText('Teléfono')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /Registrar mi negocio/ })).toBeInTheDocument();
   });
 
-  it('registra un negocio con sus datos y entra al panel de administración', async () => {
+  it('registra un negocio con nombre, correo, teléfono y contraseña', async () => {
     const user = setup(<Register />, '/registro');
     await user.click(screen.getByRole('radio', { name: /Tengo un negocio/ }));
     await user.type(await screen.findByLabelText('Nombre del responsable'), 'Ana Ramírez');
     await user.type(screen.getByLabelText(/Correo electrónico/), 'ana@avellaneda.mx');
-    await user.type(screen.getByLabelText('Nombre comercial'), 'Café Avellaneda');
-    await user.selectOptions(screen.getByLabelText('Categoría'), 'Cafetería');
-    await user.type(screen.getByLabelText('Teléfono del negocio'), '55 8765 4321');
-    await user.type(screen.getByLabelText('Dirección del local'), 'Av. Michoacán 120');
-    await user.type(screen.getByLabelText('Ciudad'), 'Ciudad de México');
+    await user.type(screen.getByLabelText('Teléfono'), '55 8765 4321');
     await user.type(screen.getByLabelText('Contraseña'), 'avellaneda1');
     await user.type(screen.getByLabelText('Confirmar contraseña'), 'avellaneda1');
     await user.click(screen.getByText(/Acepto los términos/));
@@ -134,18 +133,18 @@ describe('Página de registro', () => {
     await waitFor(() => expect(localStorage.getItem(AUTH_STORAGE_KEY)).toBeNull());
   });
 
-  it('exige los datos del negocio cuando se elige esa cuenta', async () => {
+  it('exige los campos requeridos también para una cuenta de negocio', async () => {
     const user = setup(<Register />, '/registro');
     await user.click(screen.getByRole('radio', { name: /Tengo un negocio/ }));
     await user.type(await screen.findByLabelText('Nombre del responsable'), 'Ana Ramírez');
-    await user.type(screen.getByLabelText(/Correo electrónico/), 'ana@avellaneda.mx');
+    await user.type(screen.getByLabelText(/Correo electrónico/), 'no-es-un-correo');
+    await user.type(screen.getByLabelText('Teléfono'), '55 8765 4321');
     await user.type(screen.getByLabelText('Contraseña'), 'avellaneda1');
     await user.type(screen.getByLabelText('Confirmar contraseña'), 'avellaneda1');
     await user.click(screen.getByText(/Acepto los términos/));
     await user.click(screen.getByRole('button', { name: /Registrar mi negocio/ }));
 
-    expect(await screen.findByText('Escribe el nombre de tu negocio')).toBeInTheDocument();
-    expect(screen.getByText('Elige la categoría de tu negocio')).toBeInTheDocument();
+    expect(await screen.findByText('Escribe un correo válido')).toBeInTheDocument();
   });
 
   it('enlaza de vuelta al inicio de sesión', () => {

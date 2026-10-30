@@ -4,14 +4,16 @@ SPA de fidelidad **React 19 + TypeScript + Vite 6**, en español, responsive y p
 
 ## Rutas y paneles
 
-| Ruta             | Vista                                                                             | Acceso                            |
-| ---------------- | --------------------------------------------------------------------------------- | --------------------------------- |
-| `/`              | Landing de marca y publicidad (qué, cómo funciona, para negocios, historias, CTA) | Público                           |
-| `/login`         | Inicio de sesión contra la API (redirige al panel según rol)                      | Público; con sesión va a su panel |
-| `/registro`      | Alta de cuentas: clientes y negocios (lazy)                                       | Público; con sesión va a su panel |
-| `/app`           | Panel de cliente: mis tarjetas, explorar, recompensas, actividad                  | Cliente con token vigente         |
-| `/admin`         | Panel de negocio: resumen del negocio                                             | Negocio o admin con token vigente |
-| `/admin/negocio` | Tarjeta del negocio, registro de compras y promociones (lazy)                     | Negocio o admin con token vigente |
+| Ruta                | Vista                                                                             | Acceso                            |
+| ------------------- | --------------------------------------------------------------------------------- | --------------------------------- |
+| `/`                 | Landing de marca y publicidad (qué, cómo funciona, para negocios, historias, CTA) | Público                           |
+| `/login`            | Inicio de sesión contra la API (redirige al panel según rol)                      | Público; con sesión va a su panel |
+| `/registro`         | Alta de cuentas: clientes y negocios (lazy)                                       | Público; con sesión va a su panel |
+| `/menu/:negocio`    | Menú digital público del negocio, con su QR                                       | Público                           |
+| `/app`              | Panel de cliente: mis tarjetas, explorar, recompensas, actividad                  | Cliente con token vigente         |
+| `/admin`            | Panel de negocio: resumen del negocio                                             | Negocio o admin con token vigente |
+| `/admin/negocio`    | Tarjeta del negocio, registro de compras y promociones (lazy)                     | Negocio o admin con token vigente |
+| `/admin/onboarding` | Asistente por pasos para dar de alta el negocio (lazy)                            | Negocio o admin con token vigente |
 
 Cada panel es un **layout independiente** (`CustomerShell.tsx` y `AdminShell.tsx`) y se monta detrás de su guarda en `src/features/Guards.tsx`:
 
@@ -43,7 +45,7 @@ Abrir `http://localhost:5173`. El servidor escucha en `0.0.0.0` y permite el dom
 ```bash
 npm run build         # TypeScript estricto + build y service worker
 npm run preview       # Compilación de producción en :4173
-npm test              # Vitest + React Testing Library: 60 pruebas
+npm test              # Vitest + React Testing Library: 80 pruebas
 npm run typecheck
 npm run format:check
 npx playwright install --with-deps chromium
@@ -58,7 +60,7 @@ npm run test:e2e      # 10 pruebas: escritorio + móvil (corren en modo demo)
 
 - Inicio de sesión en `/login` contra la API real (Passport `Bearer` + `refresh_token` o el controlador propio del backend, según `VITE_AUTH_LOGIN_MODE`). El formulario envía las credenciales con `useLogin`, guarda el token que responde el servidor y entra al panel del rol; vuelve a la ruta que se intentó abrir si le corresponde.
 - Los paneles quedan protegidos por token y rol (ver [Rutas y paneles](#rutas-y-paneles)).
-- Alta de **clientes y negocios** desde la misma página `/registro`: el selector de tipo de cuenta muestra los datos del negocio (nombre comercial, categoría, teléfono, dirección, ciudad y RFC opcional) solo cuando corresponde.
+- Alta de **clientes y negocios** desde la misma página `/registro`, con los mismos cuatro datos para ambos: **nombre, correo, teléfono y contraseña** (más confirmación y aceptación de términos). El selector de tipo de cuenta solo cambia el copy y el rol enviado; los datos del negocio se capturan después, en el asistente por pasos (ver [Negocio](#negocio)).
 - Validación con Zod en el navegador y traducción de los errores **422** de Laravel al campo correspondiente.
 - Contraseña con confirmación, medidor de seguridad y envío deshabilitado mientras hay petición en vuelo.
 - En modo demo ninguna credencial sale del navegador: se crea una sesión local identificada como demo.
@@ -76,12 +78,36 @@ npm run test:e2e      # 10 pruebas: escritorio + móvil (corren en modo demo)
 
 ### Negocio
 
-- Nombre, recompensa, meta de 2–12 sellos, paleta, icono y logo.
+**Asistente de alta por pasos** (`/admin/onboarding`, también montado en `/admin/negocio` mientras el perfil esté incompleto). Tras crear la cuenta e iniciar sesión, el dueño completa su negocio en siete pasos; al publicar se guarda todo de una vez y se le devuelve a su panel:
+
+1. **Logo** (obligatorio). Al subirlo se analizan sus píxeles en el navegador y se propone la paleta.
+2. **Banner** (opcional), portada del menú digital y de la tarjeta.
+3. **Nombre del negocio**.
+4. **Categorías de comida** que vende (selección múltiple).
+5. **Menú**: subir la foto del menú impreso genera un borrador de platos a partir de las categorías elegidas; el dueño edita nombre, precio y descripción, agrega o quita platos antes de publicar.
+6. **Colores del menú y el QR**, precargados con los del logo y ajustables; hay vista previa de la tarjeta del menú y del QR ya pintado con esos colores.
+7. **Promoción de bienvenida**, con el tipo que el dueño elija (ver abajo).
+
+El análisis de color (`src/lib/colors.ts`) ocurre por completo en el cliente: cuantiza los píxeles, descarta transparencias y fondos blancos/negros, elige el color dominante y el que mejor contraste hace con él, y oscurece el frente del QR hasta alcanzar un contraste ≥ 4.5:1. **Si la imagen no se puede decodificar, se usa la paleta de marca como respaldo** y el flujo continúa.
+
+**Promociones** — tres tipos, cada uno con sus propios campos y validación:
+
+| Tipo          | Cómo funciona                                                 | Campos                                                   |
+| ------------- | ------------------------------------------------------------- | -------------------------------------------------------- |
+| **Sencilla**  | Al juntar cierto número de compras se gana producto(s) gratis | compras requeridas, producto gratis, cantidad            |
+| **Por pasos** | Beneficios al alcanzar cada meta de puntos                    | lista de niveles (puntos mínimos + beneficio)            |
+| **Directas**  | Sin condición: siempre activas, o en días y horas específicos | siempre activa, o días de la semana + hora de inicio/fin |
+
+Ejemplos de directas: "Jueves de 2×1 en hot-dogs" o "Martes de $17 el taco de barbacoa".
+
+- Nombre, recompensa, meta de 2–12 sellos, paleta, icono y logo editables después del alta.
 - Vista previa de la tarjeta.
 - Promociones con imagen opcional, validación, condiciones y vigencia.
 - Escaneo mediante cámara tras permiso explícito o entrada manual del código.
 - Confirmación de compra antes de otorgar un sello.
 - Guarda de ruta por rol: un cliente no entra a `/admin` y un negocio no entra a `/app`. **La autorización definitiva siempre debe realizarse en el servidor.**
+
+> **Límites asumidos del asistente.** El análisis del menú es un **borrador a partir de las categorías**, no OCR: leer el texto de la foto del menú impreso requiere un servicio de OCR/visión que el backend debe proveer (ver [docs/API_CONTRACT.md](docs/API_CONTRACT.md)). El dueño revisa y corrige cada plato antes de publicar, así que ningún dato incorrecto llega al menú sin su confirmación. La recompensa y la meta de sellos se crean con valores por defecto (producto gratis, 8 sellos) y se ajustan en "Mi tarjeta".
 
 No se implementa dashboard de administrador (opcional en la solicitud). Recuperación de contraseña, geolocalización, push y analítica no se presentan como funcionalidades disponibles: necesitan requisitos y contratos adicionales. El registro sí está implementado; su ruta exacta debe confirmarse con el backend (ver [docs/API_CONTRACT.md](docs/API_CONTRACT.md)). La ciudad, distancia y negocios del demo son datos ilustrativos, no resultados de geolocalización.
 
@@ -89,11 +115,12 @@ No se implementa dashboard de administrador (opcional en la solicitud). Recupera
 
 Definir `VITE_DATA_MODE=demo` en `.env` y reiniciar Vite.
 
-1. **Canje:** abrir Matcha & Co. → Canjear → Confirmar. Se consumen cinco sellos y se registra un evento.
-2. **Compra:** Mi negocio → Registrar una compra → Probar con un QR de demostración → Confirmar. Agrega un sello a Café Avellaneda; una tarjeta completa no admite más sellos hasta canjear.
-3. **Alta:** Escanear un negocio → Probar con un QR de demostración → Agregar a mis tarjetas. Incorpora Casa Botánica.
-4. **Promociones:** Mi negocio → Promociones → Nueva promoción. La nueva promoción aparece en Explorar.
-5. **Restablecer:** eliminar la clave `punto-plus-demo-v1` de localStorage y recargar.
+1. **Alta de negocio:** `/registro` → _Tengo un negocio_ → nombre, correo, teléfono y contraseña. Con la API real, una cuenta nueva entra a `/admin` sin perfil y el aviso _Termina de configurar tu negocio_ la lleva al asistente. En el demo, Café Avellaneda ya viene configurado (tiene clientes, sellos e historial), así que el asistente se abre directo en `/admin/onboarding`: logo → banner → nombre → categorías → menú → colores → promoción → publicar. Al publicar, `/admin/negocio` muestra el editor y `/menu/<negocio>` el menú digital con su QR.
+2. **Canje:** abrir Matcha & Co. → Canjear → Confirmar. Se consumen cinco sellos y se registra un evento.
+3. **Compra:** Mi negocio → Registrar una compra → Probar con un QR de demostración → Confirmar. Agrega un sello a Café Avellaneda; una tarjeta completa no admite más sellos hasta canjear.
+4. **Alta:** Escanear un negocio → Probar con un QR de demostración → Agregar a mis tarjetas. Incorpora Casa Botánica.
+5. **Promociones:** Mi negocio → Promociones → Nueva promoción → elegir tipo (sencilla, por pasos o directa). La nueva promoción aparece en Explorar.
+6. **Restablecer:** eliminar la clave `punto-plus-demo-v1` de localStorage y recargar.
 
 Los datos demo se validan con Zod y se guardan únicamente en el navegador. Los canjes y promociones demo **no tienen valor comercial**. No son un mecanismo de autorización ni un sustituto de transacciones del backend. El demo no garantiza atomicidad entre varias pestañas.
 
@@ -118,6 +145,8 @@ src/
 │   ├── AdminShell.tsx         # Layout del panel de negocio
 │   ├── AdminDashboard.tsx     # Resumen del negocio
 │   ├── BusinessPage.tsx       # Configuración, compras y promociones (lazy)
+│   ├── BusinessOnboarding.tsx # Asistente por pasos: logo, banner, menú, colores, promoción (lazy)
+│   ├── MenuPage.tsx           # Menú digital público con el QR del negocio
 │   ├── Dialogs.tsx            # QR, detalle, canje y promoción
 │   ├── AuthLayout.tsx         # Columna de marca + formulario (login y registro)
 │   ├── Login.tsx              # Inicio de sesión
@@ -126,6 +155,8 @@ src/
 ├── lib/
 │   ├── types.ts              # Schemas Zod y tipos inferidos
 │   ├── queries.ts            # Consultas y mutaciones de datos (TanStack Query)
+│   ├── colors.ts             # Paleta extraída del logo en el cliente (contraste del QR)
+│   ├── image.ts              # Lectura y validación de imágenes subidas
 │   ├── session.ts            # Sesión: restore, login, registro y logout (Query)
 │   ├── tokenStorage.ts       # Normaliza y persiste access/refresh token de Passport
 │   └── utils.ts              # Modo demo/API, paneles por rol y mensajes de error
@@ -142,7 +173,7 @@ e2e/                          # Escenarios Playwright desktop y móvil
 public/                       # Iconos PWA e imágenes locales optimizadas
 ```
 
-**Todas las peticiones a la API pasan por TanStack Query.** Ningún componente llama a `services/api.ts` directamente: usa los hooks de `lib/queries.ts` (tarjetas, promociones, actividad, favoritos, QR, negocio) o los de `lib/session.ts` (restore, login, registro y logout). Cada hook fija su clave de caché, cuándo se ejecuta y qué se revalida; los guards solo leen el token del store, así que la navegación no dispara peticiones de más.
+**Todas las peticiones a la API pasan por TanStack Query.** Ningún componente llama a `services/api.ts` directamente: usa los hooks de `lib/queries.ts` (tarjetas, promociones, actividad, favoritos, QR, negocio y `usePublishBusiness`, que guarda el perfil completo del asistente y crea su promoción en una sola mutación) o los de `lib/session.ts` (restore, login, registro y logout). Cada hook fija su clave de caché, cuándo se ejecuta y qué se revalida; los guards solo leen el token del store, así que la navegación no dispara peticiones de más.
 
 Zustand contiene únicamente la sesión (usuario, access token y expiración), hidratada desde `tokenStorage` antes del primer render en `main.tsx`. Formularios con React Hook Form + Zod. No se duplican peticiones en loaders del router: Query gestiona carga, caché y revalidación. El scanner y el panel de negocio se cargan de forma diferida. Tipografías variables locales; no se depende de Google Fonts ni de imágenes remotas para el demo.
 
@@ -229,7 +260,9 @@ La API configurada es HTTPS y accesible desde el navegador. No hay URLs `localho
 
 ## Verificación y límites
 
-Las pruebas comprueban consumos de sellos, rechazo de canjes inválidos, alta idempotente en demo, favoritos, almacenamiento corrupto, configuración, login/refresh concurrente y limpieza de sesión, QR accesible y flujos completos en ambos tamaños de pantalla. La cámara física y las operaciones del backend requieren pruebas de aceptación con dispositivos y el servicio real.
+Las pruebas comprueban consumos de sellos, rechazo de canjes inválidos, alta idempotente en demo, favoritos, almacenamiento corrupto, configuración, login/refresh concurrente y limpieza de sesión, QR accesible y flujos completos en ambos tamaños de pantalla. A eso se agrega la cobertura del alta de negocios: registro con los cuatro datos para ambos roles, el asistente por pasos de punta a punta (logo → banner → nombre → categorías → menú → colores → promoción → publicación), la guarda que muestra el asistente o el editor según `onboarded`, los tres tipos de promoción persistidos con sus condiciones, la conversión y el contraste de la paleta, y el menú digital público (con sus estados de carga, error y menú vacío).
+
+La cámara física y las operaciones del backend requieren pruebas de aceptación con dispositivos y el servicio real. Dos límites quedan fuera del alcance de las pruebas automatizadas: **el análisis real de la imagen del logo** (jsdom no decodifica imágenes, así que solo se prueba la ruta de respaldo y la matemática de color; la extracción sobre una imagen real se verifica en el navegador) y **la lectura del menú impreso**, que hoy no usa OCR (ver [docs/API_CONTRACT.md](docs/API_CONTRACT.md)).
 
 ## Recursos visuales
 

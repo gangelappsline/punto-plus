@@ -12,6 +12,14 @@ import { http } from './http';
 import * as authService from './auth';
 import { readDB, redeemDemo, updateDB } from './demo';
 // Proposed API contract. These routes and envelopes MUST be confirmed with the backend.
+/** Payload para crear una promoción: los campos de identidad los rellena el backend/demo. */
+export type PromotionInput = {
+  title: string;
+  description: string;
+  expires: string;
+  image: string;
+} & Partial<Promotion>;
+
 export const api = {
   cards: async () =>
     isDemo ? readDB().cards : z.array(cardSchema).parse((await http.get('/customer/cards')).data),
@@ -24,7 +32,9 @@ export const api = {
       ? readDB().activity
       : z.array(activitySchema).parse((await http.get('/customer/me/activity')).data),
   favorites: async () =>
-    isDemo ? readDB().favorites : z.array(z.string()).parse((await http.get('/customer/me/favorites')).data),
+    isDemo
+      ? readDB().favorites
+      : z.array(z.string()).parse((await http.get('/customer/me/favorites')).data),
   toggleFavorite: async (id: string) =>
     isDemo
       ? updateDB((db) => {
@@ -77,7 +87,7 @@ export const api = {
       if (card) Object.assign(card, { ...config, stamps: Math.min(card.stamps, config.goal) });
     });
   },
-  addPromotion: async (input: Pick<Promotion, 'title' | 'description' | 'expires' | 'image'>) => {
+  addPromotion: async (input: PromotionInput) => {
     if (!isDemo) return http.post('/business/promotions', input);
     return updateDB((db) => {
       db.promotions.unshift({
@@ -85,11 +95,13 @@ export const api = {
         id: crypto.randomUUID(),
         businessId: 'b1',
         business: db.business.name,
-        category: 'Cafetería',
+        category:
+          (input.category as string | undefined) ?? db.business.categories?.[0] ?? 'Cafetería',
         badge: 'Nuevo para ti',
       });
     });
   },
+
   stamp: async (token: string) => {
     if (!isDemo)
       return http.post(

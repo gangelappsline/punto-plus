@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
-import { api } from '../services/api';
+import { api, type PromotionInput } from '../services/api';
+import type { BusinessConfig } from './types';
 import { errorMessage, isDemo } from './utils';
 
 /**
@@ -115,4 +116,33 @@ export function useAddPromotion(onSuccess?: () => void) {
 
 export function useStamp(onSuccess?: () => void) {
   return useAction(api.stamp, '¡Compra registrada! Tu cliente tiene un sello más.', onSuccess);
+}
+
+/**
+ * Publica el perfil completo del negocio desde el asistente de alta: guarda la
+ * configuración (logo, banner, categorías, menú y colores) y crea la promoción
+ * de bienvenida en una sola operación. Al invalidar la caché, la guarda de
+ * `/admin/negocio` deja de mostrar el asistente sin necesidad de recargar.
+ */
+export function usePublishBusiness(onSuccess?: () => void) {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: async ({
+      config,
+      promotion,
+    }: {
+      config: BusinessConfig;
+      promotion?: PromotionInput;
+    }) => {
+      await api.saveBusiness(config);
+      if (promotion) await api.addPromotion(promotion);
+      return config;
+    },
+    onSuccess: async () => {
+      await client.invalidateQueries();
+      toast.success('¡Tu negocio está listo! Menú, QR y promoción publicados.');
+      onSuccess?.();
+    },
+    onError: (error) => toast.error(errorMessage(error)),
+  });
 }

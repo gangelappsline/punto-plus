@@ -12,15 +12,19 @@ import {
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { useLoyalty, usePromotions } from '../lib/queries';
+import { useBusiness, useLoyalty, usePromotions } from '../lib/queries';
 import { isDemo } from '../lib/utils';
 import { Button } from '../components/ui/button';
+import { useNavigate } from 'react-router-dom';
 
 /** Resumen del panel de negocio: indicadores, actividad reciente y accesos. */
 export function AdminDashboard() {
+  const navigate = useNavigate();
   const { cards, activity } = useLoyalty();
   const promotions = usePromotions();
+  const business = useBusiness();
   const cardsList = cards.data || [];
+  const onboarded = business.data?.onboarded;
   const totalStamps = cardsList.reduce((sum, c) => sum + c.stamps, 0);
   const kpis = [
     {
@@ -91,6 +95,24 @@ export function AdminDashboard() {
           </div>
         ))}
       </div>
+      {!onboarded && business.isSuccess && (
+        <section className="section" style={{ marginBottom: 26 }}>
+          <div
+            className="admin-action-card"
+            style={{ border: '2px dashed var(--line)', background: '#faf3e9' }}
+          >
+            <h3 style={{ marginBottom: 8, color: '#022f53' }}>Termina de configurar tu negocio</h3>
+            <p style={{ marginBottom: 14, color: '#46617c' }}>
+              Crea tu tarjeta, sube tu logo y banner, define las categorías de comida, carga tu menú
+              y publica tu primera promoción. Al terminar tendrás tu menú digital y el QR para tus
+              clientes.
+            </p>
+            <Button onClick={() => navigate('/admin/onboarding', { replace: true })}>
+              Ir a la configururación <span style={{ marginLeft: 6 }}>›</span>
+            </Button>
+          </div>
+        </section>
+      )}
       <div className="admin-dashboard-grid">
         <section className="section" style={{ marginBottom: 0 }}>
           <div className="section-title">

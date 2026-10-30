@@ -62,6 +62,54 @@ describe('Persistencia y reglas del modo demo', () => {
       logo: 'data:image/png;base64,test',
     });
   });
+  it('guarda el perfil completo del negocio desde el asistente de alta', async () => {
+    await api.saveBusiness({
+      ...readDB().business,
+      name: 'Café Test',
+      categories: ['Cafetería', 'Desayuno'],
+      menuItems: [{ id: 'm1', name: 'Café americano', price: '45' }],
+      primaryColor: '#2399A0',
+      secondaryColor: '#F5BE8B',
+      onboarded: true,
+    });
+    const business = readDB().business;
+    expect(business.onboarded).toBe(true);
+    expect(business.categories).toEqual(['Cafetería', 'Desayuno']);
+    expect(business.menuItems[0]).toMatchObject({ name: 'Café americano', price: '45' });
+    expect(business.primaryColor).toBe('#2399A0');
+  });
+  it('persiste los tres tipos de promoción con sus condiciones', async () => {
+    const base = {
+      title: 'Promoción',
+      description: 'Condiciones de la promoción de prueba.',
+      expires: '2026-12-31',
+      image: '/images/coffee.webp',
+    };
+    await api.addPromotion({ ...base, type: 'simple', purchasesRequired: 5, freeProduct: 'Café' });
+    await api.addPromotion({
+      ...base,
+      type: 'steps',
+      tiers: [{ points: 10, benefit: 'Postre gratis' }],
+    });
+    await api.addPromotion({
+      ...base,
+      type: 'direct',
+      appliesAlways: false,
+      weekdays: [2, 4],
+      startTime: '09:00',
+      endTime: '12:00',
+    });
+    const [direct, steps, simple] = readDB().promotions;
+    expect(simple).toMatchObject({ type: 'simple', purchasesRequired: 5, freeProduct: 'Café' });
+    expect(steps.tiers).toEqual([{ points: 10, benefit: 'Postre gratis' }]);
+    expect(direct).toMatchObject({
+      type: 'direct',
+      appliesAlways: false,
+      weekdays: [2, 4],
+      startTime: '09:00',
+      endTime: '12:00',
+    });
+  });
   it('no persiste cambios si falla una transacción', () => {
     expect(() =>
       updateDB((db) => {

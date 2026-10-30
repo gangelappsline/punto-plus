@@ -14,7 +14,12 @@ import {
   Store,
 } from 'lucide-react';
 import { toast } from 'sonner';
-import { businessSchema, type BusinessConfig, type LoyaltyCard as Card } from '../lib/types';
+import {
+  businessSchema,
+  type BusinessConfig,
+  type LoyaltyCard as Card,
+  type Promotion,
+} from '../lib/types';
 import { isDemo } from '../lib/utils';
 import {
   useAddPromotion,
@@ -23,34 +28,105 @@ import {
   useSaveBusiness,
   useStamp,
 } from '../lib/queries';
+import { readImage } from '../lib/image';
 import { LoyaltyCard } from '../components/LoyaltyCard';
 import { Button } from '../components/ui/button';
 import { Dialog } from '../components/ui/dialog';
 import { Scanner } from '../components/Scanner';
 import { QueryState } from './CustomerPages';
-const promotionFormSchema = z.object({
-  title: z.string().min(5, 'Escribe al menos 5 caracteres').max(80, 'Máximo 80 caracteres'),
-  description: z.string().min(20, 'Incluye condiciones en al menos 20 caracteres').max(1000),
-  expires: z
-    .string()
-    .refine(
-      (v) => /^\d{4}-\d{2}-\d{2}$/.test(v) && new Date(`${v}T23:59:59`) > new Date(),
-      'Elige una fecha futura',
-    ),
-  image: z.string().min(1, 'Selecciona una imagen'),
-});
-type PromotionForm = z.infer<typeof promotionFormSchema>;
-async function readImage(file: File): Promise<string> {
-  if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type))
-    throw new Error('Utiliza una imagen JPG, PNG o WebP.');
-  if (file.size > 2 * 1024 * 1024) throw new Error('La imagen debe pesar menos de 2 MB.');
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => resolve(String(reader.result));
-    reader.onerror = () => reject(new Error('No pudimos leer la imagen.'));
-    reader.readAsDataURL(file);
+import { BusinessOnboarding } from './BusinessOnboarding';
+const promotionFormSchema = z
+  .object({
+    type: z.enum(['simple', 'steps', 'direct']),
+    title: z.string().min(5, 'Escribe al menos 5 caracteres').max(80, 'Máximo 80 caracteres'),
+    description: z.string().min(20, 'Incluye condiciones en al menos 20 caracteres').max(1000),
+    expires: z
+      .string()
+      .refine(
+        (v) => /^\d{4}-\d{2}-\d{2}$/.test(v) && new Date(`${v}T23:59:59`) > new Date(),
+        'Elige una fecha futura',
+      ),
+    image: z.string().min(1, 'Selecciona una imagen'),
+    // Sencilla
+    purchasesRequired: z.coerce.number().int().min(1, 'Elige al menos 1 compra').optional(),
+    freeProduct: z.string().optional(),
+    freeQuantity: z.coerce.number().int().min(1).optional(),
+    // Por pasos
+    tiers: z
+      .array(
+        z.object({
+          points: z.coerce.number().int().min(1, 'Puntos mínimos requeridos'),
+          benefit: z.string().min(1, 'Describe el beneficio'),
+        }),
+      )
+      .optional(),
+    // Directas
+    appliesAlways: z.boolean().optional(),
+    weekdays: z.array(z.coerce.number().int().min(0).max(6)).optional(),
+    startTime: z.string().optional(),
+    endTime: z.string().optional(),
+  })
+  .superRefine((value, ctx) => {
+    if (value.type === 'simple') {
+      if (!value.purchasesRequired)
+        ctx.addIssue({
+          code: 'custom',
+          path: ['purchasesRequired'],
+          message: 'Escribe el número de compras requeridas.',
+        });
+      if (!value.freeProduct?.trim())
+        ctx.addIssue({
+          code: 'custom',
+          path: ['freeProduct'],
+          message: 'Escribe el producto gratis.',
+        });
+    }
+    if (value.type === 'steps') {
+      if (!value.tiers?.length)
+        ctx.addIssue({
+          code: 'custom',
+          path: ['tiers'],
+          message: 'Agrega al menos un nivel de puntos.',
+        });
+      else {
+        value.tiers.forEach((tier, index) => {
+          if (!tier.benefit?.trim())
+            ctx.addIssue({
+              code: 'custom',
+              path: ['tiers', index, 'benefit'],
+              message: 'Describe el beneficio.',
+            });
+          if (!tier.points)
+            ctx.addIssue({
+              code: 'custom',
+              path: ['tiers', index, 'points'],
+              message: 'Los puntos mínimos son obligatorios.',
+            });
+        });
+      }
+    }
+    if (value.type === 'direct' && !value.appliesAlways) {
+      if (!value.weekdays?.length)
+        ctx.addIssue({
+          code: 'custom',
+          path: ['weekdays'],
+          message: 'Selecciona al menos un día.',
+        });
+      if (!value.startTime || !value.endTime)
+        ctx.addIssue({
+          code: 'custom',
+          path: ['startTime'],
+          message: 'Elige la hora de inicio y fin.',
+        });
+      else if (value.startTime >= value.endTime)
+        ctx.addIssue({
+          code: 'custom',
+          path: ['endTime'],
+          message: 'La hora de fin debe ser posterior a la de inicio.',
+        });
+    }
   });
-}
+type PromotionForm = z.infer<typeof promotionFormSchema>;
 function BusinessEditor({ config }: { config: BusinessConfig }) {
   const {
     register,
@@ -202,8 +278,39 @@ export function BusinessPage() {
   });
   const form = useForm<PromotionForm>({
     resolver: zodResolver(promotionFormSchema),
-    defaultValues: { title: '', description: '', expires: '', image: '/images/coffee.webp' },
+    defaultValues: {
+      type: 'direct',
+      title: '',
+      description: '',
+      expires: '',
+      image: '/images/coffee.webp',
+      purchasesRequired: 5,
+      freeQuantity: 1,
+      appliesAlways: true,
+      weekdays: [],
+      startTime: '',
+      endTime: '',
+      tiers: [{ points: 10, benefit: '' }],
+    },
   });
+
+  // `watch` se suscribe al formulario: al cambiar el tipo de promoción, el interruptor de
+  // "siempre activa", los días o los niveles, los campos condicionales se re-renderizan.
+  const promotionType = form.watch('type');
+  const appliesAlways = form.watch('appliesAlways');
+  const selectedDays = (form.watch('weekdays') as number[] | undefined) ?? [];
+  const tiers = (form.watch('tiers') as { points: number; benefit: string }[] | undefined) ?? [];
+
+  function promotionLabel(p: Promotion): string {
+    if (p.type === 'simple')
+      return `Sencilla · cada ${p.purchasesRequired} compras, ${p.freeQuantity || 1} ${p.freeProduct || 'producto'} gratis`;
+    if (p.type === 'steps') return `Por pasos · ${p.tiers?.length ?? 0} niveles de puntos`;
+    if (p.type === 'direct')
+      return p.appliesAlways
+        ? 'Directa · siempre activa'
+        : `Directa · ${(p.weekdays ?? []).map((d: number) => ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'][d]).join(', ')} ${p.startTime ?? ''}-${p.endTime ?? ''}`;
+    return p.description;
+  }
   const onScan = useCallback((token: string) => {
     setScanned(token);
   }, []);
@@ -246,7 +353,11 @@ export function BusinessPage() {
             error={business.isError}
             retry={() => void business.refetch()}
           />
-          {business.data && <BusinessEditor config={business.data} />}
+          {business.data && !business.data.onboarded ? (
+            <BusinessOnboarding />
+          ) : (
+            business.data && <BusinessEditor config={business.data} />
+          )}
         </>
       ) : (
         <section className="section">
@@ -268,6 +379,7 @@ export function BusinessPage() {
                 <div>
                   <span className="little-label">PUBLICADA</span>
                   <h3>{p.title}</h3>
+                  <span className="promo-type">{promotionLabel(p)}</span>
                   <p>{p.description}</p>
                   <small>Vigencia: {p.expires}</small>
                 </div>
@@ -331,6 +443,17 @@ export function BusinessPage() {
       >
         <form className="modal-form" onSubmit={form.handleSubmit((v) => promotion.mutate(v))}>
           <label>
+            Tipo de promoción
+            <select {...form.register('type')}>
+              <option value="simple">Sencilla · compras = producto gratis</option>
+              <option value="steps">Por pasos · beneficios por puntos</option>
+              <option value="direct">Directa · siempre o días y horas específicos</option>
+            </select>
+            {form.formState.errors.type && (
+              <span className="form-error">{form.formState.errors.type.message}</span>
+            )}
+          </label>
+          <label>
             Título
             <input {...form.register('title')} placeholder="Las buenas mañanas son de dos" />
             {form.formState.errors.title && (
@@ -355,6 +478,118 @@ export function BusinessPage() {
               <span className="form-error">{form.formState.errors.expires.message}</span>
             )}
           </label>
+
+          {promotionType === 'simple' && (
+            <>
+              <div className="form-columns">
+                <label>
+                  Después de cuántas compras se gana
+                  <input type="number" min="1" {...form.register('purchasesRequired')} />
+                </label>
+                <label>
+                  Cantidad de productos gratis
+                  <input
+                    type="number"
+                    min="1"
+                    {...form.register('freeQuantity')}
+                    defaultValue={1}
+                  />
+                </label>
+              </div>
+              <label>
+                Producto gratis
+                <input {...form.register('freeProduct')} placeholder="Ej. 1 café americano" />
+              </label>
+              {form.formState.errors.purchasesRequired && (
+                <span className="form-error">
+                  {form.formState.errors.purchasesRequired.message}
+                </span>
+              )}
+              {form.formState.errors.freeProduct && (
+                <span className="form-error">{form.formState.errors.freeProduct.message}</span>
+              )}
+            </>
+          )}
+          {promotionType === 'steps' && (
+            <>
+              <p className="muted">Beneficios por metas de puntos acumulados:</p>
+              {tiers.map((_tier: { points: number; benefit: string }, index: number) => (
+                <div key={index} className="tier-row">
+                  <input
+                    type="number"
+                    min="1"
+                    placeholder="Puntos"
+                    {...form.register(`tiers.${index}.points`)}
+                  />
+                  <input placeholder="Beneficio" {...form.register(`tiers.${index}.benefit`)} />
+                </div>
+              ))}
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => form.setValue('tiers', [...tiers, { points: 0, benefit: '' }])}
+              >
+                <Plus size={16} /> Agregar nivel
+              </Button>
+              {form.formState.errors.tiers && (
+                <span className="form-error">{form.formState.errors.tiers.message}</span>
+              )}
+            </>
+          )}
+          {promotionType === 'direct' && (
+            <>
+              <label className="form-check" style={{ marginBottom: 6 }}>
+                <input {...form.register('appliesAlways')} type="checkbox" defaultChecked />
+                <span aria-hidden="true" />
+                Siempre activa
+              </label>
+              {!appliesAlways && (
+                <>
+                  <label>
+                    Días de la semana
+                    <div className="weekdays">
+                      {['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'].map((day, index) => (
+                        <button
+                          key={day}
+                          type="button"
+                          className="weekday-chip"
+                          onClick={() =>
+                            form.setValue(
+                              'weekdays',
+                              selectedDays.includes(index)
+                                ? selectedDays.filter((d) => d !== index)
+                                : [...selectedDays, index],
+                            )
+                          }
+                          aria-pressed={selectedDays.includes(index)}
+                        >
+                          {day}
+                        </button>
+                      ))}
+                    </div>
+                  </label>
+                  <div className="form-columns">
+                    <label>
+                      Hora de inicio
+                      <input type="time" {...form.register('startTime')} />
+                    </label>
+                    <label>
+                      Hora de fin
+                      <input type="time" {...form.register('endTime')} />
+                    </label>
+                  </div>
+                  {form.formState.errors.weekdays && (
+                    <span className="form-error">{form.formState.errors.weekdays.message}</span>
+                  )}
+                  {form.formState.errors.startTime && (
+                    <span className="form-error">{form.formState.errors.startTime.message}</span>
+                  )}
+                </>
+              )}
+            </>
+          )}
+
           <label className="upload-label">
             <ImagePlus size={18} />{' '}
             {form.watch('image').startsWith('data:')
