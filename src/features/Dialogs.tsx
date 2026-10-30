@@ -20,6 +20,18 @@ import { LoyaltyCard } from '../components/LoyaltyCard';
 import { useJoin, useLoyalty, useMyQR, useRedeem, useToggleFavorite } from '../lib/queries';
 import { isDemo } from '../lib/utils';
 import type { LoyaltyCard as Card, Promotion } from '../lib/types';
+function promotionTypeText(p: import('../lib/types').Promotion): string {
+  if (p.type === 'simple')
+    return `Cada ${p.purchasesRequired ?? 0} compras = ${p.freeQuantity ?? 1} ${p.freeProduct || 'producto'} gratis`;
+  if (p.type === 'steps')
+    return `Beneficios al alcanzar metas de puntos (${p.tiers?.length ?? 0} niveles)`;
+  if (p.type === 'direct')
+    return p.appliesAlways
+      ? 'Siempre activa, sin condiciones'
+      : `Activa ${(p.weekdays ?? []).map((d) => ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'][d]).join(', ')} de ${p.startTime ?? ''} a ${p.endTime ?? ''}`;
+  return p.description;
+}
+
 export function QRDialog({
   open,
   onOpenChange,
@@ -252,6 +264,12 @@ export function PromotionDialog({
       </span>
       <h2 className="promotion-detail-title">{promotion.title}</h2>
       <p className="promotion-description">{promotion.description}</p>
+      {promotion.type && (
+        <div className="promotion-type-detail">
+          <span className="little-label">Tipo de promoción</span>
+          <p>{promotionTypeText(promotion)}</p>
+        </div>
+      )}
       <div className="promotion-validity">
         <Clock3 size={16} /> Válida hasta el{' '}
         {format(new Date(promotion.expires + 'T12:00:00'), "d 'de' MMMM 'de' yyyy", { locale: es })}

@@ -5,12 +5,16 @@ import { ActivityPage, CardsPage, ExplorePage, RewardsPage } from './features/Cu
 import { AdminDashboard } from './features/AdminDashboard';
 import { AdminLayout } from './features/AdminShell';
 import { CustomerLayout } from './features/CustomerShell';
+import { MenuPage } from './features/MenuPage';
 import { GuestOnly, PanelGate } from './features/Guards';
 import { LandingPage } from './features/LandingPage';
 import { Login } from './features/Login';
 import { NotFoundPage } from './features/NotFoundPage';
 const BusinessPage = lazy(() =>
   import('./features/BusinessPage').then((m) => ({ default: m.BusinessPage })),
+);
+const BusinessOnboarding = lazy(() =>
+  import('./features/BusinessOnboarding').then((m) => ({ default: m.BusinessOnboarding })),
 );
 const Register = lazy(() => import('./features/Register').then((m) => ({ default: m.Register })));
 
@@ -27,6 +31,7 @@ export default function App() {
   return (
     <Routes>
       <Route path="/" element={<LandingPage />} />
+      <Route path="/menu/:businessId" element={<MenuPage />} />
       <Route
         path="/login"
         element={
@@ -72,6 +77,14 @@ export default function App() {
           element={
             <Suspense fallback={<AppSplash message="Preparando tu negocio…" />}>
               <BusinessPage />
+            </Suspense>
+          }
+        />
+        <Route
+          path="onboarding"
+          element={
+            <Suspense fallback={<AppSplash message="Preparando tu negocio…" />}>
+              <BusinessOnboarding />
             </Suspense>
           }
         />

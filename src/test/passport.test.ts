@@ -128,6 +128,27 @@ describe('Registro de clientes y negocios', () => {
     });
   });
 
+  it('registra un negocio con el mismo payload plano que un cliente', () => {
+    // El alta solo pide nombre, correo, teléfono y contraseña; los datos del negocio
+    // se capturan después, en el asistente (PUT /business/card).
+    const payload = buildRegisterPayload({
+      role: 'business',
+      name: 'Ana Ramírez',
+      email: 'ANA@Example.com',
+      password: 'avellaneda1',
+      phone: '55 8765 4321',
+    });
+    expect(payload).toEqual({
+      role: 'business',
+      name: 'Ana Ramírez',
+      email: 'ana@example.com',
+      password: 'avellaneda1',
+      password_confirmation: 'avellaneda1',
+      phone: '55 8765 4321',
+    });
+    expect(payload).not.toHaveProperty('business');
+  });
+
   it('incluye el bloque business y normaliza el RFC', () => {
     const payload = buildRegisterPayload({
       role: 'business',

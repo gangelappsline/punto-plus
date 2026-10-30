@@ -149,6 +149,25 @@ const seed = () => ({
     theme: 'forest' as const,
     icon: 'coffee' as const,
     logo: '',
+    banner: '',
+    categories: ['Cafetería', 'Bebidas calientes', 'Repostería'],
+    menuImage: '',
+    menuItems: [
+      { id: 'm1', name: 'Café americano', price: '45', category: 'Cafetería' },
+      { id: 'm2', name: 'Capuchino', price: '55', category: 'Cafetería' },
+      {
+        id: 'm3',
+        name: 'Pan de elote',
+        description: 'Recién horneado',
+        price: '38',
+        category: 'Repostería',
+      },
+    ],
+    primaryColor: '#2399A0',
+    secondaryColor: '#F5BE8B',
+    // Negocio del demo ya establecido: tiene clientes, sellos e historial. Una cuenta
+    // nueva (API real, o demo sin `onboarded`) cae en el asistente por pasos.
+    onboarded: true,
   },
   favorites: [] as string[],
 });
