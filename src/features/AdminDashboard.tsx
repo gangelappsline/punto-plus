@@ -108,7 +108,7 @@ export function AdminDashboard() {
               clientes.
             </p>
             <Button onClick={() => navigate('/admin/onboarding', { replace: true })}>
-              Ir a la configururación <span style={{ marginLeft: 6 }}>›</span>
+              Ir a la configuración <span style={{ marginLeft: 6 }}>›</span>
             </Button>
           </div>
         </section>
