@@ -45,7 +45,7 @@ Abrir `http://localhost:5173`. El servidor escucha en `0.0.0.0` y permite el dom
 ```bash
 npm run build         # TypeScript estricto + build y service worker
 npm run preview       # Compilación de producción en :4173
-npm test              # Vitest + React Testing Library: 80 pruebas
+npm test              # Vitest + React Testing Library: 81 pruebas
 npm run typecheck
 npm run format:check
 npx playwright install --with-deps chromium
