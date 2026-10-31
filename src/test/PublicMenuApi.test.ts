@@ -5,7 +5,7 @@ vi.stubEnv('VITE_DATA_MODE', 'api');
 vi.resetModules();
 
 const { http } = await import('../services/http');
-const { api } = await import('../services/api');
+const { api, PublicMenuNotFoundError } = await import('../services/api');
 const apiMock = new AxiosMockAdapter(http);
 
 afterAll(() => vi.unstubAllEnvs());
@@ -80,6 +80,105 @@ describe('Menú público de negocio', () => {
       step: 'service',
       data: serviceData,
     });
+  });
+
+  it('normaliza el formato actual de negocio para mostrar el menú público', async () => {
+    apiMock.onGet('public/business/taqueria-chayito').reply(200, {
+      id: 'business-1',
+      name: 'Taqueria Chayito',
+      slug: 'taqueria-chayito',
+      description: 'Tacos y quesadillas de asada.',
+      categories: [
+        { id: 4, category_id: 4, name: 'Bebidas', icon: '/storage/drinks.webp', sort_order: 2 },
+        {
+          id: 2,
+          category_id: 2,
+          name: 'Tacos',
+          icon: '[Tacos](https://cdn.example.test/tacos.webp)',
+          sort_order: 0,
+        },
+        { id: 3, category_id: 3, name: 'Quesadillas', sort_order: 1 },
+      ],
+      products: [
+        {
+          id: 22,
+          name: 'Agua de jamaica',
+          description: 'Agua fresca de jamaica.',
+          price: 35,
+          category_id: 4,
+          image_url: '/storage/jamaica.webp',
+          sort_order: 0,
+          is_active: true,
+        },
+        {
+          id: 11,
+          name: 'Taco de asada',
+          price: '28.00',
+          category: { id: 2, name: 'Tacos' },
+          is_popular: true,
+        },
+      ],
+      phone: '[]',
+      phone_numbers: [],
+      welcome_message: '¡Bienvenido!',
+      address: null,
+      city: null,
+      country: null,
+      logo_url: '/storage/logo.webp',
+      background_url: '/storage/banner.webp',
+      menu_design: {
+        menu_style: 'compact',
+        font_family: 'dm-sans',
+        primary_color: '#F59E0B',
+        secondary_color: '#111827',
+      },
+      allow_orders: false,
+      is_active: true,
+    });
+
+    const menu = await api.publicBusinessMenu('taqueria-chayito');
+
+    expect(menu).toMatchObject({
+      slug: 'taqueria-chayito',
+      name: 'Taqueria Chayito',
+      categories: ['Tacos', 'Quesadillas', 'Bebidas'],
+      categoryDetails: [
+        { id: '2', name: 'Tacos', icon: 'https://cdn.example.test/tacos.webp' },
+        { id: '3', name: 'Quesadillas', icon: undefined },
+        { id: '4', name: 'Bebidas', icon: '/storage/drinks.webp' },
+      ],
+      logo: '/storage/logo.webp',
+      banner: '/storage/banner.webp',
+      primaryColor: '#F59E0B',
+      secondaryColor: '#111827',
+      menuStyle: 'compact',
+      fontFamily: 'dm-sans',
+      phoneNumbers: [],
+      allowOrders: false,
+      menuItems: [
+        { id: '22', name: 'Agua de jamaica', category: 'Bebidas', image: '/storage/jamaica.webp' },
+        { id: '11', name: 'Taco de asada', category: 'Tacos', isPopular: true },
+      ],
+    });
+    expect(menu.phone).toBeUndefined();
+  });
+
+  it('muestra un error identificable cuando no existe un negocio con el slug', async () => {
+    apiMock.onGet('public/business/no-existe').reply(404, { message: 'Not found' });
+
+    await expect(api.publicBusinessMenu('no-existe')).rejects.toBeInstanceOf(
+      PublicMenuNotFoundError,
+    );
+  });
+
+  it('rechaza una respuesta que pertenece a un slug diferente', async () => {
+    apiMock.onGet('public/business/slug-esperado').reply(200, {
+      data: { slug: 'otro-negocio', name: 'Negocio distinto' },
+    });
+
+    await expect(api.publicBusinessMenu('slug-esperado')).rejects.toBeInstanceOf(
+      PublicMenuNotFoundError,
+    );
   });
 
   it('resuelve por slug con el endpoint público y valida la respuesta envuelta', async () => {
