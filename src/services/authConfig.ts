@@ -38,7 +38,7 @@ export const authConfig = {
     env.VITE_AUTH_REFRESH_PATH,
     loginMode === 'json' ? '/api/refresh' : '/oauth/token',
   ),
-  registerPath: path(env.VITE_AUTH_REGISTER_PATH, '/api/register'),
+  registerPath: path(env.VITE_AUTH_REGISTER_PATH, '/api/auth/register'),
   logoutPath: path(env.VITE_AUTH_LOGOUT_PATH, '/api/logout'),
   profilePath: path(env.VITE_AUTH_PROFILE_PATH, '/api/me'),
   /** Solo para password grant: el client_id de Passport. */
@@ -81,7 +81,7 @@ export function loginBody(credentials: { email: string; password: string }) {
   const params = new URLSearchParams({
     grant_type: 'password',
     client_id: authConfig.passportClientId,
-    username: credentials.email,
+    email: credentials.email,
     password: credentials.password,
     scope: authConfig.passportScope,
   });
