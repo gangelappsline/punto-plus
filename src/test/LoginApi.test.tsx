@@ -29,19 +29,20 @@ const { readStoredSession } = await import('../lib/tokenStorage');
 const apiMock = new AxiosMockAdapter(http);
 const refreshMock = new AxiosMockAdapter(createSpy.mock.results[1].value as AxiosInstance);
 
-function setup() {
+function setup(initialEntry: string | { pathname: string; state?: unknown } = '/login') {
   const client = new QueryClient({
     defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
   });
   const user = userEvent.setup();
   render(
     <QueryClientProvider client={client}>
-      <MemoryRouter initialEntries={['/login']}>
+      <MemoryRouter initialEntries={[initialEntry]}>
         <Routes>
           <Route path="/login" element={<Login />} />
           <Route path="/app" element={<h1>Panel de cliente</h1>} />
           <Route path="/business" element={<h1>Panel de negocio</h1>} />
           <Route path="/admin" element={<h1>Panel de administración</h1>} />
+          <Route path="/:businessSlug" element={<h1>Menú público del restaurante</h1>} />
         </Routes>
       </MemoryRouter>
     </QueryClientProvider>,
@@ -115,6 +116,21 @@ describe('Login contra la API', () => {
       await screen.findByRole('heading', { name: 'Panel de administración' }),
     ).toBeInTheDocument();
     expect(readStoredSession()?.user).toMatchObject({ id: '8', role: 'admin' });
+  });
+
+  it('devuelve al menú público después de iniciar sesión desde su slug', async () => {
+    const user = setup({ pathname: '/login', state: { from: '/cafe-avellaneda' } });
+    apiMock.onPost('/api/login').reply(200, {
+      user: { id: 15, name: 'Sofía Cliente', email: 'sofia@example.com', role: 'cliente' },
+      access_token: 'access.client',
+      expires_in: 3600,
+    });
+
+    await submit(user);
+
+    expect(
+      await screen.findByRole('heading', { name: 'Menú público del restaurante' }),
+    ).toBeInTheDocument();
   });
 
   it('pide el perfil cuando el backend solo responde los tokens', async () => {

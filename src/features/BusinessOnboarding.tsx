@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { cn, isDemo } from '../lib/utils';
+import { cn, isDemo, publicMenuUrl } from '../lib/utils';
 import { ArrowRight, CheckCircle2, ImagePlus, Palette, Save, Trash2, X } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
@@ -273,10 +273,7 @@ export function BusinessOnboarding() {
     return Object.keys(errs).length ? errs : null;
   }
 
-  const menuUrl = useMemo(
-    () => `${window.location.origin}/menu/${slugify(state.name || 'negocio')}`,
-    [state.name],
-  );
+  const menuUrl = useMemo(() => publicMenuUrl(slugify(state.name || 'negocio')), [state.name]);
 
   // Colores sugeridos a partir del logo cuando se sube.
   useEffect(() => {

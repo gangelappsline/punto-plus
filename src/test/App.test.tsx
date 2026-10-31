@@ -59,7 +59,7 @@ describe('Experiencia de cliente', () => {
     expect(screen.getByText('Canjeaste: Tu matcha favorito gratis')).toBeInTheDocument();
   });
   it('ofrece regreso al inicio en una ruta desconocida', () => {
-    setup('/no-existe');
+    setup('/no-existe/con-ruta-desconocida');
     expect(screen.getByRole('heading', { name: 'Nos salimos del barrio.' })).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Ir al inicio' })).toHaveAttribute('href', '/');
     expect(screen.getByRole('link', { name: 'Mis tarjetas' })).toHaveAttribute('href', '/app');
