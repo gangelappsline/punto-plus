@@ -57,6 +57,21 @@ describe('Configurador Mi menú', () => {
     expect(screen.getByRole('status')).toHaveTextContent('Borrador guardado');
   });
 
+  it('muestra las categorías en cajas verticales y permite alternar su selección', async () => {
+    const user = setup();
+    await screen.findByRole('heading', { name: 'Mi menú' });
+    await user.click(screen.getByRole('button', { name: /Categorías/ }));
+
+    const category = await screen.findByRole('button', { name: 'Cafetería' });
+    expect(category).toHaveAttribute('aria-pressed', 'true');
+    expect(category).toHaveClass('flex-col', 'items-center', 'justify-center');
+
+    await user.click(category);
+    expect(category).toHaveAttribute('aria-pressed', 'false');
+    await user.click(category);
+    expect(category).toHaveAttribute('aria-pressed', 'true');
+  });
+
   it('muestra los cinco pasos y actualiza la vista previa al editar el negocio', async () => {
     const user = setup();
     expect(await screen.findByRole('heading', { name: 'Mi menú' })).toBeInTheDocument();

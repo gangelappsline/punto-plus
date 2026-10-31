@@ -16,14 +16,14 @@ describe('Menú público de negocio', () => {
     apiMock.onGet('/public/categories').reply(200, {
       data: {
         categories: [
-          { id: 3, name: 'Bebidas', slug: 'bebidas' },
+          { id: 3, name: 'Bebidas', slug: 'bebidas', icon: '/storage/categories/drinks.webp' },
           { id: 4, title: 'Postres' },
         ],
       },
     });
 
     await expect(api.publicCategories()).resolves.toEqual([
-      { id: '3', name: 'Bebidas' },
+      { id: '3', name: 'Bebidas', icon: '/storage/categories/drinks.webp' },
       { id: '4', name: 'Postres' },
     ]);
     expect(apiMock.history.get[0].url).toBe('/public/categories');

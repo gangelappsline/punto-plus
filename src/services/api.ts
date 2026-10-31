@@ -25,6 +25,8 @@ export type PromotionInput = {
   image: string;
 } & Partial<Promotion>;
 
+export type PublicCategory = { id: string; name: string; icon?: string };
+
 function unwrapPublicMenu(payload: unknown): unknown {
   if (!payload || typeof payload !== 'object' || Array.isArray(payload)) return payload;
   const value = payload as Record<string, unknown>;
@@ -72,7 +74,7 @@ function unwrapBusinessConfig(payload: unknown): Record<string, unknown> {
   return current;
 }
 
-function normalizePublicCategories(payload: unknown) {
+function normalizePublicCategories(payload: unknown): PublicCategory[] {
   let current = payload;
   for (let depth = 0; depth < 5; depth += 1) {
     if (Array.isArray(current)) {
@@ -84,9 +86,19 @@ function normalizePublicCategories(payload: unknown) {
             (candidate): candidate is string =>
               typeof candidate === 'string' && Boolean(candidate.trim()),
           );
-          return name ? { id: String(value.id ?? value.slug ?? name ?? index), name } : null;
+          const icon = [value.icon, value.icon_url, value.image_url].find(
+            (candidate): candidate is string =>
+              typeof candidate === 'string' && Boolean(candidate.trim()),
+          );
+          return name
+            ? {
+                id: String(value.id ?? value.slug ?? name ?? index),
+                name,
+                ...(icon ? { icon } : {}),
+              }
+            : null;
         })
-        .filter((category): category is { id: string; name: string } => Boolean(category));
+        .filter((category): category is PublicCategory => Boolean(category));
     }
     const value = record(current);
     if (Array.isArray(value.categories)) {
