@@ -105,7 +105,7 @@ export const api = {
   businessPromotions: async () =>
     z.array(promotionSchema).parse((await http.get('/business/promotions')).data),
   business: async () =>
-    isDemo ? readDB().business : businessSchema.parse((await http.get('/business/card')).data),
+    isDemo ? readDB().business : businessSchema.parse((await http.get('api/business/card')).data),
   saveBusiness: async (input: BusinessConfig) => {
     const config = businessSchema.parse(input);
     if (!isDemo) return http.put('/business/card', config);
