@@ -26,6 +26,7 @@ import {
 } from '../lib/queries';
 import { readImage } from '../lib/image';
 import { publicMenuUrl } from '../lib/utils';
+import type { PublicCategory } from '../services/api';
 import { Button } from '../components/ui/button';
 import { Dialog } from '../components/ui/dialog';
 
@@ -167,15 +168,15 @@ export function BusinessMenuWizard() {
     () => draft.menuItems.filter((item) => item.category === selectedCategory),
     [draft.menuItems, selectedCategory],
   );
-  const availableCategoryNames = useMemo(
-    () => [
-      ...new Set([
-        ...(publicCategories.data ?? []).map((category) => category.name),
-        ...draft.categories,
-      ]),
-    ],
-    [draft.categories, publicCategories.data],
-  );
+  const availableCategories = useMemo(() => {
+    const categories = new Map(
+      (publicCategories.data ?? []).map((category) => [category.name, category]),
+    );
+    draft.categories.forEach((name) => {
+      if (!categories.has(name)) categories.set(name, { id: name, name });
+    });
+    return [...categories.values()];
+  }, [draft.categories, publicCategories.data]);
   const update = <K extends keyof Draft>(key: K, value: Draft[K]) => {
     draftRevision.current += 1;
     setDraftSavedAt(null);
@@ -586,20 +587,27 @@ export function BusinessMenuWizard() {
                       Reintentar
                     </Button>
                   </div>
-                ) : availableCategoryNames.length ? (
-                  <div className="flex flex-wrap gap-2">
-                    {availableCategoryNames.map((category) => {
-                      const selected = draft.categories.includes(category);
+                ) : availableCategories.length ? (
+                  <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-4">
+                    {availableCategories.map((category) => {
+                      const selected = draft.categories.includes(category.name);
                       return (
                         <button
                           type="button"
-                          key={category}
+                          key={category.id}
                           aria-pressed={selected}
-                          className={`inline-flex min-h-9 items-center gap-1.5 rounded-full border px-3 py-2 text-xs font-semibold transition ${selected ? 'border-emerald-300 bg-emerald-50 text-emerald-900' : 'border-slate-200 bg-white text-slate-600 hover:border-emerald-300 hover:bg-emerald-50'}`}
-                          onClick={() => toggleCategory(category)}
+                          className={`relative flex min-h-28 flex-col items-center justify-center gap-2.5 rounded-2xl border p-3 text-center transition focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-emerald-600/20 ${selected ? 'border-emerald-600 bg-emerald-50 text-emerald-950 shadow-sm ring-1 ring-emerald-600/20' : 'border-slate-200 bg-white text-slate-700 hover:border-emerald-300 hover:bg-emerald-50/50'}`}
+                          onClick={() => toggleCategory(category.name)}
                         >
-                          {selected && <Check size={14} />}
-                          {category}
+                          <CategoryGlyph category={category} selected={selected} />
+                          <span className="line-clamp-2 text-xs font-bold leading-4">
+                            {category.name}
+                          </span>
+                          {selected && (
+                            <span className="absolute right-2 top-2 grid size-5 place-items-center rounded-full bg-emerald-700 text-white">
+                              <Check size={12} />
+                            </span>
+                          )}
                         </button>
                       );
                     })}
@@ -1057,6 +1065,30 @@ function BrandImageField({
         }}
       />
     </div>
+  );
+}
+
+function CategoryGlyph({ category, selected }: { category: PublicCategory; selected: boolean }) {
+  const icon = category.icon?.trim();
+  const imageIcon = Boolean(
+    icon &&
+    (/^(https?:\/\/|\/|data:image\/)/i.test(icon) ||
+      /\.(?:png|jpe?g|webp|svg)(?:[?#]|$)/i.test(icon)),
+  );
+  const emojiIcon = icon ? /\p{Extended_Pictographic}/u.test(icon) : false;
+  return (
+    <span
+      className={`grid size-12 shrink-0 place-items-center overflow-hidden rounded-xl ${selected ? 'bg-emerald-700/10 text-emerald-800' : 'bg-slate-100 text-slate-500'}`}
+      aria-hidden="true"
+    >
+      {imageIcon ? (
+        <img src={icon} alt="" className="size-full object-cover" />
+      ) : emojiIcon ? (
+        <span className="text-2xl leading-none">{icon}</span>
+      ) : (
+        <Utensils size={22} strokeWidth={1.8} />
+      )}
+    </span>
   );
 }
 
