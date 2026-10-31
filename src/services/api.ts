@@ -251,7 +251,7 @@ export const api = {
         throw new Error('No encontramos este menú.');
       return publicMenuSchema.parse(business);
     }
-    const { data } = await http.get(`api/public/business/${encodeURIComponent(slug)}`);
+    const { data } = await http.get(`public/business/${encodeURIComponent(slug)}`);
     return publicMenuSchema.parse(unwrapPublicMenu(data));
   },
   publicCategories: async () => {
@@ -261,7 +261,7 @@ export const api = {
   },
   adminCategories: async () => {
     if (isDemo) return readAdminCategories();
-    const { data } = await http.get('/api/admin/categories');
+    const { data } = await http.get('/admin/categories');
     return z.array(adminCategorySchema).parse(unwrapAdminCategoryList(data));
   },
   createAdminCategory: async (input: AdminCategoryInput) => {
@@ -273,7 +273,7 @@ export const api = {
         return created;
       });
     }
-    return http.post('/api/admin/categories', category);
+    return http.post('/admin/categories', category);
   },
   updateAdminCategory: async (id: string, input: AdminCategoryInput) => {
     const category = adminCategoryInputSchema.parse(input);
@@ -285,7 +285,7 @@ export const api = {
         return categories[index];
       });
     }
-    return http.put(`/api/admin/categories/${encodeURIComponent(id)}`, category);
+    return http.put(`/admin/categories/${encodeURIComponent(id)}`, category);
   },
   deleteAdminCategory: async (id: string) => {
     if (isDemo) {
@@ -295,7 +295,7 @@ export const api = {
         categories.splice(index, 1);
       });
     }
-    return http.delete(`/api/admin/categories/${encodeURIComponent(id)}`);
+    return http.delete(`/admin/categories/${encodeURIComponent(id)}`);
   },
   toggleFavorite: async (id: string) =>
     isDemo
@@ -340,7 +340,7 @@ export const api = {
     z.array(promotionSchema).parse((await http.get('/business/promotions')).data),
   business: async () => {
     if (isDemo) return readDB().business;
-    const { data } = await http.get('api/business/card');
+    const { data } = await http.get('business/card');
     return businessSchema.parse(normalizeBusinessConfig(data));
   },
   saveBusiness: async (input: BusinessConfig) => {
