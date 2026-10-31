@@ -124,9 +124,9 @@ export function useSaveBusiness(onSuccess?: () => void) {
 export function useSaveBusinessDraft() {
   const client = useQueryClient();
   return useMutation({
-    mutationFn: api.saveBusiness,
-    onSuccess: (_result, config) => {
-      client.setQueryData(queryKeys.business, config);
+    mutationFn: api.saveBusinessStep,
+    onSuccess: (_result, input) => {
+      client.setQueryData(queryKeys.business, input.config);
     },
     onError: (error) => toast.error(errorMessage(error)),
   });

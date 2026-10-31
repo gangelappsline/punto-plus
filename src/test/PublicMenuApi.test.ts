@@ -29,6 +29,31 @@ describe('Menú público de negocio', () => {
     expect(apiMock.history.get[0].url).toBe('/public/categories');
   });
 
+  it('envía el guardado de un paso con PATCH y conserva el orden de IDs de categorías', async () => {
+    apiMock.onPatch('/business/card').reply(200, { ok: true });
+    const config = {
+      name: 'Café de prueba',
+      reward: 'Bebida gratis',
+      goal: 8,
+      theme: 'forest' as const,
+      icon: 'coffee' as const,
+      categories: ['Cafetería'],
+      menuItems: [],
+    };
+
+    await api.saveBusinessStep({
+      step: 'categories',
+      data: { category_ids: ['category-2', 'category-1'] },
+      config,
+    });
+
+    expect(apiMock.history.patch[0].url).toBe('/business/card');
+    expect(JSON.parse(apiMock.history.patch[0].data)).toEqual({
+      step: 'categories',
+      data: { category_ids: ['category-2', 'category-1'] },
+    });
+  });
+
   it('resuelve por slug con el endpoint público y valida la respuesta envuelta', async () => {
     apiMock.onGet('api/public/business/cafe-avellaneda').reply(200, {
       data: {

@@ -72,6 +72,18 @@ describe('Configurador Mi menú', () => {
     expect(category).toHaveAttribute('aria-pressed', 'true');
   });
 
+  it('permite ordenar las categorías para el menú público y guarda ese orden', async () => {
+    const user = setup();
+    await screen.findByRole('heading', { name: 'Mi menú' });
+    await user.click(screen.getByRole('button', { name: /Categorías/ }));
+
+    expect(await screen.findByText('Orden en el menú público')).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Bajar categoría Cafetería' }));
+    await user.click(screen.getByRole('button', { name: /Productos/ }));
+
+    expect(readDB().business.categories).toEqual(['Bebidas calientes', 'Cafetería', 'Repostería']);
+  });
+
   it('muestra los cinco pasos y actualiza la vista previa al editar el negocio', async () => {
     const user = setup();
     expect(await screen.findByRole('heading', { name: 'Mi menú' })).toBeInTheDocument();
