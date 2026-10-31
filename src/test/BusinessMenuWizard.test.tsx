@@ -109,7 +109,11 @@ describe('Configurador Mi menú', () => {
 
     await user.click(screen.getByRole('button', { name: /Servicio/ }));
     expect(screen.getByText('Días de servicio')).toBeInTheDocument();
-    await user.click(screen.getByRole('button', { name: /^Dom$/ }));
+    const sunday = screen.getByRole('button', { name: /^Dom$/ });
+    expect(sunday).toHaveAttribute('aria-pressed', 'false');
+    await user.click(sunday);
+    expect(sunday).toHaveAttribute('aria-pressed', 'true');
+    expect(sunday).toHaveClass('bg-emerald-700', 'text-white');
     await user.click(screen.getByRole('button', { name: /Guardar mi menú/ }));
 
     expect(readDB().business.serviceDays).toContain(0);

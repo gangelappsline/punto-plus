@@ -20,12 +20,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import type { BusinessConfig, MenuItem } from '../lib/types';
-import {
-  useBusiness,
-  usePublicCategories,
-  useSaveBusiness,
-  useSaveBusinessDraft,
-} from '../lib/queries';
+import { useBusiness, usePublicCategories, useSaveBusinessDraft } from '../lib/queries';
 import { readImage } from '../lib/image';
 import { publicMenuUrl } from '../lib/utils';
 import type { BusinessWizardStep, PublicCategory } from '../services/api';
@@ -148,7 +143,6 @@ function hoursLabel(draft: Pick<Draft, 'serviceDays' | 'openingTime' | 'closingT
 export function BusinessMenuWizard() {
   const business = useBusiness();
   const publicCategories = usePublicCategories();
-  const saveBusiness = useSaveBusiness();
   const saveBusinessDraft = useSaveBusinessDraft();
   const [draft, setDraft] = useState<Draft>(initialDraft);
   const [loaded, setLoaded] = useState(false);
@@ -156,7 +150,6 @@ export function BusinessMenuWizard() {
   const [step, setStep] = useState(0);
   const [selectedCategory, setSelectedCategory] = useState('');
   const [imageEdit, setImageEdit] = useState<{ productId: string; src: string } | null>(null);
-  const [preparingImages, setPreparingImages] = useState(false);
   const draftRevision = useRef(0);
 
   useEffect(() => {
@@ -357,7 +350,7 @@ export function BusinessMenuWizard() {
   }
 
   async function changeStep(nextStep: number) {
-    if (nextStep === step || saveBusinessDraft.isPending || saveBusiness.isPending) return;
+    if (nextStep === step || saveBusinessDraft.isPending) return;
     if (await saveDraft()) setStep(nextStep);
   }
 
@@ -376,47 +369,20 @@ export function BusinessMenuWizard() {
     }
     const current = business.data;
     if (!current) return;
-    setPreparingImages(true);
+    const config: BusinessConfig = {
+      ...draftConfig(current),
+      onboarded: true,
+    };
     try {
-      const menuItems = await Promise.all(
-        draft.menuItems.map(async (item) => ({
-          ...item,
-          name: item.name.trim(),
-          image: await ensureWebpImage(item.image!),
-          imageUrl: undefined,
-        })),
-      );
-      const phoneNumbers = draft.phoneNumbers.map((phone) => phone.trim()).filter(Boolean);
-      const config: BusinessConfig = {
-        ...current,
-        name: draft.name.trim(),
-        logo: draft.logo || undefined,
-        banner: draft.banner || undefined,
-        categories: [...draft.categories],
-        menuItems,
-        primaryColor: draft.primaryColor,
-        secondaryColor: draft.secondaryColor,
-        welcomeMessage: draft.welcomeMessage.trim(),
-        description: draft.description.trim(),
-        phone: phoneNumbers[0],
-        phoneNumbers,
-        address: draft.address.trim(),
-        location: draft.address.trim(),
-        serviceDays: [...draft.serviceDays].sort((a, b) => a - b),
-        openingTime: draft.openingTime,
-        closingTime: draft.closingTime,
-        openingHours: hoursLabel(draft),
-        deliveryAvailable: draft.deliveryAvailable,
-        allowOrders: draft.allowOrders,
-        fontFamily: draft.fontFamily,
-        menuStyle: draft.menuStyle,
-        onboarded: true,
-      };
-      saveBusiness.mutate(config);
-    } catch (error) {
-      toast.error((error as Error).message || 'No pudimos preparar las imágenes del menú.');
-    } finally {
-      setPreparingImages(false);
+      await saveBusinessDraft.mutateAsync({
+        step: 'service',
+        data: dataForStep(4, config),
+        config,
+      });
+      setDraftSavedAt(Date.now());
+      toast.success('La configuración de servicio se guardó.');
+    } catch {
+      // useSaveBusinessDraft muestra el error.
     }
   }
 
@@ -489,7 +455,7 @@ export function BusinessMenuWizard() {
                 key={title}
                 className={`flex min-w-24 flex-col items-center gap-1.5 rounded-xl px-3 py-2 text-center transition sm:min-w-0 sm:flex-row sm:gap-2 sm:text-left ${index === step ? 'bg-emerald-50 text-emerald-900 ring-1 ring-emerald-200' : index < step ? 'text-emerald-800 hover:bg-emerald-50' : 'text-slate-500 hover:bg-slate-100'}`}
                 aria-current={index === step ? 'step' : undefined}
-                disabled={saveBusinessDraft.isPending || saveBusiness.isPending}
+                disabled={saveBusinessDraft.isPending}
                 onClick={() => void changeStep(index)}
               >
                 <span
@@ -1068,7 +1034,7 @@ export function BusinessMenuWizard() {
                 <Button
                   type="button"
                   variant="ghost"
-                  disabled={saveBusinessDraft.isPending || saveBusiness.isPending}
+                  disabled={saveBusinessDraft.isPending}
                   onClick={() => void changeStep(step - 1)}
                 >
                   <ArrowLeft size={16} /> Anterior
@@ -1082,17 +1048,11 @@ export function BusinessMenuWizard() {
               ) : (
                 <Button
                   type="button"
-                  disabled={
-                    saveBusiness.isPending || saveBusinessDraft.isPending || preparingImages
-                  }
+                  disabled={saveBusinessDraft.isPending}
                   onClick={() => void save()}
                 >
                   <Save size={16} />{' '}
-                  {preparingImages
-                    ? 'Preparando imágenes…'
-                    : saveBusiness.isPending
-                      ? 'Guardando…'
-                      : 'Guardar mi menú'}
+                  {saveBusinessDraft.isPending ? 'Guardando…' : 'Guardar mi menú'}
                 </Button>
               )}
             </div>
