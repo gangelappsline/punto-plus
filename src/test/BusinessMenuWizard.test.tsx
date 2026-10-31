@@ -43,6 +43,20 @@ describe('Configurador Mi menú', () => {
     expect(screen.getByRole('button', { name: /Servicio/ })).toBeInTheDocument();
   });
 
+  it('guarda el borrador del negocio al avanzar a otro paso', async () => {
+    const user = setup();
+    await screen.findByRole('heading', { name: 'Mi menú' });
+    const name = screen.getByRole('textbox', { name: 'Nombre del negocio' });
+    await user.clear(name);
+    await user.type(name, 'Café Guardado');
+
+    await user.click(screen.getByRole('button', { name: /Categorías/ }));
+
+    expect(await screen.findByText(/Selecciona las categorías habilitadas/)).toBeInTheDocument();
+    expect(readDB().business.name).toBe('Café Guardado');
+    expect(screen.getByRole('status')).toHaveTextContent('Borrador guardado');
+  });
+
   it('muestra los cinco pasos y actualiza la vista previa al editar el negocio', async () => {
     const user = setup();
     expect(await screen.findByRole('heading', { name: 'Mi menú' })).toBeInTheDocument();

@@ -12,6 +12,23 @@ afterAll(() => vi.unstubAllEnvs());
 beforeEach(() => apiMock.reset());
 
 describe('Menú público de negocio', () => {
+  it('consulta y normaliza las categorías públicas disponibles', async () => {
+    apiMock.onGet('/public/categories').reply(200, {
+      data: {
+        categories: [
+          { id: 3, name: 'Bebidas', slug: 'bebidas' },
+          { id: 4, title: 'Postres' },
+        ],
+      },
+    });
+
+    await expect(api.publicCategories()).resolves.toEqual([
+      { id: '3', name: 'Bebidas' },
+      { id: '4', name: 'Postres' },
+    ]);
+    expect(apiMock.history.get[0].url).toBe('/public/categories');
+  });
+
   it('resuelve por slug con el endpoint público y valida la respuesta envuelta', async () => {
     apiMock.onGet('api/public/business/cafe-avellaneda').reply(200, {
       data: {

@@ -6,6 +6,7 @@ import {
   adminCategorySchema,
   businessSchema,
   cardSchema,
+  foodCategories,
   promotionSchema,
   publicMenuSchema,
   type AdminCategoryInput,
@@ -69,6 +70,40 @@ function unwrapBusinessConfig(payload: unknown): Record<string, unknown> {
     break;
   }
   return current;
+}
+
+function normalizePublicCategories(payload: unknown) {
+  let current = payload;
+  for (let depth = 0; depth < 5; depth += 1) {
+    if (Array.isArray(current)) {
+      return current
+        .map((category, index) => {
+          if (typeof category === 'string') return { id: category, name: category };
+          const value = record(category);
+          const name = [value.name, value.title, value.label].find(
+            (candidate): candidate is string =>
+              typeof candidate === 'string' && Boolean(candidate.trim()),
+          );
+          return name ? { id: String(value.id ?? value.slug ?? name ?? index), name } : null;
+        })
+        .filter((category): category is { id: string; name: string } => Boolean(category));
+    }
+    const value = record(current);
+    if (Array.isArray(value.categories)) {
+      current = value.categories;
+      continue;
+    }
+    if (Array.isArray(value.items)) {
+      current = value.items;
+      continue;
+    }
+    if (value.data !== undefined) {
+      current = value.data;
+      continue;
+    }
+    break;
+  }
+  return [];
 }
 
 function normalizeBusinessConfig(payload: unknown) {
@@ -206,6 +241,11 @@ export const api = {
     }
     const { data } = await http.get(`api/public/business/${encodeURIComponent(slug)}`);
     return publicMenuSchema.parse(unwrapPublicMenu(data));
+  },
+  publicCategories: async () => {
+    if (isDemo) return foodCategories.map((name) => ({ id: name, name }));
+    const { data } = await http.get('/public/categories');
+    return normalizePublicCategories(data);
   },
   adminCategories: async () => {
     if (isDemo) return readAdminCategories();

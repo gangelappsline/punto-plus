@@ -18,8 +18,12 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import type { BusinessConfig, MenuItem } from '../lib/types';
-import { foodCategories } from '../lib/types';
-import { useBusiness, useSaveBusiness } from '../lib/queries';
+import {
+  useBusiness,
+  usePublicCategories,
+  useSaveBusiness,
+  useSaveBusinessDraft,
+} from '../lib/queries';
 import { readImage } from '../lib/image';
 import { publicMenuUrl } from '../lib/utils';
 import { Button } from '../components/ui/button';
@@ -34,6 +38,8 @@ const steps = [
   { title: 'Diseño', subtitle: 'Estilo del menú', icon: Palette },
   { title: 'Servicio', subtitle: 'Horarios y pedidos', icon: Clock3 },
 ] as const;
+const fieldControlClass =
+  'w-full min-w-0 rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm font-normal text-slate-800 outline-none transition placeholder:text-slate-400 focus:border-emerald-600 focus:ring-4 focus:ring-emerald-600/10';
 
 type Draft = {
   name: string;
@@ -131,22 +137,25 @@ function hoursLabel(draft: Pick<Draft, 'serviceDays' | 'openingTime' | 'closingT
 
 export function BusinessMenuWizard() {
   const business = useBusiness();
+  const publicCategories = usePublicCategories();
   const saveBusiness = useSaveBusiness();
+  const saveBusinessDraft = useSaveBusinessDraft();
   const [draft, setDraft] = useState<Draft>(initialDraft);
   const [loaded, setLoaded] = useState(false);
+  const [draftSavedAt, setDraftSavedAt] = useState<number | null>(null);
   const [step, setStep] = useState(0);
   const [selectedCategory, setSelectedCategory] = useState('');
-  const [customCategory, setCustomCategory] = useState('');
   const [imageEdit, setImageEdit] = useState<{ productId: string; src: string } | null>(null);
   const [preparingImages, setPreparingImages] = useState(false);
+  const draftRevision = useRef(0);
 
   useEffect(() => {
-    if (!business.data) return;
+    if (!business.data || loaded) return;
     const next = draftFromBusiness(business.data);
     setDraft(next);
     setSelectedCategory(next.categories[0] ?? '');
     setLoaded(true);
-  }, [business.data]);
+  }, [business.data, loaded]);
 
   useEffect(() => {
     if (draft.categories.length && !draft.categories.includes(selectedCategory))
@@ -158,8 +167,20 @@ export function BusinessMenuWizard() {
     () => draft.menuItems.filter((item) => item.category === selectedCategory),
     [draft.menuItems, selectedCategory],
   );
-  const update = <K extends keyof Draft>(key: K, value: Draft[K]) =>
+  const availableCategoryNames = useMemo(
+    () => [
+      ...new Set([
+        ...(publicCategories.data ?? []).map((category) => category.name),
+        ...draft.categories,
+      ]),
+    ],
+    [draft.categories, publicCategories.data],
+  );
+  const update = <K extends keyof Draft>(key: K, value: Draft[K]) => {
+    draftRevision.current += 1;
+    setDraftSavedAt(null);
     setDraft((current) => ({ ...current, [key]: value }));
+  };
 
   function toggleCategory(category: string) {
     const removing = draft.categories.includes(category);
@@ -186,30 +207,11 @@ export function BusinessMenuWizard() {
     }
   }
 
-  function removeCustomCategory(category: string) {
-    const remaining = draft.categories.filter((item) => item !== category);
-    const assignedProducts = draft.menuItems.some((item) => item.category === category);
-    if (assignedProducts && !remaining.length) {
-      toast.error('Mueve o elimina los productos de esta categoría antes de quitarla.');
-      return;
-    }
-    update('categories', remaining);
-    if (assignedProducts) {
-      const destination = remaining[0];
-      update(
-        'menuItems',
-        draft.menuItems.map((item) =>
-          item.category === category ? { ...item, category: destination } : item,
-        ),
-      );
-      toast.success(`Los productos se movieron a ${destination}.`);
-    }
-  }
-
   async function uploadBrandImage(key: 'logo' | 'banner', file?: File) {
     if (!file) return;
     try {
-      update(key, await readImage(file));
+      const image = await readImage(file);
+      update(key, await ensureWebpImage(image));
     } catch (error) {
       toast.error((error as Error).message);
     }
@@ -238,13 +240,57 @@ export function BusinessMenuWizard() {
     return '';
   }
 
-  function goNext() {
-    const error = validateStep(step);
-    if (error) {
-      toast.error(error);
-      return;
+  function draftConfig(current: BusinessConfig): BusinessConfig {
+    const phoneNumbers = draft.phoneNumbers.map((phone) => phone.trim()).filter(Boolean);
+    const menuItems = draft.menuItems
+      .filter((item) => item.name.trim())
+      .map((item) => ({ ...item, name: item.name.trim(), imageUrl: undefined }));
+    return {
+      ...current,
+      name: draft.name.trim(),
+      logo: draft.logo || undefined,
+      banner: draft.banner || undefined,
+      categories: [...draft.categories],
+      menuItems,
+      primaryColor: draft.primaryColor,
+      secondaryColor: draft.secondaryColor,
+      welcomeMessage: draft.welcomeMessage.trim(),
+      description: draft.description.trim(),
+      phone: phoneNumbers[0],
+      phoneNumbers,
+      address: draft.address.trim(),
+      location: draft.address.trim(),
+      serviceDays: [...draft.serviceDays].sort((a, b) => a - b),
+      openingTime: draft.openingTime,
+      closingTime: draft.closingTime,
+      openingHours: hoursLabel(draft),
+      deliveryAvailable: draft.deliveryAvailable,
+      allowOrders: draft.allowOrders,
+      fontFamily: draft.fontFamily,
+      menuStyle: draft.menuStyle,
+      onboarded: current.onboarded ?? false,
+    };
+  }
+
+  async function saveDraft() {
+    if (!business.data) return false;
+    const revision = draftRevision.current;
+    try {
+      await saveBusinessDraft.mutateAsync(draftConfig(business.data));
+      if (draftRevision.current === revision) setDraftSavedAt(Date.now());
+      return true;
+    } catch {
+      return false;
     }
-    setStep((current) => Math.min(current + 1, steps.length - 1));
+  }
+
+  async function changeStep(nextStep: number) {
+    if (nextStep === step || saveBusinessDraft.isPending || saveBusiness.isPending) return;
+    if (await saveDraft()) setStep(nextStep);
+  }
+
+  function goNext() {
+    void changeStep(Math.min(step + 1, steps.length - 1));
   }
 
   async function save() {
@@ -304,15 +350,18 @@ export function BusinessMenuWizard() {
 
   if (business.isPending)
     return (
-      <div className="menu-wizard-loading" role="status">
+      <div
+        className="grid min-h-56 place-content-center gap-3 text-center text-sm text-slate-500"
+        role="status"
+      >
         Cargando la configuración de tu menú…
       </div>
     );
   if (business.isError || !business.data)
     return (
-      <section className="menu-wizard-loading">
-        <h2>No pudimos cargar tu negocio</h2>
-        <p>Comprueba tu conexión e inténtalo de nuevo.</p>
+      <section className="mx-auto grid min-h-56 max-w-lg content-center justify-items-center gap-3 px-6 text-center text-slate-600">
+        <h2 className="text-xl font-bold text-slate-900">No pudimos cargar tu negocio</h2>
+        <p className="text-sm">Comprueba tu conexión e inténtalo de nuevo.</p>
         <Button variant="outline" onClick={() => void business.refetch()}>
           Volver a intentar
         </Button>
@@ -320,24 +369,31 @@ export function BusinessMenuWizard() {
     );
   if (!loaded)
     return (
-      <div className="menu-wizard-loading" role="status">
+      <div
+        className="grid min-h-56 place-content-center gap-3 text-center text-sm text-slate-500"
+        role="status"
+      >
         Cargando la configuración de tu menú…
       </div>
     );
 
   const ActiveIcon = steps[step].icon;
   return (
-    <div className="business-menu-editor">
-      <header className="menu-editor-heading">
+    <div className="mx-auto max-w-[1440px] px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
+      <header className="mb-6 flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-end">
         <div>
-          <div className="eyebrow">
+          <div className="mb-2 inline-flex items-center gap-2 text-[10px] font-extrabold uppercase tracking-[0.16em] text-emerald-700">
             <Utensils size={14} /> CONFIGURA TU MENÚ
           </div>
-          <h1>Mi menú</h1>
-          <p>Organiza la información, el catálogo y cómo reciben pedidos tus clientes.</p>
+          <h1 className="text-3xl font-extrabold tracking-tight text-slate-900 sm:text-4xl">
+            Mi menú
+          </h1>
+          <p className="mt-1 text-sm text-slate-500">
+            Organiza la información, el catálogo y cómo reciben pedidos tus clientes.
+          </p>
         </div>
         <a
-          className="menu-public-link"
+          className="inline-flex items-center gap-2 rounded-xl border border-emerald-200 bg-white px-4 py-2.5 text-xs font-bold text-emerald-800 shadow-sm transition hover:bg-emerald-50"
           href={publicMenuUrl(slugify(draft.name || 'negocio'))}
           target="_blank"
           rel="noreferrer"
@@ -346,62 +402,80 @@ export function BusinessMenuWizard() {
         </a>
       </header>
 
-      <div className="business-menu-layout">
-        <section className="menu-wizard-panel" aria-label="Configuración del menú">
-          <nav className="menu-wizard-steps" aria-label="Pasos de configuración">
+      <div className="grid grid-cols-1 items-start gap-5 xl:grid-cols-[minmax(0,1.12fr)_minmax(340px,0.88fr)]">
+        <section
+          className="min-w-0 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm"
+          aria-label="Configuración del menú"
+        >
+          <nav
+            className="flex gap-1 overflow-x-auto border-b border-slate-200 bg-slate-50 p-2 sm:grid sm:grid-cols-5 sm:p-3"
+            aria-label="Pasos de configuración"
+          >
             {steps.map(({ title, subtitle, icon: Icon }, index) => (
               <button
                 type="button"
                 key={title}
-                className={`menu-wizard-step ${index === step ? 'active' : ''} ${index < step ? 'complete' : ''}`}
+                className={`flex min-w-24 flex-col items-center gap-1.5 rounded-xl px-3 py-2 text-center transition sm:min-w-0 sm:flex-row sm:gap-2 sm:text-left ${index === step ? 'bg-emerald-50 text-emerald-900 ring-1 ring-emerald-200' : index < step ? 'text-emerald-800 hover:bg-emerald-50' : 'text-slate-500 hover:bg-slate-100'}`}
                 aria-current={index === step ? 'step' : undefined}
-                onClick={() => setStep(index)}
+                disabled={saveBusinessDraft.isPending || saveBusiness.isPending}
+                onClick={() => void changeStep(index)}
               >
-                <span className="menu-wizard-step-icon">
+                <span
+                  className={`grid size-8 shrink-0 place-items-center rounded-lg ${index <= step ? 'bg-emerald-700 text-white' : 'bg-slate-100 text-slate-500'}`}
+                >
                   {index < step ? <Check size={17} /> : <Icon size={17} />}
                 </span>
                 <span>
-                  <strong>{title}</strong>
-                  <small>{subtitle}</small>
+                  <strong className="block max-w-28 truncate text-[11px] font-bold sm:max-w-none">
+                    {title}
+                  </strong>
+                  <small className="hidden text-[10px] text-slate-500 sm:block">{subtitle}</small>
                 </span>
-                {index < step && <Check className="menu-wizard-check" size={14} />}
+                {index < step && (
+                  <Check className="ml-auto hidden text-emerald-700 sm:block" size={14} />
+                )}
               </button>
             ))}
           </nav>
 
-          <div className="menu-wizard-step-content">
-            <div className="menu-wizard-step-title">
-              <span>{String(step + 1).padStart(2, '0')} / 05</span>
-              <h2>
-                <ActiveIcon size={20} /> {steps[step].title}
+          <div className="min-h-[520px] px-5 py-6 sm:px-7 sm:py-7">
+            <div className="mb-6">
+              <span className="text-[10px] font-extrabold tracking-[0.15em] text-slate-400">
+                {String(step + 1).padStart(2, '0')} / 05
+              </span>
+              <h2 className="mt-2 flex items-center gap-2.5 text-xl font-extrabold tracking-tight text-slate-900">
+                <ActiveIcon size={20} className="text-emerald-700" /> {steps[step].title}
               </h2>
             </div>
             {step === 0 && (
-              <section className="menu-form-step">
-                <p className="menu-step-intro">
+              <section className="flex flex-col gap-4">
+                <p className="-mt-2 mb-1 text-sm leading-6 text-slate-500">
                   Los datos esenciales que identifican tu restaurante en el menú digital.
                 </p>
-                <label className="menu-field">
+                <label className="flex min-w-0 flex-col gap-2 text-xs font-semibold text-slate-700">
                   Nombre del negocio
                   <input
+                    className={fieldControlClass}
                     value={draft.name}
                     maxLength={90}
                     onChange={(event) => update('name', event.target.value)}
                     placeholder="Ej. Café Avellaneda"
                   />
                 </label>
-                <label className="menu-field">
+                <label className="flex min-w-0 flex-col gap-2 text-xs font-semibold text-slate-700">
                   Mensaje de bienvenida
                   <input
+                    className={fieldControlClass}
                     value={draft.welcomeMessage}
                     maxLength={140}
                     onChange={(event) => update('welcomeMessage', event.target.value)}
                     placeholder="¿Qué se te antoja?"
                   />
                 </label>
-                <label className="menu-field">
+                <label className="flex min-w-0 flex-col gap-2 text-xs font-semibold text-slate-700">
                   Descripción
                   <textarea
+                    className={`${fieldControlClass} resize-y`}
                     rows={3}
                     value={draft.description}
                     maxLength={400}
@@ -409,7 +483,7 @@ export function BusinessMenuWizard() {
                     placeholder="Cuéntales qué hace especial a tu negocio"
                   />
                 </label>
-                <div className="menu-field-grid">
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                   <BrandImageField
                     title="Logo"
                     value={draft.logo}
@@ -422,20 +496,21 @@ export function BusinessMenuWizard() {
                     wide
                   />
                 </div>
-                <label className="menu-field">
+                <label className="flex min-w-0 flex-col gap-2 text-xs font-semibold text-slate-700">
                   Domicilio
                   <input
+                    className={fieldControlClass}
                     value={draft.address}
                     onChange={(event) => update('address', event.target.value)}
                     placeholder="Calle, número, colonia y ciudad"
                   />
                 </label>
-                <div className="menu-field">
-                  <div className="menu-field-label-row">
+                <div className="flex min-w-0 flex-col gap-2 text-xs font-semibold text-slate-700">
+                  <div className="mb-2 flex items-center justify-between gap-2">
                     <span>Teléfonos</span>
                     <button
                       type="button"
-                      className="menu-text-action"
+                      className="inline-flex items-center gap-1.5 py-1 text-xs font-bold text-emerald-700 hover:text-emerald-900 disabled:cursor-not-allowed disabled:text-slate-400"
                       onClick={() => update('phoneNumbers', [...draft.phoneNumbers, ''])}
                       disabled={draft.phoneNumbers.length >= 5}
                     >
@@ -443,10 +518,14 @@ export function BusinessMenuWizard() {
                     </button>
                   </div>
                   {draft.phoneNumbers.map((phone, index) => (
-                    <div className="menu-phone-row" key={`phone-${index}`}>
+                    <div
+                      className="mt-2 flex items-center gap-2 rounded-xl border border-slate-200 px-3 text-slate-500"
+                      key={`phone-${index}`}
+                    >
                       <Phone size={16} />
                       <input
                         aria-label={`Teléfono ${index + 1}`}
+                        className="min-w-0 flex-1 bg-transparent py-2 text-sm text-slate-800 outline-none placeholder:text-slate-400"
                         type="tel"
                         value={phone}
                         onChange={(event) =>
@@ -463,6 +542,7 @@ export function BusinessMenuWizard() {
                         <button
                           type="button"
                           aria-label={`Quitar teléfono ${index + 1}`}
+                          className="grid size-8 shrink-0 place-items-center rounded-lg text-slate-500 hover:bg-rose-50 hover:text-rose-600"
                           onClick={() =>
                             update(
                               'phoneNumbers',
@@ -480,79 +560,74 @@ export function BusinessMenuWizard() {
             )}
 
             {step === 1 && (
-              <section className="menu-form-step">
-                <p className="menu-step-intro">
-                  Crea las secciones que tus clientes podrán explorar. Puedes añadir categorías
-                  propias.
+              <section className="flex flex-col gap-4">
+                <p className="-mt-2 mb-1 text-sm leading-6 text-slate-500">
+                  Selecciona las categorías habilitadas para tu negocio. La lista se obtiene del
+                  catálogo público de Punto Plus.
                 </p>
-                <div className="menu-category-options">
-                  {foodCategories.map((category) => {
-                    const selected = draft.categories.includes(category);
-                    return (
-                      <button
-                        type="button"
-                        key={category}
-                        aria-pressed={selected}
-                        className={`menu-category-option ${selected ? 'selected' : ''}`}
-                        onClick={() => toggleCategory(category)}
-                      >
-                        {selected && <Check size={14} />}
-                        {category}
-                      </button>
-                    );
-                  })}
-                </div>
-                <div className="menu-custom-category">
-                  <input
-                    value={customCategory}
-                    onChange={(event) => setCustomCategory(event.target.value)}
-                    onKeyDown={(event) => {
-                      if (event.key === 'Enter') {
-                        event.preventDefault();
-                        addCustomCategory();
-                      }
-                    }}
-                    placeholder="Otra categoría (ej. Especialidades)"
-                  />
-                  <Button type="button" variant="outline" onClick={addCustomCategory}>
-                    <Plus size={15} /> Agregar
-                  </Button>
-                </div>
-                {draft.categories
-                  .filter(
-                    (category) =>
-                      !foodCategories.includes(category as (typeof foodCategories)[number]),
-                  )
-                  .map((category) => (
-                    <span className="menu-custom-chip" key={category}>
-                      {category}
-                      <button
-                        type="button"
-                        aria-label={`Quitar ${category}`}
-                        onClick={() => removeCustomCategory(category)}
-                      >
-                        <X size={13} />
-                      </button>
-                    </span>
-                  ))}
+                {publicCategories.isPending ? (
+                  <div
+                    className="rounded-xl border border-dashed border-slate-300 bg-slate-50 p-4 text-center text-sm text-slate-500"
+                    role="status"
+                  >
+                    Cargando categorías disponibles…
+                  </div>
+                ) : publicCategories.isError ? (
+                  <div
+                    className="rounded-xl border border-dashed border-slate-300 bg-slate-50 p-4 text-center text-sm text-slate-500"
+                    role="alert"
+                  >
+                    No pudimos cargar las categorías.
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => void publicCategories.refetch()}
+                    >
+                      Reintentar
+                    </Button>
+                  </div>
+                ) : availableCategoryNames.length ? (
+                  <div className="flex flex-wrap gap-2">
+                    {availableCategoryNames.map((category) => {
+                      const selected = draft.categories.includes(category);
+                      return (
+                        <button
+                          type="button"
+                          key={category}
+                          aria-pressed={selected}
+                          className={`inline-flex min-h-9 items-center gap-1.5 rounded-full border px-3 py-2 text-xs font-semibold transition ${selected ? 'border-emerald-300 bg-emerald-50 text-emerald-900' : 'border-slate-200 bg-white text-slate-600 hover:border-emerald-300 hover:bg-emerald-50'}`}
+                          onClick={() => toggleCategory(category)}
+                        >
+                          {selected && <Check size={14} />}
+                          {category}
+                        </button>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <div className="rounded-xl border border-dashed border-slate-300 bg-slate-50 p-4 text-center text-sm text-slate-500">
+                    Todavía no hay categorías disponibles para seleccionar.
+                  </div>
+                )}
               </section>
             )}
 
             {step === 2 && (
-              <section className="menu-form-step">
-                <p className="menu-step-intro">
+              <section className="flex flex-col gap-4">
+                <p className="-mt-2 mb-1 text-sm leading-6 text-slate-500">
                   Elige una categoría para administrar sus productos. Las fotos se recortan y se
                   convierten a WebP antes de guardarse.
                 </p>
                 {!draft.categories.length ? (
-                  <div className="menu-inline-empty">
+                  <div className="rounded-xl border border-dashed border-slate-300 bg-slate-50 p-4 text-center text-sm text-slate-500">
                     Primero agrega categorías en el paso anterior.
                   </div>
                 ) : (
                   <>
-                    <label className="menu-field">
+                    <label className="flex min-w-0 flex-col gap-2 text-xs font-semibold text-slate-700">
                       Categoría activa
                       <select
+                        className={fieldControlClass}
                         value={selectedCategory}
                         onChange={(event) => setSelectedCategory(event.target.value)}
                       >
@@ -561,15 +636,27 @@ export function BusinessMenuWizard() {
                         ))}
                       </select>
                     </label>
-                    <div className="menu-product-list">
+                    <div className="flex max-h-96 flex-col gap-3 overflow-y-auto pr-1">
                       {visibleProducts.map((item) => (
-                        <article className="menu-product-editor" key={item.id}>
-                          <div className="menu-product-thumb">
-                            {item.image ? <img src={item.image} alt="" /> : <ImagePlus size={19} />}
-                            {item.image?.startsWith('data:image/webp') && <span>WEBP</span>}
+                        <article
+                          className="grid grid-cols-[64px_minmax(0,1fr)] items-start gap-3 rounded-xl border border-slate-200 bg-white p-3"
+                          key={item.id}
+                        >
+                          <div className="relative grid size-16 place-items-center overflow-hidden rounded-xl bg-slate-100 text-slate-400">
+                            {item.image ? (
+                              <img src={item.image} alt="" className="size-full object-cover" />
+                            ) : (
+                              <ImagePlus size={19} />
+                            )}
+                            {item.image?.startsWith('data:image/webp') && (
+                              <span className="absolute bottom-1 right-1 rounded bg-emerald-700 px-1.5 py-0.5 text-[8px] font-extrabold text-white">
+                                WEBP
+                              </span>
+                            )}
                           </div>
-                          <div className="menu-product-fields">
+                          <div className="flex min-w-0 flex-col gap-2">
                             <input
+                              className={fieldControlClass}
                               aria-label={`Nombre de ${item.name || 'producto'}`}
                               value={item.name}
                               onChange={(event) =>
@@ -584,10 +671,11 @@ export function BusinessMenuWizard() {
                               }
                               placeholder="Nombre del producto"
                             />
-                            <div className="menu-product-inline">
-                              <label className="menu-price-input">
+                            <div className="flex flex-wrap items-center gap-2">
+                              <label className="flex w-24 items-center gap-1.5 rounded-lg border border-slate-200 px-2 text-xs text-slate-500">
                                 <span>$</span>
                                 <input
+                                  className="min-w-0 flex-1 bg-transparent py-2 text-sm text-slate-800 outline-none"
                                   aria-label={`Precio de ${item.name || 'producto'}`}
                                   type="number"
                                   min="0"
@@ -608,7 +696,7 @@ export function BusinessMenuWizard() {
                               </label>
                               <button
                                 type="button"
-                                className="menu-text-action"
+                                className="inline-flex items-center gap-1.5 py-1 text-xs font-bold text-emerald-700 hover:text-emerald-900 disabled:cursor-not-allowed disabled:text-slate-400"
                                 onClick={() =>
                                   setImageEdit({ productId: item.id, src: item.image ?? '' })
                                 }
@@ -617,7 +705,7 @@ export function BusinessMenuWizard() {
                               </button>
                               <button
                                 type="button"
-                                className="menu-icon-action danger"
+                                className="grid size-8 place-items-center rounded-lg text-rose-600 transition hover:bg-rose-50"
                                 onClick={() =>
                                   update(
                                     'menuItems',
@@ -630,6 +718,7 @@ export function BusinessMenuWizard() {
                               </button>
                             </div>
                             <textarea
+                              className={`${fieldControlClass} resize-y`}
                               aria-label={`Descripción de ${item.name || 'producto'}`}
                               rows={2}
                               value={item.description ?? ''}
@@ -649,7 +738,7 @@ export function BusinessMenuWizard() {
                         </article>
                       ))}
                       {!visibleProducts.length && (
-                        <div className="menu-inline-empty">
+                        <div className="rounded-xl border border-dashed border-slate-300 bg-slate-50 p-4 text-center text-sm text-slate-500">
                           Aún no hay productos en {selectedCategory}.
                         </div>
                       )}
@@ -657,7 +746,7 @@ export function BusinessMenuWizard() {
                     <Button
                       type="button"
                       variant="outline"
-                      className="menu-add-product"
+                      className="self-start"
                       onClick={() =>
                         update('menuItems', [
                           ...draft.menuItems,
@@ -679,14 +768,15 @@ export function BusinessMenuWizard() {
             )}
 
             {step === 3 && (
-              <section className="menu-form-step">
-                <p className="menu-step-intro">
+              <section className="flex flex-col gap-4">
+                <p className="-mt-2 mb-1 text-sm leading-6 text-slate-500">
                   Elige una tipografía y la paleta para que el menú tenga la personalidad de tu
                   negocio.
                 </p>
-                <label className="menu-field">
+                <label className="flex min-w-0 flex-col gap-2 text-xs font-semibold text-slate-700">
                   Tipografía
                   <select
+                    className={fieldControlClass}
                     value={draft.fontFamily}
                     onChange={(event) =>
                       update('fontFamily', event.target.value as Draft['fontFamily'])
@@ -697,7 +787,7 @@ export function BusinessMenuWizard() {
                     <option value="serif">Serif · Clásica</option>
                   </select>
                 </label>
-                <div className="menu-color-controls">
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                   <ColorField
                     label="Color principal"
                     value={draft.primaryColor}
@@ -709,34 +799,42 @@ export function BusinessMenuWizard() {
                     onChange={(value) => update('secondaryColor', value)}
                   />
                 </div>
-                <fieldset className="menu-style-fieldset">
-                  <legend>Estilo de presentación</legend>
+                <fieldset className="flex flex-col gap-2 rounded-2xl border border-slate-200 p-4">
+                  <legend className="px-1 text-xs font-bold text-slate-800">
+                    Estilo de presentación
+                  </legend>
                   <label
-                    className={`menu-style-choice ${draft.menuStyle === 'cozy' ? 'selected' : ''}`}
+                    className={`flex cursor-pointer items-start gap-3 rounded-xl border p-3 transition ${draft.menuStyle === 'cozy' ? 'border-emerald-300 bg-emerald-50' : 'border-slate-200 hover:bg-slate-50'}`}
                   >
                     <input
+                      className="mt-1 accent-emerald-700"
                       type="radio"
                       name="menu-style"
                       checked={draft.menuStyle === 'cozy'}
                       onChange={() => update('menuStyle', 'cozy')}
                     />
                     <span>
-                      <strong>Espacioso</strong>
-                      <small>Más aire entre los platillos y sus detalles.</small>
+                      <strong className="text-sm font-bold text-slate-800">Espacioso</strong>
+                      <small className="text-xs leading-5 text-slate-500">
+                        Más aire entre los platillos y sus detalles.
+                      </small>
                     </span>
                   </label>
                   <label
-                    className={`menu-style-choice ${draft.menuStyle === 'compact' ? 'selected' : ''}`}
+                    className={`flex cursor-pointer items-start gap-3 rounded-xl border p-3 transition ${draft.menuStyle === 'compact' ? 'border-emerald-300 bg-emerald-50' : 'border-slate-200 hover:bg-slate-50'}`}
                   >
                     <input
+                      className="mt-1 accent-emerald-700"
                       type="radio"
                       name="menu-style"
                       checked={draft.menuStyle === 'compact'}
                       onChange={() => update('menuStyle', 'compact')}
                     />
                     <span>
-                      <strong>Compacto</strong>
-                      <small>Muestra más productos en menos espacio.</small>
+                      <strong className="text-sm font-bold text-slate-800">Compacto</strong>
+                      <small className="text-xs leading-5 text-slate-500">
+                        Muestra más productos en menos espacio.
+                      </small>
                     </span>
                   </label>
                 </fieldset>
@@ -744,20 +842,22 @@ export function BusinessMenuWizard() {
             )}
 
             {step === 4 && (
-              <section className="menu-form-step">
-                <p className="menu-step-intro">
+              <section className="flex flex-col gap-4">
+                <p className="-mt-2 mb-1 text-sm leading-6 text-slate-500">
                   Define cuándo abres y qué opciones de servicio estarán disponibles para tus
                   clientes.
                 </p>
-                <fieldset className="menu-days-fieldset">
-                  <legend>Días de servicio</legend>
-                  <div className="menu-days-grid">
+                <fieldset className="rounded-2xl border border-slate-200 p-4">
+                  <legend className="px-1 text-xs font-bold text-slate-800">
+                    Días de servicio
+                  </legend>
+                  <div className="grid grid-cols-4 gap-2 sm:grid-cols-7">
                     {dayNames.map((day, index) => (
                       <button
                         type="button"
                         key={day}
                         aria-pressed={draft.serviceDays.includes(index)}
-                        className={draft.serviceDays.includes(index) ? 'selected' : ''}
+                        className={`min-h-9 rounded-lg border text-xs font-bold transition ${draft.serviceDays.includes(index) ? 'border-emerald-700 bg-emerald-700 text-white' : 'border-slate-200 bg-white text-slate-600 hover:border-emerald-300 hover:bg-emerald-50'}`}
                         onClick={() =>
                           update(
                             'serviceDays',
@@ -772,41 +872,53 @@ export function BusinessMenuWizard() {
                     ))}
                   </div>
                 </fieldset>
-                <div className="menu-field-grid">
-                  <label className="menu-field">
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                  <label className="flex min-w-0 flex-col gap-2 text-xs font-semibold text-slate-700">
                     Apertura
                     <input
+                      className={fieldControlClass}
                       type="time"
                       value={draft.openingTime}
                       onChange={(event) => update('openingTime', event.target.value)}
                     />
                   </label>
-                  <label className="menu-field">
+                  <label className="flex min-w-0 flex-col gap-2 text-xs font-semibold text-slate-700">
                     Cierre
                     <input
+                      className={fieldControlClass}
                       type="time"
                       value={draft.closingTime}
                       onChange={(event) => update('closingTime', event.target.value)}
                     />
                   </label>
                 </div>
-                <label className="menu-toggle-row">
+                <label className="flex items-center justify-between gap-4 rounded-xl border border-slate-200 p-4">
                   <span>
-                    <strong>Reparto a domicilio propio</strong>
-                    <small>Indica si tu negocio entrega directamente los pedidos.</small>
+                    <strong className="block text-sm font-bold text-slate-800">
+                      Reparto a domicilio propio
+                    </strong>
+                    <small className="mt-1 block text-xs leading-5 text-slate-500">
+                      Indica si tu negocio entrega directamente los pedidos.
+                    </small>
                   </span>
                   <input
+                    className="size-5 shrink-0 accent-emerald-700"
                     type="checkbox"
                     checked={draft.deliveryAvailable}
                     onChange={(event) => update('deliveryAvailable', event.target.checked)}
                   />
                 </label>
-                <label className="menu-toggle-row">
+                <label className="flex items-center justify-between gap-4 rounded-xl border border-slate-200 p-4">
                   <span>
-                    <strong>Permitir pedidos desde el menú</strong>
-                    <small>Los clientes podrán armar una orden desde tu menú digital.</small>
+                    <strong className="block text-sm font-bold text-slate-800">
+                      Permitir pedidos desde el menú
+                    </strong>
+                    <small className="mt-1 block text-xs leading-5 text-slate-500">
+                      Los clientes podrán armar una orden desde tu menú digital.
+                    </small>
                   </span>
                   <input
+                    className="size-5 shrink-0 accent-emerald-700"
                     type="checkbox"
                     checked={draft.allowOrders}
                     onChange={(event) => update('allowOrders', event.target.checked)}
@@ -816,28 +928,41 @@ export function BusinessMenuWizard() {
             )}
           </div>
 
-          <footer className="menu-wizard-footer">
-            <span className="menu-step-count">
-              Paso {step + 1} de {steps.length}
-            </span>
-            <div>
+          <footer className="flex items-center justify-between gap-3 border-t border-slate-200 bg-slate-50 px-4 py-3 sm:px-6">
+            <div className="flex min-w-0 flex-col items-start gap-1">
+              <span className="text-[10px] font-semibold text-slate-500">
+                Paso {step + 1} de {steps.length}
+              </span>
+              <span className="text-xs text-slate-500" role="status" aria-live="polite">
+                {saveBusinessDraft.isPending
+                  ? 'Guardando borrador…'
+                  : draftSavedAt
+                    ? 'Borrador guardado'
+                    : 'Se guardará al cambiar de paso'}
+              </span>
+            </div>
+            <div className="flex items-center gap-2">
               {step > 0 && (
                 <Button
                   type="button"
                   variant="ghost"
-                  onClick={() => setStep((current) => current - 1)}
+                  disabled={saveBusinessDraft.isPending || saveBusiness.isPending}
+                  onClick={() => void changeStep(step - 1)}
                 >
                   <ArrowLeft size={16} /> Anterior
                 </Button>
               )}
               {step < steps.length - 1 ? (
-                <Button type="button" onClick={goNext}>
-                  Siguiente <ArrowRight size={16} />
+                <Button type="button" disabled={saveBusinessDraft.isPending} onClick={goNext}>
+                  {saveBusinessDraft.isPending ? 'Guardando…' : 'Siguiente'}{' '}
+                  {!saveBusinessDraft.isPending && <ArrowRight size={16} />}
                 </Button>
               ) : (
                 <Button
                   type="button"
-                  disabled={saveBusiness.isPending || preparingImages}
+                  disabled={
+                    saveBusiness.isPending || saveBusinessDraft.isPending || preparingImages
+                  }
                   onClick={() => void save()}
                 >
                   <Save size={16} />{' '}
@@ -852,16 +977,18 @@ export function BusinessMenuWizard() {
           </footer>
         </section>
 
-        <aside className="menu-preview-panel">
-          <div className="menu-preview-heading">
-            <span>
-              <span className="menu-preview-live-dot" /> VISTA PREVIA EN VIVO
+        <aside className="min-w-0 rounded-2xl border border-slate-200 bg-slate-50 p-4 shadow-sm xl:sticky xl:top-5">
+          <div className="mb-3 flex items-center justify-between gap-2 px-1">
+            <span className="inline-flex items-center gap-2 text-[10px] font-extrabold tracking-[0.1em] text-slate-700">
+              <span className="size-2 rounded-full bg-emerald-500 ring-4 ring-emerald-500/15" />
+              VISTA PREVIA EN VIVO
             </span>
-            <small>Así lo verán tus clientes</small>
+            <small className="text-[10px] text-slate-500">Así lo verán tus clientes</small>
           </div>
           <LiveMenuPreview draft={draft} />
-          <div className="menu-preview-footnote">
-            <Check size={15} /> Los cambios se reflejan mientras editas. Guarda para publicarlos.
+          <div className="flex items-center justify-center gap-2 px-1 pt-3 text-center text-[10px] text-slate-500">
+            <Check size={15} className="shrink-0 text-emerald-700" />
+            Los cambios se reflejan mientras editas y se guardan al avanzar.
           </div>
         </aside>
       </div>
@@ -885,22 +1012,6 @@ export function BusinessMenuWizard() {
       />
     </div>
   );
-
-  function addCustomCategory() {
-    const value = customCategory.trim();
-    if (!value) return;
-    if (
-      draft.categories.some(
-        (category) => category.toLocaleLowerCase('es-MX') === value.toLocaleLowerCase('es-MX'),
-      )
-    ) {
-      toast.error('Esa categoría ya está en tu lista.');
-      return;
-    }
-    update('categories', [...draft.categories, value]);
-    setSelectedCategory(value);
-    setCustomCategory('');
-  }
 }
 
 function BrandImageField({
@@ -915,22 +1026,29 @@ function BrandImageField({
   wide?: boolean;
 }) {
   const inputId = `menu-${title.toLocaleLowerCase()}-upload`;
+  const previewClass = wide
+    ? 'h-28 w-full rounded-xl border border-dashed border-slate-300 bg-slate-50 object-contain'
+    : 'size-28 rounded-xl border border-dashed border-slate-300 bg-slate-50 object-contain';
   return (
-    <div className={`menu-brand-image-field ${wide ? 'wide' : ''}`}>
+    <div className="flex min-w-0 flex-col items-start gap-2 text-xs font-semibold text-slate-700">
       <span>{title}</span>
       {value ? (
-        <img src={value} alt={`${title} del negocio`} />
+        <img src={value} alt={`${title} del negocio`} className={previewClass} />
       ) : (
-        <div className="menu-brand-image-placeholder">
+        <div className={`${previewClass} grid place-items-center text-slate-400`}>
           <ImagePlus size={21} />
-          <small>Sin {title.toLocaleLowerCase()}</small>
+          <small className="text-[10px] font-normal">Sin {title.toLocaleLowerCase()}</small>
         </div>
       )}
-      <label htmlFor={inputId} className="menu-image-upload-button">
+      <label
+        htmlFor={inputId}
+        className="inline-flex cursor-pointer items-center gap-1.5 rounded-lg border border-emerald-200 bg-white px-3 py-2 text-[11px] font-bold text-emerald-800 transition hover:bg-emerald-50"
+      >
         <ImagePlus size={14} /> {value ? 'Cambiar' : 'Subir'} {title.toLocaleLowerCase()}
       </label>
       <input
         id={inputId}
+        className="sr-only"
         type="file"
         accept="image/png,image/jpeg,image/webp"
         onChange={(event) => {
@@ -952,11 +1070,17 @@ function ColorField({
   onChange: (value: string) => void;
 }) {
   return (
-    <label className="menu-color-field">
+    <label className="flex min-w-0 flex-col gap-2 text-xs font-semibold text-slate-700">
       <span>{label}</span>
-      <div>
-        <input type="color" value={value} onChange={(event) => onChange(event.target.value)} />
+      <div className="flex items-center gap-2 rounded-xl border border-slate-200 p-2">
         <input
+          className="size-9 cursor-pointer rounded-lg border-0 bg-transparent p-0"
+          type="color"
+          value={value}
+          onChange={(event) => onChange(event.target.value)}
+        />
+        <input
+          className="min-w-0 flex-1 border-0 bg-transparent font-mono text-xs text-slate-700 outline-none"
           aria-label={`${label} hexadecimal`}
           value={value}
           maxLength={7}
@@ -1033,7 +1157,9 @@ function LiveMenuPreview({ draft }: { draft: Draft }) {
       <main className="restaurant-content">
         <section className="restaurant-welcome">
           <div>
-            <p className="menu-kicker">HECHO PARA DISFRUTAR</p>
+            <p className="mb-1 text-[10px] font-extrabold uppercase tracking-[0.16em] text-emerald-700">
+              HECHO PARA DISFRUTAR
+            </p>
             <h2>¿Qué se te antoja?</h2>
             <p>{draft.welcomeMessage || 'Explora nuestro menú.'}</p>
           </div>
@@ -1041,7 +1167,7 @@ function LiveMenuPreview({ draft }: { draft: Draft }) {
             <Utensils size={19} />
           </div>
         </section>
-        <div className="menu-preview-search">
+        <div className="flex h-10 items-center gap-2 rounded-xl border border-stone-200 bg-white px-3 text-xs text-slate-400">
           ⌕ <span>Buscar en el menú</span>
         </div>
         <nav className="menu-category-nav" aria-label="Vista previa de categorías">
@@ -1058,7 +1184,9 @@ function LiveMenuPreview({ draft }: { draft: Draft }) {
                 <span>✦</span>
               </span>
               <div>
-                <p className="menu-kicker">LOS FAVORITOS</p>
+                <p className="mb-1 text-[10px] font-extrabold uppercase tracking-[0.16em] text-emerald-700">
+                  LOS FAVORITOS
+                </p>
                 <h2>Los más pedidos</h2>
               </div>
             </div>
@@ -1092,7 +1220,9 @@ function LiveMenuPreview({ draft }: { draft: Draft }) {
                 <Utensils size={14} />
               </span>
               <div>
-                <p className="menu-kicker">EL MENÚ</p>
+                <p className="mb-1 text-[10px] font-extrabold uppercase tracking-[0.16em] text-emerald-700">
+                  EL MENÚ
+                </p>
                 <h2>{categories[0]}</h2>
               </div>
             </div>
