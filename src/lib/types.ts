@@ -92,6 +92,15 @@ export const publicMenuSchema = z.object({
   address: z.string().optional(),
   location: z.string().optional(),
   phone: z.string().optional(),
+  phoneNumbers: z.array(z.string()).optional(),
+  welcomeMessage: z.string().optional(),
+  serviceDays: z.array(z.number().int().min(0).max(6)).optional(),
+  openingTime: z.string().optional(),
+  closingTime: z.string().optional(),
+  deliveryAvailable: z.boolean().optional(),
+  allowOrders: z.boolean().optional(),
+  fontFamily: z.enum(['dm-sans', 'manrope', 'serif']).optional(),
+  menuStyle: z.enum(['cozy', 'compact']).optional(),
   openingHours: z.string().optional(),
 });
 export type PublicMenu = z.infer<typeof publicMenuSchema>;
@@ -130,6 +139,20 @@ export const businessSchema = z.object({
   primaryColor: z.string().optional(),
   secondaryColor: z.string().optional(),
   onboarded: z.boolean().optional(),
+  welcomeMessage: z.string().optional(),
+  description: z.string().optional(),
+  phone: z.string().optional(),
+  phoneNumbers: z.array(z.string()).optional(),
+  address: z.string().optional(),
+  location: z.string().optional(),
+  serviceDays: z.array(z.number().int().min(0).max(6)).optional(),
+  openingTime: z.string().optional(),
+  closingTime: z.string().optional(),
+  openingHours: z.string().optional(),
+  deliveryAvailable: z.boolean().optional(),
+  allowOrders: z.boolean().optional(),
+  fontFamily: z.enum(['dm-sans', 'manrope', 'serif']).optional(),
+  menuStyle: z.enum(['cozy', 'compact']).optional(),
 });
 export type BusinessConfig = z.infer<typeof businessSchema>;
 export interface LogoAnalysis {

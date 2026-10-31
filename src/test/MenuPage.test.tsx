@@ -150,6 +150,24 @@ describe('Menú digital público por slug', () => {
     expect(screen.getByRole('button', { name: 'Volver a intentar' })).toBeInTheDocument();
   });
 
+  it('respeta la configuración que desactiva los pedidos desde el menú', async () => {
+    const { updateDB } = await import('../services/demo');
+    updateDB((db) => {
+      db.business = { ...db.business, allowOrders: false };
+    });
+    setup('demo');
+
+    expect(
+      await screen.findByText('Este negocio no recibe pedidos desde el menú digital.'),
+    ).toBeInTheDocument();
+    const disabledOrderButtons = screen.getAllByRole('button', {
+      name: 'Pedidos no disponibles desde el menú',
+    });
+    expect(disabledOrderButtons.length).toBeGreaterThan(0);
+    expect(disabledOrderButtons[0]).toBeDisabled();
+    expect(screen.queryByRole('button', { name: /Ver mi orden/ })).not.toBeInTheDocument();
+  });
+
   it('informa cuando el negocio aún no publica platillos', async () => {
     const { updateDB } = await import('../services/demo');
     updateDB((db) => {

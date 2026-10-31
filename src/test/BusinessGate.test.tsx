@@ -28,13 +28,17 @@ function setOnboarded(onboarded: boolean) {
 describe('Guarda de alta del negocio en /business/negocio', () => {
   beforeEach(() => localStorage.clear());
 
-  it('muestra el asistente por pasos cuando el perfil aún no está completo', async () => {
+  it('muestra el acceso a Mi menú cuando el perfil aún no está completo', async () => {
     setOnboarded(false);
     setup();
 
-    expect(await screen.findByRole('heading', { name: 'Unos pasos y listo' })).toBeInTheDocument();
-    expect(screen.getByRole('heading', { name: 'Sube tu logo' })).toBeInTheDocument();
-    // El editor de la tarjeta no aparece hasta terminar el asistente.
+    expect(
+      await screen.findByRole('heading', { name: 'Completa la configuración de tu negocio' }),
+    ).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /Abrir Mi menú/ })).toHaveAttribute(
+      'href',
+      '/business/mi-menu',
+    );
     expect(screen.queryByRole('button', { name: /Guardar configuración/ })).not.toBeInTheDocument();
   });
 
@@ -53,7 +57,7 @@ describe('Guarda de alta del negocio en /business/negocio', () => {
     setOnboarded(false);
     setup();
 
-    await screen.findByRole('heading', { name: 'Unos pasos y listo' });
+    await screen.findByRole('heading', { name: 'Completa la configuración de tu negocio' });
     // Registrar una compra y las promociones siguen disponibles fuera de la guarda.
     expect(screen.getByRole('button', { name: /Registrar una compra/ })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /Promociones/ })).toBeInTheDocument();

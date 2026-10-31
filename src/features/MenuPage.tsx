@@ -25,6 +25,12 @@ import { useAuth } from '../stores/auth';
 
 const currency = new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' });
 
+function menuFontStack(font?: 'dm-sans' | 'manrope' | 'serif') {
+  if (font === 'manrope') return "'Manrope Variable', 'Manrope', sans-serif";
+  if (font === 'serif') return "Georgia, 'Times New Roman', serif";
+  return "'DM Sans Variable', 'DM Sans', sans-serif";
+}
+
 function itemImage(item: MenuItem) {
   if (item.image || item.imageUrl) return item.image || item.imageUrl!;
   const category = item.category?.toLowerCase() ?? '';
@@ -151,9 +157,13 @@ export function MenuPage() {
 
   return (
     <div
-      className="restaurant-menu"
+      className={`restaurant-menu ${data.menuStyle === 'compact' ? 'menu-style-compact' : ''}`}
       style={
-        { '--restaurant-primary': primary, '--restaurant-soft': secondary } as React.CSSProperties
+        {
+          '--restaurant-primary': primary,
+          '--restaurant-soft': secondary,
+          '--menu-font-family': menuFontStack(data.fontFamily),
+        } as React.CSSProperties
       }
     >
       <header className="restaurant-hero">
@@ -170,7 +180,7 @@ export function MenuPage() {
           <span className="restaurant-brand-mark">
             <Sparkles size={14} /> PUNTO PLUS
           </span>
-          {isClient ? (
+          {isClient && data.allowOrders !== false ? (
             <button
               className="restaurant-cart-top"
               onClick={() => setOrderOpen(true)}
@@ -195,10 +205,10 @@ export function MenuPage() {
           <h1>{data.name}</h1>
           {data.description && <p className="restaurant-description">{data.description}</p>}
           <div className="restaurant-meta">
-            {data.location && (
+            {(data.address || data.location) && (
               <span>
                 <MapPin size={14} />
-                {data.location}
+                {data.address || data.location}
               </span>
             )}
             {data.openingHours && (
@@ -207,6 +217,14 @@ export function MenuPage() {
                 {data.openingHours}
               </span>
             )}
+            {(data.phoneNumbers?.length ? data.phoneNumbers : data.phone ? [data.phone] : []).map(
+              (phone) => (
+                <a href={`tel:${phone.replace(/[^+\d]/g, '')}`} key={phone}>
+                  {phone}
+                </a>
+              ),
+            )}
+            {data.deliveryAvailable && <span>Reparto a domicilio</span>}
           </div>
         </div>
         <div className="restaurant-hero-bottom" />
@@ -217,12 +235,17 @@ export function MenuPage() {
           <div>
             <p className="menu-kicker">HECHO PARA DISFRUTAR</p>
             <h2>¿Qué se te antoja?</h2>
-            <p>Explora nuestros favoritos o encuentra algo nuevo.</p>
+            <p>{data.welcomeMessage || 'Explora nuestros favoritos o encuentra algo nuevo.'}</p>
           </div>
           <div className="restaurant-welcome-icon">
             <Utensils size={22} />
           </div>
         </section>
+        {data.allowOrders === false && (
+          <p className="menu-orders-unavailable">
+            Este negocio no recibe pedidos desde el menú digital.
+          </p>
+        )}
 
         <label className="menu-search">
           <Search size={19} />
@@ -277,6 +300,7 @@ export function MenuPage() {
                   popular
                   index={index}
                   canOrder={isClient}
+                  orderingEnabled={data.allowOrders !== false}
                   isAuthenticated={isAuthenticated}
                   onOpen={() => setSelectedItem(item)}
                   onAdd={() => addItem(item)}
@@ -310,6 +334,7 @@ export function MenuPage() {
                   item={item}
                   primary={primary}
                   canOrder={isClient}
+                  orderingEnabled={data.allowOrders !== false}
                   isAuthenticated={isAuthenticated}
                   onOpen={() => setSelectedItem(item)}
                   onAdd={() => addItem(item)}
@@ -475,6 +500,7 @@ function DishCard({
   popular = false,
   index = 0,
   canOrder,
+  orderingEnabled,
   isAuthenticated,
   onOpen,
   onAdd,
@@ -485,6 +511,7 @@ function DishCard({
   popular?: boolean;
   index?: number;
   canOrder: boolean;
+  orderingEnabled: boolean;
   isAuthenticated: boolean;
   onOpen: () => void;
   onAdd: () => void;
@@ -518,7 +545,17 @@ function DishCard({
           <span className="dish-card-price">{itemPrice(item)}</span>
         </span>
       </button>
-      {canOrder ? (
+      {!orderingEnabled ? (
+        <button
+          className="dish-add-button dish-login-button"
+          type="button"
+          disabled
+          aria-label="Pedidos no disponibles desde el menú"
+          title="Este negocio no recibe pedidos desde el menú digital"
+        >
+          <Plus size={18} />
+        </button>
+      ) : canOrder ? (
         <button
           className="dish-add-button"
           type="button"

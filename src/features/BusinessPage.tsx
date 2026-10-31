@@ -1,8 +1,10 @@
 import { useCallback, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import {
+  ArrowUpRight,
   Check,
   Gift,
   ImagePlus,
@@ -35,7 +37,6 @@ import { Button } from '../components/ui/button';
 import { Dialog } from '../components/ui/dialog';
 import { Scanner } from '../components/Scanner';
 import { QueryState } from './CustomerPages';
-import { BusinessOnboarding } from './BusinessOnboarding';
 const promotionFormSchema = z
   .object({
     type: z.enum(['simple', 'steps', 'direct']),
@@ -393,7 +394,21 @@ export function BusinessPage() {
             retry={() => void business.refetch()}
           />
           {business.data && !business.data.onboarded ? (
-            <BusinessOnboarding />
+            <section className="business-menu-onboarding-prompt">
+              <span className="stat-icon green">
+                <Store size={20} />
+              </span>
+              <h2>Completa la configuración de tu negocio</h2>
+              <p>
+                Agrega la información, categorías, productos y horarios para publicar tu menú
+                digital.
+              </p>
+              <Button asChild>
+                <Link to="/business/mi-menu">
+                  Abrir Mi menú <ArrowUpRight size={15} />
+                </Link>
+              </Button>
+            </section>
           ) : (
             business.data && <BusinessEditor config={business.data} />
           )}
