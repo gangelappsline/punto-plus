@@ -149,6 +149,8 @@ export const businessSchema = z.object({
   /** Colores extraídos del logo para el menú digital y el QR. */
   primaryColor: z.string().optional(),
   secondaryColor: z.string().optional(),
+  qrForeground: z.string().optional(),
+  qrBackground: z.string().optional(),
   onboarded: z.boolean().optional(),
   welcomeMessage: z.string().optional(),
   description: z.string().optional(),

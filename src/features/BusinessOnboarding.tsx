@@ -350,6 +350,8 @@ export function BusinessOnboarding() {
       menuItems: state.menuItems,
       primaryColor: colors.primary,
       secondaryColor: colors.secondary,
+      qrForeground: state.logoColors?.qrForeground ?? colors.primary,
+      qrBackground: state.logoColors?.qrBackground ?? colors.secondary,
       onboarded: true,
     };
 

@@ -117,7 +117,7 @@ export function useToggleFavorite(onSuccess?: () => void) {
 }
 
 export function useSaveBusiness(onSuccess?: () => void) {
-  return useAction(api.saveBusiness, 'La tarjeta de tu negocio se guardó', onSuccess);
+  return useAction(api.saveBusiness, 'La configuración de tu negocio se guardó', onSuccess);
 }
 
 /** Guarda el borrador de Mi menú sin invalidar el resto del panel ni interrumpir el asistente. */

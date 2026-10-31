@@ -83,7 +83,7 @@ describe('Menú público de negocio', () => {
   });
 
   it('resuelve por slug con el endpoint público y valida la respuesta envuelta', async () => {
-    apiMock.onGet('api/public/business/cafe-avellaneda').reply(200, {
+    apiMock.onGet('public/business/cafe-avellaneda').reply(200, {
       data: {
         business: {
           id: 8,
@@ -108,7 +108,7 @@ describe('Menú público de negocio', () => {
 
     const menu = await api.publicBusinessMenu('cafe-avellaneda');
 
-    expect(apiMock.history.get[0].url).toBe('api/public/business/cafe-avellaneda');
+    expect(apiMock.history.get[0].url).toBe('public/business/cafe-avellaneda');
     expect(apiMock.history.get[0].headers?.Authorization).toBeUndefined();
     expect(menu).toMatchObject({
       slug: 'cafe-avellaneda',

@@ -191,6 +191,8 @@ function normalizeBusinessConfig(payload: unknown) {
   const banner = typeof value.background_url === 'string' ? value.background_url : value.banner;
   const primaryColor = cardSettings.primary_color ?? value.primaryColor;
   const secondaryColor = cardSettings.secondary_color ?? value.secondaryColor;
+  const qrForeground = cardSettings.qr_foreground ?? value.qrForeground;
+  const qrBackground = cardSettings.qr_background ?? value.qrBackground;
   const requiredString = (candidate: unknown) =>
     typeof candidate === 'string' && candidate.length ? candidate : undefined;
   const inferredOnboarded = Boolean(name.trim() && logo && categories.length);
@@ -208,6 +210,8 @@ function normalizeBusinessConfig(payload: unknown) {
     menuItems,
     primaryColor: typeof primaryColor === 'string' ? primaryColor : undefined,
     secondaryColor: typeof secondaryColor === 'string' ? secondaryColor : undefined,
+    qrForeground: typeof qrForeground === 'string' ? qrForeground : undefined,
+    qrBackground: typeof qrBackground === 'string' ? qrBackground : undefined,
     welcomeMessage:
       requiredString(cardSettings.welcome_message) ?? requiredString(value.welcomeMessage),
     description: requiredString(value.description),
@@ -360,7 +364,7 @@ export const api = {
     });
   },
   saveBusinessStep: async ({ step, data, config }: BusinessWizardStepSave) => {
-    if (!isDemo) return http.put('/business/card', { step, data });
+    if (!isDemo) return http.patch('/business/card', { step, data });
     const validated = businessSchema.parse(config);
     return updateDB((db) => {
       db.business = validated;
