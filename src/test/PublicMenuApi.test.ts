@@ -54,6 +54,34 @@ describe('Menú público de negocio', () => {
     });
   });
 
+  it('guarda el paso de servicio sin incluir los demás datos del negocio', async () => {
+    apiMock.onPatch('/business/card').reply(200, { ok: true });
+    const config = {
+      name: 'Café de prueba',
+      reward: 'Bebida gratis',
+      goal: 8,
+      theme: 'forest' as const,
+      icon: 'coffee' as const,
+      categories: ['Cafetería'],
+      menuItems: [],
+    };
+    const serviceData = {
+      service_days: [1, 2, 3],
+      opening_time: '09:00',
+      closing_time: '18:00',
+      opening_hours: 'Lun, Mar, Mié · 09:00–18:00',
+      delivery_available: true,
+      allow_orders: true,
+    };
+
+    await api.saveBusinessStep({ step: 'service', data: serviceData, config });
+
+    expect(JSON.parse(apiMock.history.patch[0].data)).toEqual({
+      step: 'service',
+      data: serviceData,
+    });
+  });
+
   it('resuelve por slug con el endpoint público y valida la respuesta envuelta', async () => {
     apiMock.onGet('api/public/business/cafe-avellaneda').reply(200, {
       data: {
