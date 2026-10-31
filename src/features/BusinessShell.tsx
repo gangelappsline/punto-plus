@@ -107,7 +107,7 @@ export function BusinessLayout() {
           </div>
         </header>
         <main id="main-content">
-          <div className="main-topline">
+          <div className="main-topline" style={{ display: 'none' }}>
             <span className="section-eyebrow">
               {isDemo ? 'NEGOCIO EN DEMOSTRACIÓN' : 'TU NEGOCIO, EN ORDEN'}
             </span>
