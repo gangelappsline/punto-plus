@@ -1,7 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import {
+  ArrowDown,
   ArrowLeft,
   ArrowRight,
+  ArrowUp,
   Check,
   Clock3,
   ImagePlus,
@@ -26,7 +28,7 @@ import {
 } from '../lib/queries';
 import { readImage } from '../lib/image';
 import { publicMenuUrl } from '../lib/utils';
-import type { PublicCategory } from '../services/api';
+import type { BusinessWizardStep, PublicCategory } from '../services/api';
 import { Button } from '../components/ui/button';
 import { Dialog } from '../components/ui/dialog';
 
@@ -39,6 +41,13 @@ const steps = [
   { title: 'Diseño', subtitle: 'Estilo del menú', icon: Palette },
   { title: 'Servicio', subtitle: 'Horarios y pedidos', icon: Clock3 },
 ] as const;
+const stepKeys: BusinessWizardStep[] = [
+  'information',
+  'categories',
+  'products',
+  'design',
+  'service',
+];
 const fieldControlClass =
   'w-full min-w-0 rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm font-normal text-slate-800 outline-none transition placeholder:text-slate-400 focus:border-emerald-600 focus:ring-4 focus:ring-emerald-600/10';
 
@@ -208,6 +217,15 @@ export function BusinessMenuWizard() {
     }
   }
 
+  function moveCategory(category: string, direction: -1 | 1) {
+    const index = draft.categories.indexOf(category);
+    const destination = index + direction;
+    if (index < 0 || destination < 0 || destination >= draft.categories.length) return;
+    const categories = [...draft.categories];
+    [categories[index], categories[destination]] = [categories[destination], categories[index]];
+    update('categories', categories);
+  }
+
   async function uploadBrandImage(key: 'logo' | 'banner', file?: File) {
     if (!file) return;
     try {
@@ -273,11 +291,64 @@ export function BusinessMenuWizard() {
     };
   }
 
+  function dataForStep(index: number, config: BusinessConfig): Record<string, unknown> {
+    const categoryId = (name: string) =>
+      availableCategories.find((category) => category.name === name)?.id ?? name;
+    if (index === 0) {
+      return {
+        name: config.name,
+        description: config.description ?? '',
+        welcome_message: config.welcomeMessage ?? '',
+        logo_url: config.logo ?? null,
+        background_url: config.banner ?? null,
+        phone: config.phone ?? null,
+        phone_numbers: config.phoneNumbers ?? [],
+        address: config.address ?? '',
+      };
+    }
+    if (index === 1) return { category_ids: config.categories.map(categoryId) };
+    if (index === 2) {
+      return {
+        products: config.menuItems.map((item, position) => ({
+          id: item.id,
+          name: item.name,
+          description: item.description ?? '',
+          price: item.price ?? '',
+          category_id: categoryId(item.category ?? ''),
+          image_url: item.image ?? item.imageUrl ?? null,
+          position,
+          available: item.available ?? true,
+        })),
+      };
+    }
+    if (index === 3) {
+      return {
+        primary_color: config.primaryColor ?? '',
+        secondary_color: config.secondaryColor ?? '',
+        font_family: config.fontFamily ?? 'dm-sans',
+        menu_style: config.menuStyle ?? 'cozy',
+      };
+    }
+    return {
+      service_days: config.serviceDays ?? [],
+      opening_time: config.openingTime ?? '',
+      closing_time: config.closingTime ?? '',
+      opening_hours: config.openingHours ?? '',
+      delivery_available: config.deliveryAvailable ?? false,
+      allow_orders: config.allowOrders ?? true,
+    };
+  }
+
   async function saveDraft() {
     if (!business.data) return false;
     const revision = draftRevision.current;
+    const config = draftConfig(business.data);
     try {
-      await saveBusinessDraft.mutateAsync(draftConfig(business.data));
+      await saveBusinessDraft.mutateAsync({
+        step: stepKeys[step],
+        data: dataForStep(step, config),
+        config,
+      });
       if (draftRevision.current === revision) setDraftSavedAt(Date.now());
       return true;
     } catch {
@@ -616,6 +687,49 @@ export function BusinessMenuWizard() {
                   <div className="rounded-xl border border-dashed border-slate-300 bg-slate-50 p-4 text-center text-sm text-slate-500">
                     Todavía no hay categorías disponibles para seleccionar.
                   </div>
+                )}
+                {draft.categories.length > 0 && (
+                  <fieldset className="rounded-2xl border border-slate-200 p-4">
+                    <legend className="px-1 text-xs font-bold text-slate-800">
+                      Orden en el menú público
+                    </legend>
+                    <p className="mb-3 text-xs leading-5 text-slate-500">
+                      Usa las flechas para elegir el orden en que tus clientes verán las categorías.
+                    </p>
+                    <ol className="flex flex-col gap-2">
+                      {draft.categories.map((category, index) => (
+                        <li
+                          key={category}
+                          className="flex items-center justify-between gap-3 rounded-xl border border-slate-200 bg-white px-3 py-2"
+                        >
+                          <span className="min-w-0 truncate text-sm font-semibold text-slate-700">
+                            <span className="mr-2 text-xs text-slate-400">{index + 1}.</span>
+                            {category}
+                          </span>
+                          <span className="flex shrink-0 gap-1">
+                            <button
+                              type="button"
+                              aria-label={`Subir categoría ${category}`}
+                              className="grid size-8 place-items-center rounded-lg text-slate-600 hover:bg-emerald-50 hover:text-emerald-800 disabled:cursor-not-allowed disabled:text-slate-300"
+                              disabled={index === 0}
+                              onClick={() => moveCategory(category, -1)}
+                            >
+                              <ArrowUp size={16} />
+                            </button>
+                            <button
+                              type="button"
+                              aria-label={`Bajar categoría ${category}`}
+                              className="grid size-8 place-items-center rounded-lg text-slate-600 hover:bg-emerald-50 hover:text-emerald-800 disabled:cursor-not-allowed disabled:text-slate-300"
+                              disabled={index === draft.categories.length - 1}
+                              onClick={() => moveCategory(category, 1)}
+                            >
+                              <ArrowDown size={16} />
+                            </button>
+                          </span>
+                        </li>
+                      ))}
+                    </ol>
+                  </fieldset>
                 )}
               </section>
             )}
