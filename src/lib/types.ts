@@ -55,6 +55,15 @@ export const promotionSchema = z.object({
 });
 export type PromotionType = 'simple' | 'steps' | 'direct';
 export type Promotion = z.infer<typeof promotionSchema>;
+export const adminCategorySchema = z.object({
+  id: z.union([z.string(), z.number()]).transform(String),
+  name: z.string().min(1, 'El nombre de la categoría es obligatorio'),
+  icon: z.string().min(1, 'El icono de la categoría es obligatorio'),
+});
+export type AdminCategory = z.infer<typeof adminCategorySchema>;
+export const adminCategoryInputSchema = adminCategorySchema.omit({ id: true });
+export type AdminCategoryInput = z.infer<typeof adminCategoryInputSchema>;
+
 export const activitySchema = z.object({
   id: z.string(),
   business: z.string(),
