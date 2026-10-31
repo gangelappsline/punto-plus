@@ -18,6 +18,9 @@ const BusinessPage = lazy(() =>
 const BusinessMenuWizard = lazy(() =>
   import('./features/BusinessMenuWizard').then((m) => ({ default: m.BusinessMenuWizard })),
 );
+const AdminCategoriesPage = lazy(() =>
+  import('./features/AdminCategoriesPage').then((m) => ({ default: m.AdminCategoriesPage })),
+);
 const Register = lazy(() => import('./features/Register').then((m) => ({ default: m.Register })));
 
 /**
@@ -100,6 +103,14 @@ export default function App() {
         }
       >
         <Route index element={<AdminDashboard />} />
+        <Route
+          path="categorias"
+          element={
+            <Suspense fallback={<AppSplash message="Preparando las categorías…" />}>
+              <AdminCategoriesPage />
+            </Suspense>
+          }
+        />
       </Route>
       <Route path="/:businessSlug" element={<MenuPage />} />
       <Route path="*" element={<NotFoundPage />} />

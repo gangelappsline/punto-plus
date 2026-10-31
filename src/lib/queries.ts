@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { api, type PromotionInput } from '../services/api';
-import type { BusinessConfig } from './types';
+import type { AdminCategoryInput, BusinessConfig } from './types';
 import { errorMessage, isDemo } from './utils';
 
 /**
@@ -17,6 +17,7 @@ export const queryKeys = {
   qr: ['qr'] as const,
   business: ['business'] as const,
   businessPromotions: ['business-promotions'] as const,
+  adminCategories: ['admin-categories'] as const,
 };
 
 /* ---------------------------------- consultas --------------------------------- */
@@ -55,6 +56,10 @@ export function useMyQR(enabled = true) {
     gcTime: 0,
     refetchOnWindowFocus: true,
   });
+}
+
+export function useAdminCategories() {
+  return useQuery({ queryKey: queryKeys.adminCategories, queryFn: api.adminCategories });
 }
 
 export function useBusiness() {
@@ -112,6 +117,22 @@ export function useSaveBusiness(onSuccess?: () => void) {
 
 export function useAddPromotion(onSuccess?: () => void) {
   return useAction(api.addPromotion, 'Promoción publicada', onSuccess);
+}
+
+export function useCreateAdminCategory(onSuccess?: () => void) {
+  return useAction(api.createAdminCategory, 'Categoría creada', onSuccess);
+}
+
+export function useUpdateAdminCategory(onSuccess?: () => void) {
+  return useAction(
+    ({ id, ...input }: { id: string } & AdminCategoryInput) => api.updateAdminCategory(id, input),
+    'Categoría actualizada',
+    onSuccess,
+  );
+}
+
+export function useDeleteAdminCategory(onSuccess?: () => void) {
+  return useAction(api.deleteAdminCategory, 'Categoría eliminada', onSuccess);
 }
 
 export function useStamp(onSuccess?: () => void) {

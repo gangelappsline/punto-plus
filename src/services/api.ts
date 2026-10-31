@@ -2,16 +2,19 @@ import { z } from 'zod';
 import { isDemo } from '../lib/utils';
 import {
   activitySchema,
+  adminCategoryInputSchema,
+  adminCategorySchema,
   businessSchema,
   cardSchema,
   promotionSchema,
   publicMenuSchema,
+  type AdminCategoryInput,
   type BusinessConfig,
   type Promotion,
 } from '../lib/types';
 import { http } from './http';
 import * as authService from './auth';
-import { readDB, redeemDemo, updateDB } from './demo';
+import { readAdminCategories, readDB, redeemDemo, updateAdminCategories, updateDB } from './demo';
 // Proposed API contract. These routes and envelopes MUST be confirmed with the backend.
 /** Payload para crear una promoción: los campos de identidad los rellena el backend/demo. */
 export type PromotionInput = {
@@ -28,6 +31,20 @@ function unwrapPublicMenu(payload: unknown): unknown {
     if (value[key] && typeof value[key] === 'object') return unwrapPublicMenu(value[key]);
   }
   return payload;
+}
+
+function unwrapAdminCategoryList(payload: unknown): unknown {
+  let current = payload;
+  for (let depth = 0; depth < 5; depth += 1) {
+    if (Array.isArray(current)) return current;
+    if (!current || typeof current !== 'object') return current;
+    const value = current as Record<string, unknown>;
+    if (Array.isArray(value.categories)) return value.categories;
+    if (Array.isArray(value.data)) return value.data;
+    if (Array.isArray(value.items)) return value.items;
+    current = value.data ?? value.categories ?? value.items;
+  }
+  return current;
 }
 
 function slugifyBusiness(name: string) {
@@ -62,6 +79,44 @@ export const api = {
     }
     const { data } = await http.get(`api/public/business/${encodeURIComponent(slug)}`);
     return publicMenuSchema.parse(unwrapPublicMenu(data));
+  },
+  adminCategories: async () => {
+    if (isDemo) return readAdminCategories();
+    const { data } = await http.get('/api/admin/categories');
+    return z.array(adminCategorySchema).parse(unwrapAdminCategoryList(data));
+  },
+  createAdminCategory: async (input: AdminCategoryInput) => {
+    const category = adminCategoryInputSchema.parse(input);
+    if (isDemo) {
+      return updateAdminCategories((categories) => {
+        const created = { ...category, id: crypto.randomUUID() };
+        categories.push(created);
+        return created;
+      });
+    }
+    return http.post('/api/admin/categories', category);
+  },
+  updateAdminCategory: async (id: string, input: AdminCategoryInput) => {
+    const category = adminCategoryInputSchema.parse(input);
+    if (isDemo) {
+      return updateAdminCategories((categories) => {
+        const index = categories.findIndex((item) => item.id === id);
+        if (index < 0) throw new Error('No encontramos esta categoría.');
+        categories[index] = { ...category, id };
+        return categories[index];
+      });
+    }
+    return http.put(`/api/admin/categories/${encodeURIComponent(id)}`, category);
+  },
+  deleteAdminCategory: async (id: string) => {
+    if (isDemo) {
+      return updateAdminCategories((categories) => {
+        const index = categories.findIndex((item) => item.id === id);
+        if (index < 0) throw new Error('No encontramos esta categoría.');
+        categories.splice(index, 1);
+      });
+    }
+    return http.delete(`/api/admin/categories/${encodeURIComponent(id)}`);
   },
   toggleFavorite: async (id: string) =>
     isDemo

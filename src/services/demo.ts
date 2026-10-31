@@ -4,6 +4,7 @@ import {
   businessSchema,
   cardSchema,
   promotionSchema,
+  type AdminCategory,
   type LoyaltyCard,
 } from '../lib/types';
 export const initialCards: LoyaltyCard[] = [
@@ -238,6 +239,37 @@ export function updateDB<T>(update: (db: DemoDB) => T): T {
   }
   return result;
 }
+const ADMIN_CATEGORIES_KEY = 'punto-plus-admin-categories-v1';
+const defaultAdminCategories: AdminCategory[] = [
+  { id: 'cat-coffee', name: 'Cafetería', icon: '/images/coffee.webp' },
+  { id: 'cat-bakery', name: 'Panadería', icon: '/images/bakery.webp' },
+  { id: 'cat-drinks', name: 'Bebidas', icon: '/images/matcha.webp' },
+];
+
+export function readAdminCategories(): AdminCategory[] {
+  try {
+    const saved = localStorage.getItem(ADMIN_CATEGORIES_KEY);
+    if (!saved) return defaultAdminCategories.map((category) => ({ ...category }));
+    const parsed = z
+      .array(z.object({ id: z.string(), name: z.string(), icon: z.string() }))
+      .parse(JSON.parse(saved));
+    return parsed;
+  } catch {
+    return defaultAdminCategories.map((category) => ({ ...category }));
+  }
+}
+
+export function updateAdminCategories<T>(update: (categories: AdminCategory[]) => T): T {
+  const categories = readAdminCategories();
+  const result = update(categories);
+  try {
+    localStorage.setItem(ADMIN_CATEGORIES_KEY, JSON.stringify(categories));
+  } catch {
+    throw new Error('No se pudieron guardar las categorías en este navegador.');
+  }
+  return result;
+}
+
 export function redeemDemo(id: string) {
   return updateDB((db) => {
     const card = db.cards.find((c) => c.id === id);

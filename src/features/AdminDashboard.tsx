@@ -1,4 +1,4 @@
-import { ArrowUpRight, Building2, ShieldCheck, Users } from 'lucide-react';
+import { ArrowUpRight, Building2, ShieldCheck, Tags, Users } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { isDemo } from '../lib/utils';
 import { useAuth } from '../stores/auth';
@@ -61,6 +61,18 @@ export function AdminDashboard() {
             </p>
             <Link to="/" className="text-link subtle-link">
               Volver al sitio <ArrowUpRight size={14} />
+            </Link>
+          </div>
+          <div className="admin-action-card">
+            <div className="flex items-center gap-3">
+              <span className="stat-icon purple">
+                <Tags size={20} />
+              </span>
+              <h3>Categorías del menú</h3>
+            </div>
+            <p>Administra el nombre y el icono que identifican cada categoría.</p>
+            <Link to="/admin/categorias" className="text-link subtle-link">
+              Administrar categorías <ArrowUpRight size={14} />
             </Link>
           </div>
         </section>
