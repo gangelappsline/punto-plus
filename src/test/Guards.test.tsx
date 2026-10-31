@@ -28,7 +28,7 @@ const { readStoredSession } = await import('../lib/tokenStorage');
 const apiMock = new AxiosMockAdapter(http);
 const refreshMock = new AxiosMockAdapter(createSpy.mock.results[1].value as AxiosInstance);
 const profile = { id: 7, name: 'Ana Ramírez', email: 'ana@example.com', role: 'business' };
-type Role = 'customer' | 'business';
+type Role = 'customer' | 'business' | 'admin';
 
 function Pane({ label }: { label: string }) {
   const location = useLocation();
@@ -66,10 +66,18 @@ function renderAt(path: string, state?: unknown) {
             }
           />
           <Route
-            path="/admin/*"
+            path="/business/*"
             element={
               <PanelGate panel="business">
                 <Pane label="Panel de negocio" />
+              </PanelGate>
+            }
+          />
+          <Route
+            path="/admin/*"
+            element={
+              <PanelGate panel="admin">
+                <Pane label="Panel de administración" />
               </PanelGate>
             }
           />
@@ -116,13 +124,28 @@ describe('Acceso a los paneles', () => {
 
   it('abre el panel de negocio solo con una sesión de negocio', async () => {
     signIn('business');
+    renderAt('/business');
+    expect(await screen.findByRole('heading', { name: 'Panel de negocio' })).toBeInTheDocument();
+  });
+
+  it('abre administración solo para el rol admin', async () => {
+    signIn('admin');
+    renderAt('/admin');
+    expect(
+      await screen.findByRole('heading', { name: 'Panel de administración' }),
+    ).toBeInTheDocument();
+  });
+
+  it('redirige un negocio fuera del panel de administración', async () => {
+    signIn('business');
     renderAt('/admin');
     expect(await screen.findByRole('heading', { name: 'Panel de negocio' })).toBeInTheDocument();
+    expect(screen.getByTestId('location')).toHaveTextContent('/business');
   });
 
   it('envía a cada cuenta a su propio panel si pide el otro', async () => {
     signIn('customer');
-    renderAt('/admin');
+    renderAt('/business');
     expect(await screen.findByRole('heading', { name: 'Panel de cliente' })).toBeInTheDocument();
     expect(screen.getByTestId('location')).toHaveTextContent('/app');
   });
@@ -144,7 +167,7 @@ describe('Acceso a los paneles', () => {
     useAuth.getState().setTokens({ access_token: 'access-token', refresh_token: 'refresh' });
     apiMock.onGet('/api/me').reply(200, profile);
 
-    renderAt('/admin');
+    renderAt('/business');
     expect(await screen.findByRole('heading', { name: 'Panel de negocio' })).toBeInTheDocument();
     expect(useAuth.getState().user).toMatchObject({ role: 'business' });
     expect(readStoredSession()?.user?.email).toBe('ana@example.com');

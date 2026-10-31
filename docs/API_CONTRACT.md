@@ -68,8 +68,8 @@ pintarlos junto a cada input.
 > `Content-Type`, y la revocación real de tokens en logout (`DELETE /oauth/tokens/{id}`).
 
 **Paneles protegidos.** El access token guardado es lo que abre los paneles: `/app` exige
-rol `customer` y `/admin` exige `business` o `admin`. La comprobación del frontend es de
-conveniencia (evita mostrar un panel vacío); cada endpoint privado debe validar el token y
+rol `customer`, `/business` exige `business` y `/admin` exige `admin`. La
+comprobación del frontend es de conveniencia (evita mostrar un panel vacío); cada endpoint privado debe validar el token y
 el rol en el servidor. Un 401 definitivo cierra la sesión y devuelve a `/login`.
 
 ## Cliente
@@ -179,7 +179,7 @@ promoción de bienvenida. **Confirmar:** si el backend prefiere un endpoint úni
 si la segunda petición falla, el negocio queda guardado sin promoción.
 
 `onboarded` es lo que usa el frontend para decidir si muestra el asistente
-(`/admin/negocio` lo incrusta mientras sea falso) o el editor de la tarjeta. **Confirmar**
+(`/business/negocio` lo incrusta mientras sea falso) o el editor de la tarjeta. **Confirmar**
 si el backend expone ese estado o debe derivarse de qué campos están completos.
 
 **Análisis de imágenes.** La paleta del logo se calcula **en el navegador**

@@ -202,7 +202,7 @@ export function CustomerLayout() {
         </button>
         <div className="sidebar-bottom">
           {canManage && (
-            <NavLink to="/admin" className="business-nav">
+            <NavLink to="/business" className="business-nav">
               <Store size={18} />
               <span>Mi negocio</span>
               <ArrowIcon />

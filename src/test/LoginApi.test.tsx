@@ -40,7 +40,8 @@ function setup() {
         <Routes>
           <Route path="/login" element={<Login />} />
           <Route path="/app" element={<h1>Panel de cliente</h1>} />
-          <Route path="/admin" element={<h1>Panel de negocio</h1>} />
+          <Route path="/business" element={<h1>Panel de negocio</h1>} />
+          <Route path="/admin" element={<h1>Panel de administración</h1>} />
         </Routes>
       </MemoryRouter>
     </QueryClientProvider>,
@@ -91,6 +92,29 @@ describe('Login contra la API', () => {
     expect(stored?.refreshToken).toBe('def50200refresh');
     expect(stored?.user?.role).toBe('business');
     expect(useAuth.getState().accessToken).toBe('eyJ.access');
+  });
+
+  it('dirige una sesión con rol admin a su panel independiente', async () => {
+    const user = setup();
+    apiMock.onPost('/api/login').reply(200, {
+      message: 'Sesión iniciada.',
+      user: {
+        id: 8,
+        name: 'Ángel Rodríguez',
+        email: 'angel@example.com',
+        role: 'admin',
+        role_label: 'Administrador',
+        is_active: true,
+      },
+      token: 'access.admin',
+    });
+
+    await submit(user);
+
+    expect(
+      await screen.findByRole('heading', { name: 'Panel de administración' }),
+    ).toBeInTheDocument();
+    expect(readStoredSession()?.user).toMatchObject({ id: '8', role: 'admin' });
   });
 
   it('pide el perfil cuando el backend solo responde los tokens', async () => {

@@ -1,37 +1,27 @@
 import { useEffect } from 'react';
 import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
-import { ArrowUpRight, LayoutDashboard, LogOut, ScanLine, Store } from 'lucide-react';
+import { ArrowUpRight, LayoutDashboard, LogOut, ScanLine } from 'lucide-react';
 import { toast } from 'sonner';
-import { useLogout } from '../lib/session';
-import { demoUser, useAuth } from '../stores/auth';
-import { isDemo } from '../lib/utils';
 import { Button } from '../components/ui/button';
+import { useLogout } from '../lib/session';
+import { isDemo } from '../lib/utils';
+import { demoUser, useAuth } from '../stores/auth';
 import logo from '../assets/images/logo_2.webp';
 
-const adminNavigation = [
-  { path: '/admin', icon: LayoutDashboard, title: 'Resumen', end: true },
-  { path: '/admin/negocio', icon: Store, title: 'Mi negocio', end: false },
-];
-
-/**
- * Layout del panel de negocio: barra lateral, barra superior y navegación
- * móvil propias. Independiente del panel de cliente y protegido por
- * `PanelGate`, que exige el token guardado al iniciar sesión y el rol
- * `business` o `admin`.
- */
+/** Estructura exclusiva para cuentas con rol `admin` (administración de plataforma). */
 export function AdminLayout() {
-  const realUser = useAuth((s) => s.user);
-  // Con la API real el guard garantiza el usuario; en demo se usa el de muestra.
+  const realUser = useAuth((state) => state.user);
   const user = realUser ?? demoUser;
   const location = useLocation();
   const navigate = useNavigate();
   const logout = useLogout();
-  const title =
-    adminNavigation.find((n) => n.path === location.pathname)?.title || 'Administración';
+  const title = 'Resumen';
+
   useEffect(() => {
     window.scrollTo({ top: 0 });
-    document.title = `${title} · Administración · Punto Plus`;
-  }, [location.pathname, title]);
+    document.title = `${title} · Administración de plataforma · Punto Plus`;
+  }, [location.pathname]);
+
   return (
     <div className="app-shell">
       <a className="skip-link" href="#main-content">
@@ -41,19 +31,16 @@ export function AdminLayout() {
         <Link to="/" className="admin-brand block" aria-label="Punto Plus · Inicio">
           <img src={logo} alt="Punto Plus" className="block mx-auto" />
         </Link>
-        <div className="admin-label">PANEL DE ADMINISTRACIÓN</div>
+        <div className="admin-label">ADMINISTRACIÓN DE PLATAFORMA</div>
         <nav className="admin-nav" aria-label="Navegación de administración">
-          {adminNavigation.map(({ path, icon: Icon, title: label, end }) => (
-            <NavLink
-              key={path}
-              to={path}
-              end={end}
-              className={({ isActive }) => `admin-nav-item ${isActive ? 'active' : ''}`}
-            >
-              <Icon size={19} strokeWidth={1.65} />
-              <span>{label}</span>
-            </NavLink>
-          ))}
+          <NavLink
+            to="/admin"
+            end
+            className={({ isActive }) => `admin-nav-item ${isActive ? 'active' : ''}`}
+          >
+            <LayoutDashboard size={19} strokeWidth={1.65} />
+            <span>Resumen</span>
+          </NavLink>
         </nav>
         <div className="sidebar-bottom">
           <div className="admin-user-chip">
@@ -80,13 +67,13 @@ export function AdminLayout() {
             </Button>
           )}
         </div>
-        <div className="admin-footer">PUNTO PLUS® · ADMINISTRACIÓN</div>
+        <div className="admin-footer">PUNTO PLUS® · ADMINISTRACIÓN DE PLATAFORMA</div>
       </aside>
       <div className="workspace">
         <header className="topbar">
           <div className="topbar-left">
             <span className="breadcrumb">
-              Administración <ArrowUpRight size={13} /> <strong>{title}</strong>
+              Administración de plataforma <ArrowUpRight size={13} /> <strong>{title}</strong>
             </span>
             <Link to="/" className="mobile-brand" aria-label="Punto Plus · Inicio">
               <img src={logo} alt="Punto Plus" />
@@ -101,16 +88,14 @@ export function AdminLayout() {
                 <span /> Demo
               </span>
             )}
-            <button className="avatar small-avatar" aria-label="Mi perfil">
+            <span className="avatar small-avatar" aria-label={`Sesión de ${user.name}`}>
               {user.name[0]}
-            </button>
+            </span>
           </div>
         </header>
         <main id="main-content">
           <div className="main-topline">
-            <span className="section-eyebrow">
-              {isDemo ? 'ADMINISTRACIÓN EN DEMOSTRACIÓN' : 'TU NEGOCIO, EN ORDEN'}
-            </span>
+            <span className="section-eyebrow">CONSOLA DE ADMINISTRACIÓN</span>
           </div>
           <Outlet />
           <footer className="main-footer">
@@ -122,12 +107,10 @@ export function AdminLayout() {
         </main>
       </div>
       <nav className="bottom-nav" aria-label="Navegación móvil">
-        {adminNavigation.map(({ path, icon: Icon, title: label, end }) => (
-          <NavLink key={path} end={end} to={path}>
-            <Icon size={21} />
-            <span>{label}</span>
-          </NavLink>
-        ))}
+        <NavLink to="/admin" end>
+          <LayoutDashboard size={21} />
+          <span>Resumen</span>
+        </NavLink>
       </nav>
     </div>
   );

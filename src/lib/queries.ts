@@ -122,7 +122,7 @@ export function useStamp(onSuccess?: () => void) {
  * Publica el perfil completo del negocio desde el asistente de alta: guarda la
  * configuración (logo, banner, categorías, menú y colores) y crea la promoción
  * de bienvenida en una sola operación. Al invalidar la caché, la guarda de
- * `/admin/negocio` deja de mostrar el asistente sin necesidad de recargar.
+ * `/business/negocio` deja de mostrar el asistente sin necesidad de recargar.
  */
 export function usePublishBusiness(onSuccess?: () => void) {
   const client = useQueryClient();

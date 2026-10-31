@@ -9,21 +9,26 @@ export const cn = (...inputs: ClassValue[]) => twMerge(clsx(inputs));
  */
 export const isDemo = import.meta.env.VITE_DATA_MODE === 'demo';
 /** Cada panel es un layout independiente con su propia ruta raíz. */
-export type Panel = 'customer' | 'business';
-/** Raíz del panel que le corresponde a cada rol. */
+export type Panel = 'customer' | 'business' | 'admin';
+/** Ruta raíz del layout asignado a cada rol. */
 export function panelPathFor(role?: User['role'] | string | null) {
-  return role === 'business' || role === 'admin' ? '/admin' : '/app';
+  return role === 'business' ? '/business' : role === 'admin' ? '/admin' : '/app';
 }
 /** Panel al que pertenece una ruta, o `null` si es pública. */
 export function panelForPath(pathname: string): Panel | null {
-  if (pathname.startsWith('/admin')) return 'business';
+  if (pathname.startsWith('/admin')) return 'admin';
+  if (pathname.startsWith('/business')) return 'business';
   if (pathname.startsWith('/app')) return 'customer';
   return null;
 }
 /** ¿El rol de la sesión tiene acceso a este panel? */
 export function panelAllows(panel: Panel, role?: User['role'] | string | null) {
   if (!role) return false;
-  return panel === 'business' ? role === 'business' || role === 'admin' : role === 'customer';
+  return panel === 'business'
+    ? role === 'business'
+    : panel === 'admin'
+      ? role === 'admin'
+      : role === 'customer';
 }
 export function errorMessage(error: unknown) {
   return error instanceof Error ? error.message : 'Ocurrió un error. Inténtalo de nuevo.';

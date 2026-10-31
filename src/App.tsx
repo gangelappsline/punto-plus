@@ -2,6 +2,8 @@ import { lazy, Suspense } from 'react';
 import { Route, Routes } from 'react-router-dom';
 import { AppSplash } from './components/AppSplash';
 import { ActivityPage, CardsPage, ExplorePage, RewardsPage } from './features/CustomerPages';
+import { BusinessDashboard } from './features/BusinessDashboard';
+import { BusinessLayout } from './features/BusinessShell';
 import { AdminDashboard } from './features/AdminDashboard';
 import { AdminLayout } from './features/AdminShell';
 import { CustomerLayout } from './features/CustomerShell';
@@ -21,9 +23,8 @@ const Register = lazy(() => import('./features/Register').then((m) => ({ default
 /**
  * Enrutado de la aplicación.
  *
- * `/app` (cliente) y `/admin` (negocio) son dos layouts independientes: cada
- * uno monta el suyo detrás de un `PanelGate`, que con la API real solo deja
- * pasar con el token guardado al iniciar sesión y el rol correspondiente.
+ * `/app` (cliente), `/business` (negocio) y `/admin` (administrador) son
+ * layouts independientes, cada uno protegido por el rol correspondiente.
  * `/login` y `/registro` son públicas y, con la sesión iniciada, devuelven al
  * panel de la cuenta.
  */
@@ -64,14 +65,14 @@ export default function App() {
         <Route path="actividad" element={<ActivityPage />} />
       </Route>
       <Route
-        path="/admin"
+        path="/business"
         element={
           <PanelGate panel="business">
-            <AdminLayout />
+            <BusinessLayout />
           </PanelGate>
         }
       >
-        <Route index element={<AdminDashboard />} />
+        <Route index element={<BusinessDashboard />} />
         <Route
           path="negocio"
           element={
@@ -88,6 +89,16 @@ export default function App() {
             </Suspense>
           }
         />
+      </Route>
+      <Route
+        path="/admin"
+        element={
+          <PanelGate panel="admin">
+            <AdminLayout />
+          </PanelGate>
+        }
+      >
+        <Route index element={<AdminDashboard />} />
       </Route>
       <Route path="*" element={<NotFoundPage />} />
     </Routes>
