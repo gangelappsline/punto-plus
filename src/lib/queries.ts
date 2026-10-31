@@ -17,6 +17,7 @@ export const queryKeys = {
   qr: ['qr'] as const,
   business: ['business'] as const,
   businessPromotions: ['business-promotions'] as const,
+  publicCategories: ['public-categories'] as const,
   adminCategories: ['admin-categories'] as const,
 };
 
@@ -66,6 +67,10 @@ export function useBusiness() {
   return useQuery({ queryKey: queryKeys.business, queryFn: api.business });
 }
 
+export function usePublicCategories() {
+  return useQuery({ queryKey: queryKeys.publicCategories, queryFn: api.publicCategories });
+}
+
 export function useBusinessPromotions() {
   return useQuery({
     queryKey: queryKeys.businessPromotions,
@@ -113,6 +118,18 @@ export function useToggleFavorite(onSuccess?: () => void) {
 
 export function useSaveBusiness(onSuccess?: () => void) {
   return useAction(api.saveBusiness, 'La tarjeta de tu negocio se guardó', onSuccess);
+}
+
+/** Guarda el borrador de Mi menú sin invalidar el resto del panel ni interrumpir el asistente. */
+export function useSaveBusinessDraft() {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: api.saveBusiness,
+    onSuccess: (_result, config) => {
+      client.setQueryData(queryKeys.business, config);
+    },
+    onError: (error) => toast.error(errorMessage(error)),
+  });
 }
 
 export function useAddPromotion(onSuccess?: () => void) {

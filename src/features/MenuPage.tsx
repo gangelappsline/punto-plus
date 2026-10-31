@@ -133,13 +133,17 @@ export function MenuPage() {
 
   if (business.isError || !data)
     return (
-      <main className="menu-state menu-state-modern">
-        <span className="menu-state-icon">
+      <main className="mx-auto flex min-h-dvh w-full max-w-lg flex-col items-center justify-center gap-4 bg-stone-50 px-6 text-center text-slate-700">
+        <span className="grid size-16 place-items-center rounded-2xl bg-emerald-100 text-emerald-800">
           <Utensils size={24} />
         </span>
-        <p className="menu-kicker">PUNTO PLUS · MENÚ DIGITAL</p>
-        <h1>Este menú no está disponible</h1>
-        <p>
+        <p className="text-xs font-bold uppercase tracking-[0.18em] text-emerald-800">
+          PUNTO PLUS · MENÚ DIGITAL
+        </p>
+        <h1 className="text-3xl font-extrabold tracking-tight text-slate-900">
+          Este menú no está disponible
+        </h1>
+        <p className="text-sm leading-6 text-slate-600">
           {business.error instanceof Error
             ? business.error.message
             : 'No encontramos este restaurante o todavía no ha publicado su menú.'}
@@ -157,69 +161,101 @@ export function MenuPage() {
 
   return (
     <div
-      className={`restaurant-menu ${data.menuStyle === 'compact' ? 'menu-style-compact' : ''}`}
+      className="min-h-screen overflow-x-hidden bg-stone-50 font-sans text-slate-800"
       style={
         {
+          fontFamily: menuFontStack(data.fontFamily),
           '--restaurant-primary': primary,
           '--restaurant-soft': secondary,
-          '--menu-font-family': menuFontStack(data.fontFamily),
         } as React.CSSProperties
       }
     >
-      <header className="restaurant-hero">
+      <header className="relative isolate min-h-[390px] overflow-hidden bg-slate-950 text-white md:min-h-[455px]">
         {data.banner ? (
-          <img src={data.banner} alt="" className="restaurant-hero-image" />
+          <img
+            src={data.banner}
+            alt=""
+            className="absolute inset-0 size-full object-cover"
+            aria-hidden="true"
+          />
         ) : (
-          <div className="restaurant-hero-image restaurant-hero-fallback" />
+          <div
+            className="absolute inset-0"
+            style={{
+              background:
+                'radial-gradient(ellipse at 15% 22%, #d7a36b66, transparent 34%), radial-gradient(ellipse at 88% 72%, #479e9077, transparent 36%), linear-gradient(125deg, #172f3e, #3f594a 52%, #8b6143)',
+            }}
+          />
         )}
-        <div className="restaurant-hero-shade" />
-        <div className="restaurant-hero-top">
-          <Link to="/" className="restaurant-back" aria-label="Volver al inicio">
+        <div className="absolute inset-0 bg-gradient-to-b from-slate-950/45 via-slate-900/55 to-slate-950/90" />
+        <div className="relative z-10 mx-auto flex w-full max-w-7xl items-center justify-between px-4 pt-5 sm:px-8">
+          <Link
+            to="/"
+            className="grid size-11 place-items-center rounded-full border border-white/30 bg-white/10 text-white backdrop-blur-md transition hover:bg-white/20"
+            aria-label="Volver al inicio"
+          >
             <ArrowLeft size={18} />
           </Link>
-          <span className="restaurant-brand-mark">
+          <span className="inline-flex items-center gap-2 text-[10px] font-extrabold tracking-[0.2em] text-white drop-shadow">
             <Sparkles size={14} /> PUNTO PLUS
           </span>
           {isClient && data.allowOrders !== false ? (
             <button
-              className="restaurant-cart-top"
+              className="inline-flex h-11 min-w-11 items-center justify-center gap-2 rounded-full border border-white/30 bg-white/10 px-3 text-white backdrop-blur-md transition hover:bg-white/20"
               onClick={() => setOrderOpen(true)}
               aria-label={`Ver orden, ${orderCount} artículos`}
             >
               <ShoppingBag size={18} />
-              <span>{orderCount}</span>
+              <span className="text-sm font-bold tabular-nums">{orderCount}</span>
             </button>
           ) : (
-            <span className="restaurant-cart-spacer" />
+            <span className="size-11" aria-hidden="true" />
           )}
         </div>
-        <div className="restaurant-identity">
-          <div className="restaurant-logo-wrap" style={{ borderColor: secondary }}>
+        <div className="relative z-10 mx-auto flex min-h-[330px] max-w-4xl flex-col items-center justify-center px-5 pb-14 pt-8 text-center md:min-h-[390px]">
+          <div
+            className="grid size-20 place-items-center overflow-hidden rounded-3xl border-[3px] bg-white shadow-2xl sm:size-24"
+            style={{ borderColor: secondary }}
+          >
             {data.logo ? (
-              <img src={data.logo} alt={`Logo de ${data.name}`} />
+              <img
+                src={data.logo}
+                alt={`Logo de ${data.name}`}
+                className="size-full object-cover"
+              />
             ) : (
-              <Utensils size={28} style={{ color: primary }} />
+              <Utensils size={30} style={{ color: primary }} />
             )}
           </div>
-          <p className="restaurant-eyebrow">MENÚ DEL RESTAURANTE</p>
-          <h1>{data.name}</h1>
-          {data.description && <p className="restaurant-description">{data.description}</p>}
-          <div className="restaurant-meta">
+          <p className="mb-2 mt-5 text-[10px] font-bold uppercase tracking-[0.2em] text-white/75">
+            MENÚ DEL RESTAURANTE
+          </p>
+          <h1 className="max-w-3xl text-balance text-4xl font-extrabold leading-tight tracking-tight text-white drop-shadow sm:text-5xl md:text-6xl">
+            {data.name}
+          </h1>
+          {data.description && (
+            <p className="mt-3 max-w-2xl text-pretty text-sm leading-6 text-white/85 sm:text-base">
+              {data.description}
+            </p>
+          )}
+          <div className="mt-5 flex max-w-3xl flex-wrap items-center justify-center gap-x-5 gap-y-2 text-xs text-white/85">
             {(data.address || data.location) && (
-              <span>
-                <MapPin size={14} />
-                {data.address || data.location}
+              <span className="inline-flex items-center gap-1.5">
+                <MapPin size={14} /> {data.address || data.location}
               </span>
             )}
             {data.openingHours && (
-              <span>
-                <Clock3 size={14} />
-                {data.openingHours}
+              <span className="inline-flex items-center gap-1.5">
+                <Clock3 size={14} /> {data.openingHours}
               </span>
             )}
             {(data.phoneNumbers?.length ? data.phoneNumbers : data.phone ? [data.phone] : []).map(
               (phone) => (
-                <a href={`tel:${phone.replace(/[^+\d]/g, '')}`} key={phone}>
+                <a
+                  href={`tel:${phone.replace(/[^+\d]/g, '')}`}
+                  key={phone}
+                  className="underline-offset-4 hover:underline"
+                >
                   {phone}
                 </a>
               ),
@@ -227,48 +263,67 @@ export function MenuPage() {
             {data.deliveryAvailable && <span>Reparto a domicilio</span>}
           </div>
         </div>
-        <div className="restaurant-hero-bottom" />
+        <div className="absolute inset-x-[-5%] bottom-[-43px] h-[75px] rounded-t-[50%] bg-stone-50" />
       </header>
 
-      <main className="restaurant-content">
-        <section className="restaurant-welcome">
-          <div>
-            <p className="menu-kicker">HECHO PARA DISFRUTAR</p>
-            <h2>¿Qué se te antoja?</h2>
-            <p>{data.welcomeMessage || 'Explora nuestros favoritos o encuentra algo nuevo.'}</p>
+      <main className="relative z-10 mx-auto -mt-7 w-full max-w-6xl px-4 pb-16 sm:px-6 lg:px-8">
+        <section className="mb-7 flex items-center justify-between gap-5 rounded-3xl border border-stone-200/80 bg-white p-5 shadow-sm sm:p-7">
+          <div className="min-w-0">
+            <p className="mb-2 text-[10px] font-extrabold uppercase tracking-[0.18em] text-[var(--restaurant-primary)]">
+              HECHO PARA DISFRUTAR
+            </p>
+            <h2 className="text-2xl font-extrabold tracking-tight text-slate-900 sm:text-3xl">
+              ¿Qué se te antoja?
+            </h2>
+            <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-500">
+              {data.welcomeMessage || 'Explora nuestros favoritos o encuentra algo nuevo.'}
+            </p>
           </div>
-          <div className="restaurant-welcome-icon">
-            <Utensils size={22} />
+          <div className="hidden size-14 shrink-0 place-items-center rounded-2xl bg-[var(--restaurant-primary)]/10 text-[var(--restaurant-primary)] sm:grid">
+            <Utensils size={23} />
           </div>
         </section>
         {data.allowOrders === false && (
-          <p className="menu-orders-unavailable">
+          <p className="mb-5 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
             Este negocio no recibe pedidos desde el menú digital.
           </p>
         )}
 
-        <label className="menu-search">
-          <Search size={19} />
+        <div
+          role="search"
+          className="sticky top-0 z-20 mb-4 flex h-13 items-center gap-3 rounded-2xl border border-stone-200 bg-white/95 px-4 text-slate-400 shadow-sm backdrop-blur-md focus-within:border-[var(--restaurant-primary)] focus-within:ring-4 focus-within:ring-[var(--restaurant-primary)]/10"
+        >
+          <Search size={19} className="shrink-0" />
           <input
             type="search"
             value={search}
             onChange={(event) => setSearch(event.target.value)}
             placeholder="Buscar en el menú"
             aria-label="Buscar platillos"
+            className="min-w-0 flex-1 border-0 bg-transparent text-sm text-slate-800 outline-none placeholder:text-slate-400"
           />
           {search && (
-            <button type="button" onClick={() => setSearch('')} aria-label="Limpiar búsqueda">
+            <button
+              type="button"
+              className="grid size-8 shrink-0 place-items-center rounded-full bg-stone-100 text-lg text-slate-500 hover:bg-stone-200"
+              onClick={() => setSearch('')}
+              aria-label="Limpiar búsqueda"
+            >
               ×
             </button>
           )}
-        </label>
+        </div>
 
-        <nav className="menu-category-nav" aria-label="Categorías del menú">
+        <nav
+          className="sticky top-[52px] z-20 -mx-4 mb-8 flex gap-2 overflow-x-auto bg-stone-50/95 px-4 py-3 backdrop-blur-md sm:-mx-6 sm:px-6 lg:-mx-8 lg:px-8"
+          aria-label="Categorías del menú"
+        >
           {['Todos', ...categories].map((item) => (
             <button
               type="button"
               key={item}
-              className={category === item ? 'selected' : ''}
+              className={`shrink-0 rounded-full border px-4 py-2.5 text-xs font-bold transition ${category === item ? 'border-transparent text-white shadow-md' : 'border-stone-200 bg-white text-slate-600 hover:border-stone-300 hover:bg-stone-100'}`}
+              style={category === item ? { backgroundColor: primary } : undefined}
               aria-pressed={category === item}
               onClick={() => setCategory(item)}
             >
@@ -278,26 +333,31 @@ export function MenuPage() {
         </nav>
 
         {category === 'Todos' && !search && popularItems.length > 0 && (
-          <section className="menu-section menu-popular-section">
-            <div className="menu-section-heading">
-              <div>
-                <span className="menu-section-icon">
-                  <Sparkles size={15} />
+          <section className="mb-11">
+            <div className="mb-4 flex items-end justify-between gap-3">
+              <div className="flex items-center gap-3">
+                <span className="grid size-10 place-items-center rounded-xl bg-[var(--restaurant-primary)]/10 text-[var(--restaurant-primary)]">
+                  <Sparkles size={17} />
                 </span>
                 <div>
-                  <p className="menu-kicker">LOS FAVORITOS</p>
-                  <h2>Los más pedidos</h2>
+                  <p className="mb-1 text-[10px] font-extrabold uppercase tracking-[0.16em] text-[var(--restaurant-primary)]">
+                    LOS FAVORITOS
+                  </p>
+                  <h2 className="text-xl font-extrabold tracking-tight text-slate-900 sm:text-2xl">
+                    Los más pedidos
+                  </h2>
                 </div>
               </div>
-              <span className="menu-section-caption">De la casa</span>
+              <span className="text-xs font-semibold text-slate-400">De la casa</span>
             </div>
-            <div className="popular-dishes">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
               {popularItems.map((item, index) => (
                 <DishCard
                   key={item.id}
                   item={item}
                   primary={primary}
                   popular
+                  compact={data.menuStyle === 'compact'}
                   index={index}
                   canOrder={isClient}
                   orderingEnabled={data.allowOrders !== false}
@@ -311,28 +371,33 @@ export function MenuPage() {
           </section>
         )}
 
-        <section className="menu-section menu-catalog-section">
-          <div className="menu-section-heading">
-            <div>
-              <span className="menu-section-icon">
-                <Utensils size={15} />
+        <section className="mb-10 scroll-mt-32">
+          <div className="mb-4 flex items-end justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <span className="grid size-10 place-items-center rounded-xl bg-[var(--restaurant-primary)]/10 text-[var(--restaurant-primary)]">
+                <Utensils size={17} />
               </span>
               <div>
-                <p className="menu-kicker">DESCUBRE ALGO RICO</p>
-                <h2>{categoryTitle}</h2>
+                <p className="mb-1 text-[10px] font-extrabold uppercase tracking-[0.16em] text-[var(--restaurant-primary)]">
+                  DESCUBRE ALGO RICO
+                </p>
+                <h2 className="text-xl font-extrabold tracking-tight text-slate-900 sm:text-2xl">
+                  {categoryTitle}
+                </h2>
               </div>
             </div>
-            <span className="menu-section-caption">
+            <span className="text-xs font-semibold text-slate-400">
               {filteredItems.length} {filteredItems.length === 1 ? 'platillo' : 'platillos'}
             </span>
           </div>
           {filteredItems.length ? (
-            <div className="menu-catalog-grid">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
               {filteredItems.map((item) => (
                 <DishCard
                   key={item.id}
                   item={item}
                   primary={primary}
+                  compact={data.menuStyle === 'compact'}
                   canOrder={isClient}
                   orderingEnabled={data.allowOrders !== false}
                   isAuthenticated={isAuthenticated}
@@ -343,10 +408,12 @@ export function MenuPage() {
               ))}
             </div>
           ) : (
-            <div className="menu-empty-state">
-              <Search size={22} />
-              <h3>No encontramos platillos</h3>
-              <p>Prueba con otra búsqueda o categoría.</p>
+            <div className="flex min-h-60 flex-col items-center justify-center rounded-3xl border border-dashed border-stone-300 bg-white px-6 py-10 text-center text-slate-400">
+              <Search size={24} className="text-slate-400" />
+              <h3 className="mb-1 mt-4 text-base font-bold text-slate-700">
+                No encontramos platillos
+              </h3>
+              <p className="mb-4 text-sm">Prueba con otra búsqueda o categoría.</p>
               <Button
                 variant="outline"
                 onClick={() => {
@@ -361,28 +428,37 @@ export function MenuPage() {
         </section>
 
         {!isClient && (
-          <aside className="menu-login-callout">
-            <span>
-              <ShoppingBag size={19} />
+          <aside className="my-8 flex flex-wrap items-center gap-4 rounded-2xl border border-stone-200 bg-white p-4 shadow-sm sm:p-5">
+            <span className="grid size-11 shrink-0 place-items-center rounded-xl bg-[var(--restaurant-primary)]/10 text-[var(--restaurant-primary)]">
+              <ShoppingBag size={20} />
             </span>
-            <div>
-              <strong>¿Te gustaría pedir?</strong>
-              <p>Inicia sesión como cliente para agregar platillos a tu orden.</p>
+            <div className="min-w-0 flex-1">
+              <strong className="text-sm font-bold text-slate-800">¿Te gustaría pedir?</strong>
+              <p className="mt-1 text-xs leading-5 text-slate-500">
+                Inicia sesión como cliente para agregar platillos a tu orden.
+              </p>
             </div>
             {user ? (
-              <Link className="menu-login-link" to={panelPathFor(user.role)}>
+              <Link
+                className="inline-flex items-center gap-2 rounded-xl bg-[var(--restaurant-primary)] px-4 py-2.5 text-xs font-bold text-white transition hover:brightness-110"
+                to={panelPathFor(user.role)}
+              >
                 Ir a mi panel <ArrowRight size={15} />
               </Link>
             ) : (
-              <Link className="menu-login-link" to="/login" state={{ from: location.pathname }}>
+              <Link
+                className="inline-flex items-center gap-2 rounded-xl bg-[var(--restaurant-primary)] px-4 py-2.5 text-xs font-bold text-white transition hover:brightness-110"
+                to="/login"
+                state={{ from: location.pathname }}
+              >
                 Inicia sesión <ArrowRight size={15} />
               </Link>
             )}
           </aside>
         )}
 
-        <footer className="restaurant-footer">
-          <span className="restaurant-footer-logo">
+        <footer className="flex flex-col gap-2 border-t border-stone-200 py-6 text-xs text-slate-400 sm:flex-row sm:items-center sm:justify-between">
+          <span className="inline-flex items-center gap-2 font-extrabold tracking-[0.16em] text-slate-500">
             <Sparkles size={14} /> PUNTO PLUS
           </span>
           <span>Sabores de {data.name}, cerca de ti.</span>
@@ -390,10 +466,18 @@ export function MenuPage() {
       </main>
 
       {isClient && orderCount > 0 && (
-        <button className="menu-floating-order" onClick={() => setOrderOpen(true)}>
-          <span className="menu-floating-count">{orderCount}</span>
-          <span>Ver mi orden</span>
-          <strong>{currency.format(orderTotal)}</strong>
+        <button
+          className="fixed bottom-5 left-1/2 z-40 inline-flex min-h-14 -translate-x-1/2 items-center gap-3 rounded-2xl px-3 py-2 text-white shadow-2xl transition hover:brightness-110"
+          style={{ backgroundColor: primary }}
+          onClick={() => setOrderOpen(true)}
+        >
+          <span className="grid size-9 place-items-center rounded-xl bg-white text-sm font-extrabold text-slate-800">
+            {orderCount}
+          </span>
+          <span className="text-xs font-bold">Ver mi orden</span>
+          <strong className="text-xs font-extrabold tabular-nums">
+            {currency.format(orderTotal)}
+          </strong>
           <ArrowRight size={18} />
         </button>
       )}
@@ -405,34 +489,35 @@ export function MenuPage() {
         }}
         title={selectedItem?.name ?? 'Detalle del platillo'}
         description={selectedItem?.category ? `Categoría: ${selectedItem.category}` : undefined}
-        className="menu-detail-dialog"
       >
         {selectedItem && (
-          <div className="menu-detail-content">
+          <div className="flex flex-col">
             <img
               src={itemImage(selectedItem)}
               alt={selectedItem.name}
-              className="menu-detail-image"
+              className="h-56 w-full bg-stone-100 object-cover"
             />
-            <div className="menu-detail-copy">
-              <span className="menu-detail-category">
+            <div className="p-5 sm:p-6">
+              <span className="text-[10px] font-extrabold uppercase tracking-[0.15em] text-[var(--restaurant-primary)]">
                 {selectedItem.category || 'Especialidad de la casa'}
               </span>
-              <p>
+              <p className="mb-4 mt-2 text-sm leading-6 text-slate-600">
                 {selectedItem.description || 'Preparado al momento con ingredientes seleccionados.'}
               </p>
-              <strong>{itemPrice(selectedItem)}</strong>
+              <strong className="text-xl font-extrabold text-slate-900">
+                {itemPrice(selectedItem)}
+              </strong>
             </div>
             {isClient ? (
-              <Button className="full-width" onClick={() => addItem(selectedItem)}>
+              <Button className="mx-5 mb-5 sm:mx-6 sm:mb-6" onClick={() => addItem(selectedItem)}>
                 <Plus size={17} /> Agregar a mi orden
               </Button>
             ) : isAuthenticated ? (
-              <p className="menu-order-note">
+              <p className="mx-5 mb-5 text-xs leading-5 text-slate-500 sm:mx-6 sm:mb-6">
                 Solo las cuentas de cliente pueden agregar a una orden.
               </p>
             ) : (
-              <Button asChild className="full-width">
+              <Button asChild className="mx-5 mb-5 sm:mx-6 sm:mb-6">
                 <Link to="/login" state={{ from: location.pathname }}>
                   Inicia sesión como cliente para ordenar
                 </Link>
@@ -447,19 +532,28 @@ export function MenuPage() {
         onOpenChange={setOrderOpen}
         title="Tu orden"
         description={`De ${data.name} · ${orderCount} ${orderCount === 1 ? 'platillo' : 'platillos'}`}
-        className="menu-order-dialog"
       >
-        <div className="menu-order-items">
+        <div className="flex max-h-[48dvh] flex-col gap-2.5 overflow-auto py-1">
           {itemsInOrder.length ? (
             itemsInOrder.map((item) => (
-              <article className="menu-order-row" key={item.id}>
-                <img src={itemImage(item)} alt="" />
-                <div className="menu-order-item-copy">
-                  <strong>{item.name}</strong>
-                  <span>{itemPrice(item)}</span>
+              <article
+                className="flex items-center gap-3 rounded-xl border border-stone-200 p-2.5"
+                key={item.id}
+              >
+                <img
+                  src={itemImage(item)}
+                  alt=""
+                  className="size-13 shrink-0 rounded-lg object-cover"
+                />
+                <div className="flex min-w-0 flex-1 flex-col gap-1">
+                  <strong className="truncate text-xs font-bold text-slate-800">{item.name}</strong>
+                  <span className="text-xs font-bold text-[var(--restaurant-primary)]">
+                    {itemPrice(item)}
+                  </span>
                 </div>
-                <div className="menu-quantity-control">
+                <div className="flex items-center gap-2 rounded-lg border border-stone-200 p-1 text-xs font-extrabold text-slate-700">
                   <button
+                    className="grid size-7 place-items-center rounded-md bg-stone-100 text-[var(--restaurant-primary)] hover:bg-stone-200"
                     onClick={() => changeQuantity(item, -1)}
                     aria-label={`Quitar uno de ${item.name}`}
                   >
@@ -467,6 +561,7 @@ export function MenuPage() {
                   </button>
                   <span>{order[item.id]}</span>
                   <button
+                    className="grid size-7 place-items-center rounded-md bg-stone-100 text-[var(--restaurant-primary)] hover:bg-stone-200"
                     onClick={() => changeQuantity(item, 1)}
                     aria-label={`Agregar uno de ${item.name}`}
                   >
@@ -476,17 +571,21 @@ export function MenuPage() {
               </article>
             ))
           ) : (
-            <p className="menu-order-empty">Aún no agregas platillos a tu orden.</p>
+            <p className="py-6 text-center text-sm text-slate-500">
+              Aún no agregas platillos a tu orden.
+            </p>
           )}
         </div>
         {itemsInOrder.length > 0 && (
-          <div className="menu-order-total">
+          <div className="mt-4 flex items-center justify-between border-t border-stone-200 pt-4 text-sm text-slate-500">
             <span>Total estimado</span>
-            <strong>{currency.format(orderTotal)}</strong>
+            <strong className="text-lg font-extrabold text-slate-900">
+              {currency.format(orderTotal)}
+            </strong>
           </div>
         )}
-        <p className="menu-order-note">
-          <Check size={14} />
+        <p className="mt-4 flex items-center gap-2 text-xs leading-5 text-slate-500">
+          <Check size={14} className="text-[var(--restaurant-primary)]" />
           Tu orden se está armando en este dispositivo.
         </p>
       </Dialog>
@@ -498,6 +597,7 @@ function DishCard({
   item,
   primary,
   popular = false,
+  compact = false,
   index = 0,
   canOrder,
   orderingEnabled,
@@ -509,6 +609,7 @@ function DishCard({
   item: MenuItem;
   primary: string;
   popular?: boolean;
+  compact?: boolean;
   index?: number;
   canOrder: boolean;
   orderingEnabled: boolean;
@@ -517,37 +618,57 @@ function DishCard({
   onAdd: () => void;
   from: string;
 }) {
+  const addButton =
+    'absolute bottom-3 right-3 grid size-10 place-items-center rounded-xl text-white shadow-lg transition hover:scale-105';
+  const unavailableButton =
+    'absolute bottom-3 right-3 grid size-10 place-items-center rounded-xl bg-stone-100 text-slate-400';
   return (
-    <article className={`dish-card ${popular ? 'dish-card-popular' : ''}`}>
+    <article
+      className={`group relative flex min-w-0 overflow-hidden rounded-2xl border border-stone-200 bg-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-lg ${popular ? 'min-h-[250px] flex-col' : compact ? 'min-h-28 items-stretch' : 'min-h-32 items-stretch'}`}
+    >
       <button
-        className="dish-card-open"
+        className={`flex min-w-0 text-left ${popular ? 'w-full flex-col' : compact ? 'w-full items-center gap-3 p-2.5 pr-14' : 'w-full items-center gap-3 p-3 pr-14'}`}
         type="button"
         onClick={onOpen}
         aria-label={`Ver detalles de ${item.name}`}
       >
-        <span className="dish-image-wrap">
+        <span
+          className={`relative block shrink-0 overflow-hidden bg-stone-100 ${popular ? 'h-40 w-full' : compact ? 'ml-0 size-20 rounded-xl sm:size-22' : 'ml-0 h-24 w-24 rounded-xl sm:h-28 sm:w-28'}`}
+        >
           <img
             src={itemImage(item)}
             alt=""
-            className="dish-image"
+            className="size-full object-cover transition duration-300 group-hover:scale-105"
             loading={index > 0 ? 'lazy' : 'eager'}
           />
           {popular && (
-            <span className="dish-popular-badge">
+            <span className="absolute left-2 top-2 inline-flex items-center gap-1 rounded-full bg-slate-950/75 px-2.5 py-1 text-[10px] font-bold text-white backdrop-blur-sm">
               <Sparkles size={11} /> Favorito
             </span>
           )}
         </span>
-        <span className="dish-card-copy">
-          <span className="dish-card-category">{item.category || 'De la casa'}</span>
-          <strong>{item.name}</strong>
-          {item.description && <span className="dish-card-description">{item.description}</span>}
-          <span className="dish-card-price">{itemPrice(item)}</span>
+        <span
+          className={`flex min-w-0 flex-1 flex-col items-start ${popular ? 'gap-1.5 p-3 pb-4' : 'self-stretch py-1'}`}
+        >
+          <span className="text-[9px] font-extrabold uppercase tracking-[0.1em] text-[var(--restaurant-primary)]">
+            {item.category || 'De la casa'}
+          </span>
+          <strong className="line-clamp-2 text-sm font-extrabold leading-5 text-slate-800">
+            {item.name}
+          </strong>
+          {item.description && (
+            <span className="line-clamp-2 text-xs leading-5 text-slate-500">
+              {item.description}
+            </span>
+          )}
+          <span className="mt-auto pt-2 text-sm font-extrabold tabular-nums text-slate-900">
+            {itemPrice(item)}
+          </span>
         </span>
       </button>
       {!orderingEnabled ? (
         <button
-          className="dish-add-button dish-login-button"
+          className={unavailableButton}
           type="button"
           disabled
           aria-label="Pedidos no disponibles desde el menú"
@@ -557,7 +678,7 @@ function DishCard({
         </button>
       ) : canOrder ? (
         <button
-          className="dish-add-button"
+          className={addButton}
           type="button"
           onClick={onAdd}
           aria-label={`Agregar ${item.name} a tu orden`}
@@ -567,7 +688,7 @@ function DishCard({
         </button>
       ) : isAuthenticated ? (
         <button
-          className="dish-add-button dish-login-button"
+          className={unavailableButton}
           type="button"
           disabled
           aria-label="Solo clientes pueden agregar a la orden"
@@ -577,7 +698,7 @@ function DishCard({
         </button>
       ) : (
         <Link
-          className="dish-add-button dish-login-button"
+          className={`${unavailableButton} text-[var(--restaurant-primary)]`}
           to="/login"
           state={{ from }}
           aria-label={`Inicia sesión para agregar ${item.name}`}
