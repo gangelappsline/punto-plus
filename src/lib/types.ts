@@ -95,6 +95,15 @@ export const publicMenuSchema = z.object({
   logo: z.string().optional(),
   banner: z.string().optional(),
   categories: z.array(z.string()).default([]),
+  categoryDetails: z
+    .array(
+      z.object({
+        id: z.string(),
+        name: z.string(),
+        icon: z.string().optional(),
+      }),
+    )
+    .optional(),
   menuItems: z.array(menuItemSchema).default([]),
   primaryColor: z.string().optional(),
   secondaryColor: z.string().optional(),

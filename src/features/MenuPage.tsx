@@ -20,7 +20,7 @@ import { AppSplash } from '../components/AppSplash';
 import { useSessionStatus } from '../lib/session';
 import { panelPathFor } from '../lib/utils';
 import type { MenuItem } from '../lib/types';
-import { api } from '../services/api';
+import { api, PublicMenuNotFoundError } from '../services/api';
 import { useAuth } from '../stores/auth';
 
 const currency = new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' });
@@ -88,6 +88,10 @@ export function MenuPage() {
       .filter((value): value is string => Boolean(value));
     return [...new Set([...fromBusiness, ...fromItems])];
   }, [allItems, data?.categories]);
+  const categoryDetailsByName = useMemo(
+    () => new Map((data?.categoryDetails ?? []).map((item) => [item.name, item])),
+    [data?.categoryDetails],
+  );
   const popularItems = useMemo(() => popularity(allItems), [allItems]);
   const filteredItems = useMemo(() => {
     const normalizedSearch = search.trim().toLocaleLowerCase('es-MX');
@@ -129,30 +133,61 @@ export function MenuPage() {
     });
   }
 
-  if (business.isPending) return <AppSplash message="Preparamos algo rico para ti…" />;
-
-  if (business.isError || !data)
+  if (!slug)
     return (
       <main className="mx-auto flex min-h-dvh w-full max-w-lg flex-col items-center justify-center gap-4 bg-stone-50 px-6 text-center text-slate-700">
-        <span className="grid size-16 place-items-center rounded-2xl bg-emerald-100 text-emerald-800">
+        <span className="grid size-16 place-items-center rounded-2xl bg-amber-100 text-amber-800">
           <Utensils size={24} />
         </span>
         <p className="text-xs font-bold uppercase tracking-[0.18em] text-emerald-800">
           PUNTO PLUS · MENÚ DIGITAL
         </p>
         <h1 className="text-3xl font-extrabold tracking-tight text-slate-900">
-          Este menú no está disponible
+          Falta el enlace del menú
         </h1>
         <p className="text-sm leading-6 text-slate-600">
-          {business.error instanceof Error
-            ? business.error.message
-            : 'No encontramos este restaurante o todavía no ha publicado su menú.'}
+          Abre el enlace que te compartió el negocio para ver su menú digital.
         </p>
-        <Button variant="outline" onClick={() => void business.refetch()}>
-          Volver a intentar
+        <Button asChild variant="outline">
+          <Link to="/">Volver al inicio</Link>
         </Button>
       </main>
     );
+
+  if (business.isPending) return <AppSplash message="Preparamos algo rico para ti…" />;
+
+  if (business.isError || !data) {
+    const notFound = business.error instanceof PublicMenuNotFoundError;
+    return (
+      <main className="mx-auto flex min-h-dvh w-full max-w-lg flex-col items-center justify-center gap-4 bg-stone-50 px-6 text-center text-slate-700">
+        <span
+          className={`grid size-16 place-items-center rounded-2xl ${notFound ? 'bg-amber-100 text-amber-800' : 'bg-emerald-100 text-emerald-800'}`}
+        >
+          <Utensils size={24} />
+        </span>
+        <p className="text-xs font-bold uppercase tracking-[0.18em] text-emerald-800">
+          PUNTO PLUS · MENÚ DIGITAL
+        </p>
+        <h1 className="text-3xl font-extrabold tracking-tight text-slate-900">
+          {notFound ? 'No encontramos este menú' : 'No pudimos cargar el menú'}
+        </h1>
+        <p className="text-sm leading-6 text-slate-600">
+          {notFound
+            ? `No hay un negocio con el enlace “${slug}” o todavía no ha publicado su menú. Verifica el enlace e inténtalo de nuevo.`
+            : 'Ocurrió un problema al cargar el menú. Inténtalo de nuevo en un momento.'}
+        </p>
+        {notFound ? (
+          <Button asChild variant="outline">
+            <Link to="/">Volver al inicio</Link>
+          </Button>
+        ) : (
+          <Button variant="outline" onClick={() => void business.refetch()}>
+            Volver a intentar
+          </Button>
+        )}
+      </main>
+    );
+  }
 
   const primary = data.primaryColor || '#187f79';
   const secondary = data.secondaryColor || '#f4d5b3';
@@ -318,18 +353,22 @@ export function MenuPage() {
           className="sticky top-[52px] z-20 -mx-4 mb-8 flex gap-2 overflow-x-auto bg-stone-50/95 px-4 py-3 backdrop-blur-md sm:-mx-6 sm:px-6 lg:-mx-8 lg:px-8"
           aria-label="Categorías del menú"
         >
-          {['Todos', ...categories].map((item) => (
-            <button
-              type="button"
-              key={item}
-              className={`shrink-0 rounded-full border px-4 py-2.5 text-xs font-bold transition ${category === item ? 'border-transparent text-white shadow-md' : 'border-stone-200 bg-white text-slate-600 hover:border-stone-300 hover:bg-stone-100'}`}
-              style={category === item ? { backgroundColor: primary } : undefined}
-              aria-pressed={category === item}
-              onClick={() => setCategory(item)}
-            >
-              {item}
-            </button>
-          ))}
+          {['Todos', ...categories].map((item) => {
+            const icon = item === 'Todos' ? undefined : categoryDetailsByName.get(item)?.icon;
+            return (
+              <button
+                type="button"
+                key={item}
+                className={`inline-flex shrink-0 items-center gap-2 rounded-full border px-4 py-2.5 text-xs font-bold transition ${category === item ? 'border-transparent text-white shadow-md' : 'border-stone-200 bg-white text-slate-600 hover:border-stone-300 hover:bg-stone-100'}`}
+                style={category === item ? { backgroundColor: primary } : undefined}
+                aria-pressed={category === item}
+                onClick={() => setCategory(item)}
+              >
+                {icon && <img src={icon} alt="" className="size-4 rounded-full object-cover" />}
+                {item}
+              </button>
+            );
+          })}
         </nav>
 
         {category === 'Todos' && !search && popularItems.length > 0 && (
@@ -411,18 +450,26 @@ export function MenuPage() {
             <div className="flex min-h-60 flex-col items-center justify-center rounded-3xl border border-dashed border-stone-300 bg-white px-6 py-10 text-center text-slate-400">
               <Search size={24} className="text-slate-400" />
               <h3 className="mb-1 mt-4 text-base font-bold text-slate-700">
-                No encontramos platillos
+                {!allItems.length && !search
+                  ? 'Este menú aún no tiene platillos'
+                  : 'No encontramos platillos'}
               </h3>
-              <p className="mb-4 text-sm">Prueba con otra búsqueda o categoría.</p>
-              <Button
-                variant="outline"
-                onClick={() => {
-                  setSearch('');
-                  setCategory('Todos');
-                }}
-              >
-                Ver todo el menú
-              </Button>
+              <p className="mb-4 text-sm">
+                {!allItems.length && !search
+                  ? 'El negocio todavía no ha publicado sus productos. Vuelve pronto.'
+                  : 'Prueba con otra búsqueda o categoría.'}
+              </p>
+              {(search || category !== 'Todos') && (
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setSearch('');
+                    setCategory('Todos');
+                  }}
+                >
+                  Ver todo el menú
+                </Button>
+              )}
             </div>
           )}
         </section>

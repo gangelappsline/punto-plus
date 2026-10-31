@@ -63,6 +63,215 @@ function record(value: unknown): Record<string, unknown> {
     : {};
 }
 
+export class PublicMenuNotFoundError extends Error {
+  constructor() {
+    super('No encontramos un menú publicado para este enlace.');
+    this.name = 'PublicMenuNotFoundError';
+  }
+}
+
+function publicAssetUrl(value: unknown): string | undefined {
+  if (typeof value !== 'string' || !value.trim()) return undefined;
+  const source = value.trim();
+  const markdownLink = source.match(/^\[[^\]]*\]\((https?:\/\/[^)]+)\)$/);
+  return markdownLink?.[1] ?? source;
+}
+
+function parsePhoneValues(value: unknown): string[] {
+  if (Array.isArray(value))
+    return value.flatMap((item) =>
+      typeof item === 'string' || typeof item === 'number' ? [String(item).trim()] : [],
+    );
+  if (typeof value !== 'string') return [];
+  const phone = value.trim();
+  if (!phone) return [];
+  if (phone.startsWith('[') || phone.startsWith('{')) {
+    try {
+      return parsePhoneValues(JSON.parse(phone));
+    } catch {
+      return [];
+    }
+  }
+  return [phone];
+}
+
+function normalizePublicBusinessMenu(payload: unknown) {
+  const value = record(unwrapPublicMenu(payload));
+  if (!Object.keys(value).length || typeof value.name !== 'string' || !value.name.trim())
+    return null;
+  if (value.is_active === false || value.isActive === false) return null;
+
+  const menuDesign = record(value.menu_design ?? value.menuDesign);
+  const cardSettings = record(value.card_settings ?? value.cardSettings);
+  const rawCategories = Array.isArray(value.categories) ? value.categories : [];
+  const categoryDetails = rawCategories
+    .map((category, index) => {
+      if (typeof category === 'string') return { id: category, name: category, order: index };
+      const item = record(category);
+      const name = [item.name, item.title, item.label].find(
+        (candidate): candidate is string =>
+          typeof candidate === 'string' && Boolean(candidate.trim()),
+      );
+      if (!name) return null;
+      const id = String(item.category_id ?? item.id ?? item.slug ?? name);
+      const rawOrder = Number(item.sort_order ?? item.position ?? index);
+      return {
+        id,
+        name,
+        icon: publicAssetUrl(item.icon ?? item.icon_url ?? item.image_url),
+        order: Number.isFinite(rawOrder) ? rawOrder : index,
+      };
+    })
+    .filter((category): category is NonNullable<typeof category> => Boolean(category))
+    .sort((a, b) => a.order - b.order);
+  const categoryNameById = new Map(categoryDetails.map((category) => [category.id, category.name]));
+  const rawProducts = Array.isArray(value.products)
+    ? value.products
+    : Array.isArray(value.menu_items)
+      ? value.menu_items
+      : Array.isArray(value.menuItems)
+        ? value.menuItems
+        : Array.isArray(value.items)
+          ? value.items
+          : [];
+  const menuItems = rawProducts
+    .map((product, index) => ({ product: record(product), index }))
+    .sort((a, b) => {
+      const order = (item: Record<string, unknown>, fallback: number) => {
+        const position = Number(item.sort_order ?? item.position ?? fallback);
+        return Number.isFinite(position) ? position : fallback;
+      };
+      return order(a.product, a.index) - order(b.product, b.index);
+    })
+    .map(({ product: item, index }) => {
+      const name = typeof item.name === 'string' ? item.name.trim() : '';
+      if (!name) return null;
+      const categoryRecord = record(item.category);
+      const rawCategory =
+        typeof item.category === 'string' || typeof item.category === 'number'
+          ? String(item.category)
+          : undefined;
+      const categoryId = String(
+        item.category_id ?? categoryRecord.category_id ?? categoryRecord.id ?? rawCategory ?? '',
+      );
+      const category =
+        (rawCategory && categoryNameById.get(rawCategory)) ||
+        (typeof categoryRecord.name === 'string' ? categoryRecord.name : undefined) ||
+        (typeof item.category_name === 'string' ? item.category_name : undefined) ||
+        categoryNameById.get(categoryId) ||
+        (rawCategory && !/^\d+$/.test(rawCategory) ? rawCategory : undefined);
+      const image = publicAssetUrl(
+        item.image_url ?? item.image ?? item.imageUrl ?? item.photo_url ?? item.photo,
+      );
+      const available = [item.available, item.is_available, item.is_active].find(
+        (candidate): candidate is boolean => typeof candidate === 'boolean',
+      );
+      const orderCount = Number(item.order_count ?? item.orders_count ?? item.orderCount ?? 0);
+      return {
+        id: String(item.id ?? item.product_id ?? `product-${index + 1}`),
+        name,
+        description: typeof item.description === 'string' ? item.description : undefined,
+        price:
+          typeof item.price === 'string' || typeof item.price === 'number' ? item.price : undefined,
+        category,
+        image,
+        available,
+        popular: typeof item.popular === 'boolean' ? item.popular : undefined,
+        isPopular:
+          typeof item.is_popular === 'boolean'
+            ? item.is_popular
+            : typeof item.isPopular === 'boolean'
+              ? item.isPopular
+              : undefined,
+        orderCount: Number.isFinite(orderCount) ? orderCount : undefined,
+      };
+    })
+    .filter((item): item is NonNullable<typeof item> => Boolean(item));
+
+  const phoneNumbers = [
+    ...new Set(
+      [
+        ...parsePhoneValues(value.phone_numbers ?? value.phoneNumbers),
+        ...parsePhoneValues(value.phone),
+      ].filter(Boolean),
+    ),
+  ];
+  const addressParts = [value.address, value.city, value.country].filter(
+    (part): part is string => typeof part === 'string' && Boolean(part.trim()),
+  );
+  const address = addressParts.join(', ');
+  const primaryColor =
+    menuDesign.primary_color ??
+    menuDesign.primaryColor ??
+    cardSettings.primary_color ??
+    value.primaryColor;
+  const secondaryColor =
+    menuDesign.secondary_color ??
+    menuDesign.secondaryColor ??
+    cardSettings.secondary_color ??
+    value.secondaryColor;
+  const logo = publicAssetUrl(value.logo_url ?? value.logo);
+  const banner = publicAssetUrl(value.background_url ?? value.banner);
+  const phone = phoneNumbers[0];
+  const openingTime = value.opening_time ?? value.openingTime;
+  const closingTime = value.closing_time ?? value.closingTime;
+  const serviceDays = value.service_days ?? value.serviceDays;
+  const rawWelcomeMessage =
+    cardSettings.welcome_message ??
+    cardSettings.welcomeMessage ??
+    value.welcome_message ??
+    value.welcomeMessage;
+  const fontFamily = menuDesign.font_family ?? menuDesign.fontFamily ?? value.fontFamily;
+  const menuStyle = menuDesign.menu_style ?? menuDesign.menuStyle ?? value.menuStyle;
+  const openingHours =
+    value.opening_hours ??
+    value.openingHours ??
+    (typeof openingTime === 'string' && typeof closingTime === 'string'
+      ? `${openingTime}–${closingTime}`
+      : undefined);
+
+  return {
+    id: typeof value.id === 'string' || typeof value.id === 'number' ? value.id : undefined,
+    slug: typeof value.slug === 'string' ? value.slug : undefined,
+    name: value.name,
+    description: typeof value.description === 'string' ? value.description : undefined,
+    logo,
+    banner,
+    categories: categoryDetails.map((category) => category.name),
+    categoryDetails: categoryDetails.map(({ id, name, icon }) => ({ id, name, icon })),
+    menuItems,
+    primaryColor: typeof primaryColor === 'string' ? primaryColor : undefined,
+    secondaryColor: typeof secondaryColor === 'string' ? secondaryColor : undefined,
+    address: address || undefined,
+    location:
+      [value.city, value.country]
+        .filter((part): part is string => typeof part === 'string' && Boolean(part.trim()))
+        .join(', ') || undefined,
+    phone,
+    phoneNumbers,
+    welcomeMessage: typeof rawWelcomeMessage === 'string' ? rawWelcomeMessage : undefined,
+    serviceDays: Array.isArray(serviceDays)
+      ? serviceDays.map(Number).filter((day) => Number.isInteger(day) && day >= 0 && day <= 6)
+      : undefined,
+    openingTime: typeof openingTime === 'string' ? openingTime : undefined,
+    closingTime: typeof closingTime === 'string' ? closingTime : undefined,
+    deliveryAvailable:
+      typeof (value.delivery_available ?? value.deliveryAvailable) === 'boolean'
+        ? (value.delivery_available ?? value.deliveryAvailable)
+        : undefined,
+    allowOrders:
+      typeof (value.allow_orders ?? value.allowOrders) === 'boolean'
+        ? (value.allow_orders ?? value.allowOrders)
+        : undefined,
+    fontFamily:
+      fontFamily === 'manrope' || fontFamily === 'serif' || fontFamily === 'dm-sans'
+        ? fontFamily
+        : undefined,
+    menuStyle: menuStyle === 'compact' || menuStyle === 'cozy' ? menuStyle : undefined,
+    openingHours: typeof openingHours === 'string' ? openingHours : undefined,
+  };
+}
+
 function unwrapBusinessConfig(payload: unknown): Record<string, unknown> {
   let current = record(payload);
   for (let depth = 0; depth < 4; depth += 1) {
@@ -259,11 +468,23 @@ export const api = {
     if (isDemo) {
       const business = readDB().business;
       if (slug !== slugifyBusiness(business.name) && slug !== 'demo')
-        throw new Error('No encontramos este menú.');
+        throw new PublicMenuNotFoundError();
       return publicMenuSchema.parse(business);
     }
-    const { data } = await http.get(`public/business/${encodeURIComponent(slug)}`);
-    return publicMenuSchema.parse(unwrapPublicMenu(data));
+    try {
+      const { data } = await http.get(`public/business/${encodeURIComponent(slug)}`);
+      const normalized = normalizePublicBusinessMenu(data);
+      if (
+        !normalized ||
+        (typeof normalized.slug === 'string' &&
+          normalized.slug.toLocaleLowerCase() !== slug.toLocaleLowerCase())
+      )
+        throw new PublicMenuNotFoundError();
+      return publicMenuSchema.parse(normalized);
+    } catch (error) {
+      if ((error as { status?: number })?.status === 404) throw new PublicMenuNotFoundError();
+      throw error;
+    }
   },
   publicCategories: async () => {
     if (isDemo) return foodCategories.map((name) => ({ id: name, name }));

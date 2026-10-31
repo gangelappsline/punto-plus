@@ -39,6 +39,17 @@ describe('Menú digital público por slug', () => {
     useAuth.getState().clear();
   });
 
+  it('muestra una pantalla clara cuando el slug no corresponde a un negocio', async () => {
+    setup('negocio-inexistente');
+
+    expect(
+      await screen.findByRole('heading', { name: 'No encontramos este menú' }),
+    ).toBeInTheDocument();
+    expect(screen.getByText(/No hay un negocio con el enlace/)).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Volver al inicio' })).toHaveAttribute('href', '/');
+    expect(screen.queryByRole('button', { name: 'Volver a intentar' })).not.toBeInTheDocument();
+  });
+
   it('muestra el restaurante, banner, categorías y los platillos más pedidos sin sesión', async () => {
     const data = readDB().business;
     setup(slugify(data.name));
@@ -145,9 +156,9 @@ describe('Menú digital público por slug', () => {
     setup('negocio-inexistente');
 
     expect(
-      await screen.findByRole('heading', { name: 'Este menú no está disponible' }),
+      await screen.findByRole('heading', { name: 'No encontramos este menú' }),
     ).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Volver a intentar' })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Volver al inicio' })).toHaveAttribute('href', '/');
   });
 
   it('respeta la configuración que desactiva los pedidos desde el menú', async () => {
@@ -175,6 +186,9 @@ describe('Menú digital público por slug', () => {
     });
     setup('demo');
 
-    expect(await screen.findByText('No encontramos platillos')).toBeInTheDocument();
+    expect(await screen.findByText('Este menú aún no tiene platillos')).toBeInTheDocument();
+    expect(
+      screen.getByText('El negocio todavía no ha publicado sus productos. Vuelve pronto.'),
+    ).toBeInTheDocument();
   });
 });
