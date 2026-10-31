@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
-import { ArrowUpRight, LayoutDashboard, LogOut, ScanLine, Store } from 'lucide-react';
+import { ArrowUpRight, LayoutDashboard, LogOut, ScanLine, Store, Utensils } from 'lucide-react';
 import { toast } from 'sonner';
 import { useLogout } from '../lib/session';
 import { demoUser, useAuth } from '../stores/auth';
@@ -10,6 +10,7 @@ import logo from '../assets/images/logo_2.webp';
 
 const businessNavigation = [
   { path: '/business', icon: LayoutDashboard, title: 'Resumen', end: true },
+  { path: '/business/mi-menu', icon: Utensils, title: 'Mi menú', end: false },
   { path: '/business/negocio', icon: Store, title: 'Mi negocio', end: false },
 ];
 

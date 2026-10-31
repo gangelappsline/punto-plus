@@ -55,7 +55,7 @@ describe('Login contra Laravel Passport', () => {
     const body = new URLSearchParams(apiMock.history.post[0].data as string);
     expect(body.get('grant_type')).toBe('password');
     expect(body.get('client_id')).toBe('client-id-123');
-    expect(body.get('username')).toBe('ana@example.com');
+    expect(body.get('email')).toBe('ana@example.com');
     expect(body.get('password')).toBe('secreto123');
     expect(apiMock.history.post[0].headers?.['Content-Type']).toBe(
       'application/x-www-form-urlencoded',

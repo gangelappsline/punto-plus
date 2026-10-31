@@ -103,12 +103,11 @@ export function BusinessDashboard() {
           >
             <h3 style={{ marginBottom: 8, color: '#022f53' }}>Termina de configurar tu negocio</h3>
             <p style={{ marginBottom: 14, color: '#46617c' }}>
-              Crea tu tarjeta, sube tu logo y banner, define las categorías de comida, carga tu menú
-              y publica tu primera promoción. Al terminar tendrás tu menú digital y el QR para tus
-              clientes.
+              Completa la información de tu negocio, agrega las categorías y platillos de tu menú,
+              define tus horarios y decide cómo podrán pedir tus clientes.
             </p>
-            <Button onClick={() => navigate('/business/onboarding', { replace: true })}>
-              Ir a la configuración <span style={{ marginLeft: 6 }}>›</span>
+            <Button onClick={() => navigate('/business/mi-menu')}>
+              Configurar mi menú <span style={{ marginLeft: 6 }}>›</span>
             </Button>
           </div>
         </section>

@@ -1,5 +1,5 @@
 import { lazy, Suspense } from 'react';
-import { Route, Routes } from 'react-router-dom';
+import { Navigate, Route, Routes } from 'react-router-dom';
 import { AppSplash } from './components/AppSplash';
 import { ActivityPage, CardsPage, ExplorePage, RewardsPage } from './features/CustomerPages';
 import { BusinessDashboard } from './features/BusinessDashboard';
@@ -15,8 +15,8 @@ import { NotFoundPage } from './features/NotFoundPage';
 const BusinessPage = lazy(() =>
   import('./features/BusinessPage').then((m) => ({ default: m.BusinessPage })),
 );
-const BusinessOnboarding = lazy(() =>
-  import('./features/BusinessOnboarding').then((m) => ({ default: m.BusinessOnboarding })),
+const BusinessMenuWizard = lazy(() =>
+  import('./features/BusinessMenuWizard').then((m) => ({ default: m.BusinessMenuWizard })),
 );
 const Register = lazy(() => import('./features/Register').then((m) => ({ default: m.Register })));
 
@@ -74,6 +74,14 @@ export default function App() {
       >
         <Route index element={<BusinessDashboard />} />
         <Route
+          path="mi-menu"
+          element={
+            <Suspense fallback={<AppSplash message="Preparando tu menú…" />}>
+              <BusinessMenuWizard />
+            </Suspense>
+          }
+        />
+        <Route
           path="negocio"
           element={
             <Suspense fallback={<AppSplash message="Preparando tu negocio…" />}>
@@ -81,14 +89,7 @@ export default function App() {
             </Suspense>
           }
         />
-        <Route
-          path="onboarding"
-          element={
-            <Suspense fallback={<AppSplash message="Preparando tu negocio…" />}>
-              <BusinessOnboarding />
-            </Suspense>
-          }
-        />
+        <Route path="onboarding" element={<Navigate to="/business/mi-menu" replace />} />
       </Route>
       <Route
         path="/admin"
