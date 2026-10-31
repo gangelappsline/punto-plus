@@ -81,7 +81,7 @@ export function loginBody(credentials: { email: string; password: string }) {
   const params = new URLSearchParams({
     grant_type: 'password',
     client_id: authConfig.passportClientId,
-    username: credentials.email,
+    email: credentials.email,
     password: credentials.password,
     scope: authConfig.passportScope,
   });

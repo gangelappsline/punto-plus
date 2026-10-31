@@ -60,7 +60,7 @@ export const api = {
         throw new Error('No encontramos este menú.');
       return publicMenuSchema.parse(business);
     }
-    const { data } = await http.get(`/public/business/${encodeURIComponent(slug)}/menu`);
+    const { data } = await http.get(`api/public/business/${encodeURIComponent(slug)}`);
     return publicMenuSchema.parse(unwrapPublicMenu(data));
   },
   toggleFavorite: async (id: string) =>
