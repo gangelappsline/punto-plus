@@ -46,11 +46,11 @@ const emptyBusinessProfile = {
 
 describe('Perfil de negocio recién creado', () => {
   it('normaliza valores nulos y listas vacías sin impedir abrir Mi menú', async () => {
-    apiMock.onGet('api/business/card').reply(200, emptyBusinessProfile);
+    apiMock.onGet('business/card').reply(200, emptyBusinessProfile);
 
     const business = await api.business();
 
-    expect(apiMock.history.get[0].url).toBe('api/business/card');
+    expect(apiMock.history.get[0].url).toBe('business/card');
     expect(business).toMatchObject({
       name: '',
       reward: 'Recompensa por fidelidad',
@@ -69,7 +69,7 @@ describe('Perfil de negocio recién creado', () => {
   });
 
   it('también acepta el perfil dentro de una envoltura data', async () => {
-    apiMock.onGet('api/business/card').reply(200, { data: emptyBusinessProfile });
+    apiMock.onGet('business/card').reply(200, { data: emptyBusinessProfile });
 
     await expect(api.business()).resolves.toMatchObject({
       name: '',

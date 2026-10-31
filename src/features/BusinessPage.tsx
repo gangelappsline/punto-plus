@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -6,11 +6,14 @@ import { z } from 'zod';
 import {
   ArrowUpRight,
   Check,
+  Download,
+  ExternalLink,
   Gift,
   ImagePlus,
   Megaphone,
   Palette,
   Plus,
+  QrCode,
   Save,
   ScanLine,
   Store,
@@ -22,7 +25,7 @@ import {
   type LoyaltyCard as Card,
   type Promotion,
 } from '../lib/types';
-import { isDemo } from '../lib/utils';
+import { isDemo, publicMenuUrl } from '../lib/utils';
 import {
   useAddPromotion,
   useBusiness,
@@ -37,6 +40,7 @@ import { Button } from '../components/ui/button';
 import { Dialog } from '../components/ui/dialog';
 import { Scanner } from '../components/Scanner';
 import { QueryState } from './CustomerPages';
+import { QRCodeSVG } from 'qrcode.react';
 const businessEditorSchema = businessSchema.extend({
   name: z.string().min(2, 'Escribe al menos 2 caracteres'),
 });
@@ -307,6 +311,189 @@ function BusinessEditor({ config }: { config: BusinessConfig }) {
     </div>
   );
 }
+function businessMenuSlug(name: string) {
+  return (
+    name
+      .toLowerCase()
+      .trim()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '') || 'negocio'
+  );
+}
+
+function validHexColor(value: string | undefined, fallback: string) {
+  return value && /^#[\da-f]{6}$/i.test(value) ? value : fallback;
+}
+
+function BusinessQRSettings({ config }: { config: BusinessConfig }) {
+  const qrPreview = useRef<HTMLDivElement>(null);
+  const mutation = useSaveBusiness();
+  const savedForeground = validHexColor(config.qrForeground ?? config.primaryColor, '#022F53');
+  const savedBackground = validHexColor(config.qrBackground ?? config.secondaryColor, '#FFFFFF');
+  const [foreground, setForeground] = useState(savedForeground);
+  const [background, setBackground] = useState(savedBackground);
+  const menuUrl = publicMenuUrl(businessMenuSlug(config.name));
+  const dirty = foreground !== savedForeground || background !== savedBackground;
+
+  useEffect(() => {
+    setForeground(savedForeground);
+    setBackground(savedBackground);
+  }, [savedForeground, savedBackground]);
+
+  function saveSettings() {
+    mutation.mutate({
+      ...config,
+      qrForeground: foreground,
+      qrBackground: background,
+    });
+  }
+
+  function download(format: 'png' | 'webp') {
+    const svg = qrPreview.current?.querySelector('svg');
+    if (!svg) {
+      toast.error('No encontramos el código QR para descargar.');
+      return;
+    }
+    const copy = svg.cloneNode(true) as SVGSVGElement;
+    copy.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
+    const svgBlob = new Blob([new XMLSerializer().serializeToString(copy)], {
+      type: 'image/svg+xml;charset=utf-8',
+    });
+    const svgUrl = URL.createObjectURL(svgBlob);
+    const image = new Image();
+    image.onload = () => {
+      try {
+        const canvas = document.createElement('canvas');
+        canvas.width = 1024;
+        canvas.height = 1024;
+        const context = canvas.getContext('2d');
+        if (!context) throw new Error('Este navegador no permite crear la imagen.');
+        context.fillStyle = background;
+        context.fillRect(0, 0, canvas.width, canvas.height);
+        context.drawImage(image, 0, 0, canvas.width, canvas.height);
+        const mimeType = format === 'png' ? 'image/png' : 'image/webp';
+        const imageUrl = canvas.toDataURL(mimeType, 0.95);
+        if (!imageUrl.startsWith(`data:${mimeType};`))
+          throw new Error(`Este navegador no puede generar archivos ${format.toUpperCase()}.`);
+        const link = document.createElement('a');
+        link.href = imageUrl;
+        link.download = `${businessMenuSlug(config.name)}-qr.${format}`;
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+      } catch (error) {
+        toast.error((error as Error).message || 'No pudimos preparar el archivo QR.');
+      } finally {
+        URL.revokeObjectURL(svgUrl);
+      }
+    };
+    image.onerror = () => {
+      URL.revokeObjectURL(svgUrl);
+      toast.error('No pudimos convertir el código QR a imagen.');
+    };
+    image.src = svgUrl;
+  }
+
+  return (
+    <section className="mx-auto grid max-w-5xl gap-6 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm md:grid-cols-[minmax(0,1fr)_300px] md:p-7">
+      <div className="flex min-w-0 flex-col gap-5">
+        <div>
+          <div className="mb-2 flex items-center gap-2 text-emerald-800">
+            <QrCode size={20} />
+            <span className="text-xs font-extrabold uppercase tracking-wider">
+              Código QR del menú
+            </span>
+          </div>
+          <h2 className="text-2xl font-extrabold tracking-tight text-slate-900">
+            Personaliza tu QR
+          </h2>
+          <p className="mt-2 max-w-xl text-sm leading-6 text-slate-600">
+            Tus clientes podrán escanearlo para abrir el menú público de{' '}
+            {config.name || 'tu negocio'}. Ajusta los colores, guarda la configuración y descarga el
+            archivo para imprimirlo o compartirlo.
+          </p>
+        </div>
+        <a
+          className="inline-flex max-w-full items-center gap-2 break-all text-sm font-semibold text-emerald-800 underline decoration-emerald-300 underline-offset-4 hover:text-emerald-950"
+          href={menuUrl}
+          target="_blank"
+          rel="noreferrer"
+        >
+          {menuUrl} <ExternalLink size={15} />
+        </a>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <label className="flex flex-col gap-2 text-xs font-bold text-slate-700">
+            Color del código
+            <span className="flex items-center gap-3 rounded-xl border border-slate-200 bg-slate-50 p-3">
+              <input
+                aria-label="Color del código QR"
+                className="size-10 cursor-pointer rounded-lg border-0 bg-transparent p-0"
+                type="color"
+                value={foreground}
+                onChange={(event) => setForeground(event.target.value)}
+              />
+              <span className="font-mono text-sm font-medium text-slate-600">{foreground}</span>
+            </span>
+          </label>
+          <label className="flex flex-col gap-2 text-xs font-bold text-slate-700">
+            Color de fondo
+            <span className="flex items-center gap-3 rounded-xl border border-slate-200 bg-slate-50 p-3">
+              <input
+                aria-label="Color de fondo del QR"
+                className="size-10 cursor-pointer rounded-lg border-0 bg-transparent p-0"
+                type="color"
+                value={background}
+                onChange={(event) => setBackground(event.target.value)}
+              />
+              <span className="font-mono text-sm font-medium text-slate-600">{background}</span>
+            </span>
+          </label>
+        </div>
+        <p className="text-xs leading-5 text-slate-500">
+          Mantén buen contraste entre ambos colores para que las cámaras puedan leer el código.
+        </p>
+        <div className="flex flex-wrap items-center gap-3">
+          <Button type="button" disabled={!dirty || mutation.isPending} onClick={saveSettings}>
+            <Save size={16} /> {mutation.isPending ? 'Guardando…' : 'Guardar configuración'}
+          </Button>
+          {!dirty && <span className="text-xs text-emerald-700">Configuración guardada</span>}
+        </div>
+        <div className="flex flex-wrap gap-2 border-t border-slate-200 pt-4">
+          <Button type="button" variant="outline" onClick={() => download('png')}>
+            <Download size={16} /> Descargar PNG
+          </Button>
+          <Button type="button" variant="outline" onClick={() => download('webp')}>
+            <Download size={16} /> Descargar WebP
+          </Button>
+        </div>
+      </div>
+      <div className="flex flex-col items-center justify-center gap-4 rounded-2xl bg-slate-50 p-5 text-center">
+        <span className="text-[10px] font-extrabold tracking-[0.16em] text-slate-500">
+          VISTA PREVIA
+        </span>
+        <div
+          ref={qrPreview}
+          className="rounded-2xl border border-slate-200 p-3 shadow-sm"
+          style={{ backgroundColor: background }}
+        >
+          <QRCodeSVG
+            value={menuUrl}
+            size={240}
+            level="H"
+            marginSize={4}
+            fgColor={foreground}
+            bgColor={background}
+            title={`Código QR del menú de ${config.name}`}
+          />
+        </div>
+        <p className="text-xs leading-5 text-slate-500">
+          El archivo descargado se genera en alta resolución (1024 × 1024 px).
+        </p>
+      </div>
+    </section>
+  );
+}
+
 export function BusinessPage() {
   const business = useBusiness();
   const [tab, setTab] = useState('card');
@@ -391,6 +578,9 @@ export function BusinessPage() {
         >
           <Megaphone size={16} /> Promociones
         </button>
+        <button className={tab === 'qr' ? 'active' : ''} onClick={() => setTab('qr')}>
+          <QrCode size={16} /> Código QR
+        </button>
       </div>
       {tab === 'card' ? (
         <>
@@ -418,6 +608,15 @@ export function BusinessPage() {
           ) : (
             business.data && <BusinessEditor config={business.data} />
           )}
+        </>
+      ) : tab === 'qr' ? (
+        <>
+          <QueryState
+            loading={business.isPending}
+            error={business.isError}
+            retry={() => void business.refetch()}
+          />
+          {business.data && <BusinessQRSettings config={business.data} />}
         </>
       ) : (
         <section className="section">
