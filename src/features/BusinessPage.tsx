@@ -37,6 +37,9 @@ import { Button } from '../components/ui/button';
 import { Dialog } from '../components/ui/dialog';
 import { Scanner } from '../components/Scanner';
 import { QueryState } from './CustomerPages';
+const businessEditorSchema = businessSchema.extend({
+  name: z.string().min(2, 'Escribe al menos 2 caracteres'),
+});
 const promotionFormSchema = z
   .object({
     type: z.enum(['simple', 'steps', 'direct']),
@@ -175,7 +178,10 @@ function BusinessEditor({ config }: { config: BusinessConfig }) {
     setValue,
     reset,
     formState: { errors, isDirty },
-  } = useForm<BusinessConfig>({ resolver: zodResolver(businessSchema), defaultValues: config });
+  } = useForm<BusinessConfig>({
+    resolver: zodResolver(businessEditorSchema),
+    defaultValues: config,
+  });
   const values = watch();
   const mutation = useSaveBusiness();
   const [preview, setPreview] = useState(false);
