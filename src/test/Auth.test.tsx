@@ -22,7 +22,8 @@ function setup(ui: React.ReactElement, path: string) {
           <Route path="/login" element={<Login />} />
           <Route path="/registro" element={ui} />
           <Route path="/app" element={<h1>Panel de cliente</h1>} />
-          <Route path="/admin" element={<h1>Panel de negocio</h1>} />
+          <Route path="/business" element={<h1>Panel de negocio</h1>} />
+          <Route path="/admin" element={<h1>Panel de administración</h1>} />
         </Routes>
       </MemoryRouter>
     </QueryClientProvider>,

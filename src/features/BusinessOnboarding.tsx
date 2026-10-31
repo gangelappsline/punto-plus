@@ -190,12 +190,12 @@ export function BusinessOnboarding() {
   const [analyzing, setAnalyzing] = useState(false);
 
   const navigateToBusiness = useCallback(
-    () => navigate('/admin/negocio', { replace: true }),
+    () => navigate('/business/negocio', { replace: true }),
     [navigate],
   );
 
   // Esta ruta es explícita: siempre muestra el asistente, también para rehacer el perfil.
-  // La obligación de completarlo vive en la guarda de `/admin/negocio` y en el aviso del
+  // La obligación de completarlo vive en la guarda de `/business/negocio` y en el aviso del
   // resumen. Al publicar, la invalidación de la caché cierra el asistente incrustado solo.
   const publish = usePublishBusiness(navigateToBusiness);
   const saving = publish.isPending;
@@ -377,7 +377,7 @@ export function BusinessOnboarding() {
       endTime: promo.type === 'direct' && !promo.appliesAlways ? promo.endTime : undefined,
     };
     // La mutación guarda el perfil, crea la promoción, invalida la caché
-    // (la guarda de /admin/negocio deja de mostrar el asistente), avisa y redirige.
+    // (la guarda de /business/negocio deja de mostrar el asistente), avisa y redirige.
     try {
       await publish.mutateAsync({ config, promotion: promotionInput });
     } catch {
@@ -398,7 +398,7 @@ export function BusinessOnboarding() {
             QR para que tus clientes lo vean.
           </p>
         </div>
-        <Button variant="outline" onClick={() => navigate('/admin', { replace: true })}>
+        <Button variant="outline" onClick={() => navigate('/business', { replace: true })}>
           <X size={17} /> Más tarde
         </Button>
       </div>

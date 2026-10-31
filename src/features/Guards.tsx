@@ -8,7 +8,7 @@ import { useAuth } from '../stores/auth';
 /**
  * Protección de los paneles.
  *
- * Cada panel (cliente en `/app`, negocio en `/admin`) es un layout
+ * Cada panel (cliente en `/app`, negocio en `/business` y administración en `/admin`) es un layout
  * independiente y se monta detrás de `PanelGate`. Con la API real la entrada
  * exige el token guardado al iniciar sesión:
  *

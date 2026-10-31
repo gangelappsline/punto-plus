@@ -393,7 +393,7 @@ export function LandingPage() {
             </ul>
             <div className="mt-9 flex flex-wrap gap-3">
               <Button asChild className="h-12 bg-sand px-6 text-sm text-navy hover:bg-[#efb279]">
-                <Link to={isDemo ? '/admin' : '/login'}>
+                <Link to={isDemo ? '/business' : '/login'}>
                   Abrir panel de negocio <LayoutDashboard size={16} />
                 </Link>
               </Button>
@@ -418,7 +418,7 @@ export function LandingPage() {
               </span>
               <div>
                 <strong className="block text-sm font-semibold">Tu comunidad, tus reglas</strong>
-                <small className="block text-xs text-muted">Desde el panel de administración</small>
+                <small className="block text-xs text-muted">Desde el panel de negocio</small>
               </div>
             </div>
           </div>

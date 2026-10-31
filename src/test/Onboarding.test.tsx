@@ -13,12 +13,12 @@ function setup() {
   const user = userEvent.setup();
   render(
     <QueryClientProvider client={client}>
-      <MemoryRouter initialEntries={['/admin/onboarding']}>
+      <MemoryRouter initialEntries={['/business/onboarding']}>
         <Routes>
-          <Route path="/admin/onboarding" element={<BusinessOnboarding />} />
+          <Route path="/business/onboarding" element={<BusinessOnboarding />} />
           {/* Al publicar, el asistente redirige aquí. */}
-          <Route path="/admin/negocio" element={<h1>Mi negocio</h1>} />
-          <Route path="/admin" element={<h1>Panel de negocio</h1>} />
+          <Route path="/business/negocio" element={<h1>Mi negocio</h1>} />
+          <Route path="/business" element={<h1>Panel de negocio</h1>} />
         </Routes>
       </MemoryRouter>
     </QueryClientProvider>,

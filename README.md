@@ -1,24 +1,25 @@
 # Punto Plus
 
-SPA de fidelidad **React 19 + TypeScript + Vite 6**, en español, responsive y preparada como PWA. Incluye una **landing pública**, un **panel de clientes** y un **panel de administración independientes**.
+SPA de fidelidad **React 19 + TypeScript + Vite 6**, en español, responsive y preparada como PWA. Incluye una **landing pública** y tres paneles independientes para clientes, negocios y administración.
 
 ## Rutas y paneles
 
-| Ruta                | Vista                                                                             | Acceso                            |
-| ------------------- | --------------------------------------------------------------------------------- | --------------------------------- |
-| `/`                 | Landing de marca y publicidad (qué, cómo funciona, para negocios, historias, CTA) | Público                           |
-| `/login`            | Inicio de sesión contra la API (redirige al panel según rol)                      | Público; con sesión va a su panel |
-| `/registro`         | Alta de cuentas: clientes y negocios (lazy)                                       | Público; con sesión va a su panel |
-| `/menu/:negocio`    | Menú digital público del negocio, con su QR                                       | Público                           |
-| `/app`              | Panel de cliente: mis tarjetas, explorar, recompensas, actividad                  | Cliente con token vigente         |
-| `/admin`            | Panel de negocio: resumen del negocio                                             | Negocio o admin con token vigente |
-| `/admin/negocio`    | Tarjeta del negocio, registro de compras y promociones (lazy)                     | Negocio o admin con token vigente |
-| `/admin/onboarding` | Asistente por pasos para dar de alta el negocio (lazy)                            | Negocio o admin con token vigente |
+| Ruta                   | Vista                                                                             | Acceso                            |
+| ---------------------- | --------------------------------------------------------------------------------- | --------------------------------- |
+| `/`                    | Landing de marca y publicidad (qué, cómo funciona, para negocios, historias, CTA) | Público                           |
+| `/login`               | Inicio de sesión contra la API (redirige al panel según rol)                      | Público; con sesión va a su panel |
+| `/registro`            | Alta de cuentas: clientes y negocios (lazy)                                       | Público; con sesión va a su panel |
+| `/menu/:negocio`       | Menú digital público del negocio, con su QR                                       | Público                           |
+| `/app`                 | Panel de cliente: mis tarjetas, explorar, recompensas, actividad                  | Cliente con token vigente         |
+| `/business`            | Panel de negocio: resumen, tarjeta, compras y promociones                         | Negocio con token vigente         |
+| `/business/negocio`    | Configuración de tarjeta y promociones (lazy)                                     | Negocio con token vigente         |
+| `/business/onboarding` | Asistente por pasos para dar de alta el negocio (lazy)                            | Negocio con token vigente         |
+| `/admin`               | Panel de administración de plataforma                                             | Admin con token vigente           |
 
-Cada panel es un **layout independiente** (`CustomerShell.tsx` y `AdminShell.tsx`) y se monta detrás de su guarda en `src/features/Guards.tsx`:
+Cada rol tiene un **layout independiente** (`CustomerShell.tsx`, `BusinessShell.tsx` y `AdminShell.tsx`) y se monta detrás de su guarda en `src/features/Guards.tsx`:
 
 - **Sin token** → `/login`, recordando la ruta pedida en `state.from` para volver ahí tras autenticar.
-- **Token vigente, rol que no corresponde** → redirección al panel propio (`/app` para clientes, `/admin` para negocios y administradores).
+- **Token vigente, rol que no corresponde** → redirección al panel propio (`/app` para clientes, `/business` para negocios y `/admin` para administradores).
 - **Token vencido** → se intenta renovar con el refresh token antes de decidir; si el backend lo rechaza, la sesión se cierra y se vuelve a `/login`.
 - **Sesión iniciada en `/login` o `/registro`** → se devuelve al panel de la cuenta.
 
@@ -45,7 +46,7 @@ Abrir `http://localhost:5173`. El servidor escucha en `0.0.0.0` y permite el dom
 ```bash
 npm run build         # TypeScript estricto + build y service worker
 npm run preview       # Compilación de producción en :4173
-npm test              # Vitest + React Testing Library: 81 pruebas
+npm test              # Vitest + React Testing Library: 84 pruebas
 npm run typecheck
 npm run format:check
 npx playwright install --with-deps chromium
@@ -78,7 +79,7 @@ npm run test:e2e      # 10 pruebas: escritorio + móvil (corren en modo demo)
 
 ### Negocio
 
-**Asistente de alta por pasos** (`/admin/onboarding`, también montado en `/admin/negocio` mientras el perfil esté incompleto). Tras crear la cuenta e iniciar sesión, el dueño completa su negocio en siete pasos; al publicar se guarda todo de una vez y se le devuelve a su panel:
+**Asistente de alta por pasos** (`/business/onboarding`, también montado en `/business/negocio` mientras el perfil esté incompleto). Tras crear la cuenta e iniciar sesión, el dueño completa su negocio en siete pasos; al publicar se guarda todo de una vez y se le devuelve a su panel:
 
 1. **Logo** (obligatorio). Al subirlo se analizan sus píxeles en el navegador y se propone la paleta.
 2. **Banner** (opcional), portada del menú digital y de la tarjeta.
@@ -105,17 +106,17 @@ Ejemplos de directas: "Jueves de 2×1 en hot-dogs" o "Martes de $17 el taco de b
 - Promociones con imagen opcional, validación, condiciones y vigencia.
 - Escaneo mediante cámara tras permiso explícito o entrada manual del código.
 - Confirmación de compra antes de otorgar un sello.
-- Guarda de ruta por rol: un cliente no entra a `/admin` y un negocio no entra a `/app`. **La autorización definitiva siempre debe realizarse en el servidor.**
+- Guarda de ruta por rol: un cliente, negocio o admin solo entra a su panel correspondiente. **La autorización definitiva siempre debe realizarse en el servidor.**
 
 > **Límites asumidos del asistente.** El análisis del menú es un **borrador a partir de las categorías**, no OCR: leer el texto de la foto del menú impreso requiere un servicio de OCR/visión que el backend debe proveer (ver [docs/API_CONTRACT.md](docs/API_CONTRACT.md)). El dueño revisa y corrige cada plato antes de publicar, así que ningún dato incorrecto llega al menú sin su confirmación. La recompensa y la meta de sellos se crean con valores por defecto (producto gratis, 8 sellos) y se ajustan en "Mi tarjeta".
 
-No se implementa dashboard de administrador (opcional en la solicitud). Recuperación de contraseña, geolocalización, push y analítica no se presentan como funcionalidades disponibles: necesitan requisitos y contratos adicionales. El registro sí está implementado; su ruta exacta debe confirmarse con el backend (ver [docs/API_CONTRACT.md](docs/API_CONTRACT.md)). La ciudad, distancia y negocios del demo son datos ilustrativos, no resultados de geolocalización.
+El panel de administración tiene un layout y una vista propios; las operaciones de plataforma quedan pendientes de endpoints administrativos específicos en la API. Recuperación de contraseña, geolocalización, push y analítica no se presentan como funcionalidades disponibles: necesitan requisitos y contratos adicionales. El registro sí está implementado; su ruta exacta debe confirmarse con el backend (ver [docs/API_CONTRACT.md](docs/API_CONTRACT.md)). La ciudad, distancia y negocios del demo son datos ilustrativos, no resultados de geolocalización.
 
 ## Probar los flujos sin backend
 
 Definir `VITE_DATA_MODE=demo` en `.env` y reiniciar Vite.
 
-1. **Alta de negocio:** `/registro` → _Tengo un negocio_ → nombre, correo, teléfono y contraseña. Con la API real, una cuenta nueva entra a `/admin` sin perfil y el aviso _Termina de configurar tu negocio_ la lleva al asistente. En el demo, Café Avellaneda ya viene configurado (tiene clientes, sellos e historial), así que el asistente se abre directo en `/admin/onboarding`: logo → banner → nombre → categorías → menú → colores → promoción → publicar. Al publicar, `/admin/negocio` muestra el editor y `/menu/<negocio>` el menú digital con su QR.
+1. **Alta de negocio:** `/registro` → _Tengo un negocio_ → nombre, correo, teléfono y contraseña. Con la API real, una cuenta nueva entra a `/business` sin perfil y el aviso _Termina de configurar tu negocio_ la lleva al asistente. En el demo, Café Avellaneda ya viene configurado (tiene clientes, sellos e historial), así que el asistente se abre directo en `/business/onboarding`: logo → banner → nombre → categorías → menú → colores → promoción → publicar. Al publicar, `/business/negocio` muestra el editor y `/menu/<negocio>` el menú digital con su QR.
 2. **Canje:** abrir Matcha & Co. → Canjear → Confirmar. Se consumen cinco sellos y se registra un evento.
 3. **Compra:** Mi negocio → Registrar una compra → Probar con un QR de demostración → Confirmar. Agrega un sello a Café Avellaneda; una tarjeta completa no admite más sellos hasta canjear.
 4. **Alta:** Escanear un negocio → Probar con un QR de demostración → Agregar a mis tarjetas. Incorpora Casa Botánica.

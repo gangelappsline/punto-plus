@@ -12,7 +12,7 @@ function setup() {
   });
   render(
     <QueryClientProvider client={client}>
-      <MemoryRouter initialEntries={['/admin/negocio']}>
+      <MemoryRouter initialEntries={['/business/negocio']}>
         <BusinessPage />
       </MemoryRouter>
     </QueryClientProvider>,
@@ -25,7 +25,7 @@ function setOnboarded(onboarded: boolean) {
   });
 }
 
-describe('Guarda de alta del negocio en /admin/negocio', () => {
+describe('Guarda de alta del negocio en /business/negocio', () => {
   beforeEach(() => localStorage.clear());
 
   it('muestra el asistente por pasos cuando el perfil aún no está completo', async () => {
