@@ -16,7 +16,7 @@ import {
 import { http } from './http';
 import * as authService from './auth';
 import { readAdminCategories, readDB, redeemDemo, updateAdminCategories, updateDB } from './demo';
-// Proposed API contract. These routes and envelopes MUST be confirmed with the backend.
+// Contrato de guardado por paso del asistente de configuración del menú.
 /** Payload para crear una promoción: los campos de identidad los rellena el backend/demo. */
 export type PromotionInput = {
   title: string;
@@ -26,6 +26,13 @@ export type PromotionInput = {
 } & Partial<Promotion>;
 
 export type PublicCategory = { id: string; name: string; icon?: string };
+export type BusinessWizardStep = 'information' | 'categories' | 'products' | 'design' | 'service';
+export type BusinessWizardStepSave = {
+  step: BusinessWizardStep;
+  data: Record<string, unknown>;
+  /** Estado completo para mantener el almacenamiento demo y la caché del cliente sincronizados. */
+  config: BusinessConfig;
+};
 
 function unwrapPublicMenu(payload: unknown): unknown {
   if (!payload || typeof payload !== 'object' || Array.isArray(payload)) return payload;
@@ -350,6 +357,16 @@ export const api = {
       db.business = config;
       const card = db.cards.find((c) => c.id === 'cafe');
       if (card) Object.assign(card, { ...config, stamps: Math.min(card.stamps, config.goal) });
+    });
+  },
+  saveBusinessStep: async ({ step, data, config }: BusinessWizardStepSave) => {
+    if (!isDemo) return http.patch('/business/card', { step, data });
+    const validated = businessSchema.parse(config);
+    return updateDB((db) => {
+      db.business = validated;
+      const card = db.cards.find((c) => c.id === 'cafe');
+      if (card)
+        Object.assign(card, { ...validated, stamps: Math.min(card.stamps, validated.goal) });
     });
   },
   addPromotion: async (input: PromotionInput) => {
