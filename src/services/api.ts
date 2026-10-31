@@ -47,6 +47,133 @@ function unwrapAdminCategoryList(payload: unknown): unknown {
   return current;
 }
 
+function record(value: unknown): Record<string, unknown> {
+  return value && typeof value === 'object' && !Array.isArray(value)
+    ? (value as Record<string, unknown>)
+    : {};
+}
+
+function unwrapBusinessConfig(payload: unknown): Record<string, unknown> {
+  let current = record(payload);
+  for (let depth = 0; depth < 4; depth += 1) {
+    const nested = record(current.data);
+    if (Object.keys(nested).length) {
+      current = nested;
+      continue;
+    }
+    const business = record(current.business);
+    if (Object.keys(business).length) {
+      current = business;
+      continue;
+    }
+    break;
+  }
+  return current;
+}
+
+function normalizeBusinessConfig(payload: unknown) {
+  const value = unwrapBusinessConfig(payload);
+  const cardSettings = record(value.card_settings ?? value.cardSettings);
+  const name = typeof value.name === 'string' ? value.name : '';
+  const categories = (Array.isArray(value.categories) ? value.categories : [])
+    .map((category) => {
+      if (typeof category === 'string') return category;
+      const categoryRecord = record(category);
+      return typeof categoryRecord.name === 'string' ? categoryRecord.name : '';
+    })
+    .filter(Boolean);
+  const rawProducts = Array.isArray(value.products)
+    ? value.products
+    : Array.isArray(value.menuItems)
+      ? value.menuItems
+      : [];
+  const menuItems = rawProducts
+    .map((product, index) => {
+      const item = record(product);
+      const productCategory = record(item.category);
+      const itemName = typeof item.name === 'string' ? item.name : '';
+      if (!itemName.trim()) return null;
+      const price =
+        typeof item.price === 'string' || typeof item.price === 'number' ? item.price : undefined;
+      const image = [item.image, item.image_url, item.imageUrl, item.photo_url].find(
+        (candidate): candidate is string => typeof candidate === 'string' && Boolean(candidate),
+      );
+      return {
+        id: String(item.id ?? `product-${index + 1}`),
+        name: itemName,
+        description: typeof item.description === 'string' ? item.description : undefined,
+        price,
+        category:
+          typeof item.category === 'string'
+            ? item.category
+            : typeof productCategory.name === 'string'
+              ? productCategory.name
+              : typeof item.category_name === 'string'
+                ? item.category_name
+                : undefined,
+        image,
+        available:
+          typeof item.available === 'boolean'
+            ? item.available
+            : typeof item.is_active === 'boolean'
+              ? item.is_active
+              : undefined,
+      };
+    })
+    .filter((item): item is NonNullable<typeof item> => Boolean(item));
+  const rawGoal = Number(cardSettings.required_stamps ?? value.goal ?? 8);
+  const goal = Number.isFinite(rawGoal) ? Math.min(12, Math.max(2, Math.round(rawGoal))) : 8;
+  const rawIcon = cardSettings.stamp_icon ?? value.icon;
+  const icon =
+    rawIcon === 'bread' || rawIcon === 'leaf' || rawIcon === 'coffee' ? rawIcon : 'coffee';
+  const validTheme =
+    value.theme === 'terracotta' || value.theme === 'lavender' ? value.theme : 'forest';
+  const phone = typeof value.phone === 'string' ? value.phone : undefined;
+  const addressParts = [value.address, value.city, value.country].filter(
+    (part): part is string => typeof part === 'string' && Boolean(part.trim()),
+  );
+  const address = addressParts.join(', ');
+  const logo = typeof value.logo_url === 'string' ? value.logo_url : value.logo;
+  const banner = typeof value.background_url === 'string' ? value.background_url : value.banner;
+  const primaryColor = cardSettings.primary_color ?? value.primaryColor;
+  const secondaryColor = cardSettings.secondary_color ?? value.secondaryColor;
+  const requiredString = (candidate: unknown) =>
+    typeof candidate === 'string' && candidate.length ? candidate : undefined;
+  const inferredOnboarded = Boolean(name.trim() && logo && categories.length);
+
+  return {
+    name,
+    reward: requiredString(value.reward) ?? 'Recompensa por fidelidad',
+    goal,
+    theme: validTheme,
+    icon,
+    logo: typeof logo === 'string' ? logo : undefined,
+    banner: typeof banner === 'string' ? banner : undefined,
+    categories,
+    menuImage: requiredString(value.menuImage),
+    menuItems,
+    primaryColor: typeof primaryColor === 'string' ? primaryColor : undefined,
+    secondaryColor: typeof secondaryColor === 'string' ? secondaryColor : undefined,
+    welcomeMessage:
+      requiredString(cardSettings.welcome_message) ?? requiredString(value.welcomeMessage),
+    description: requiredString(value.description),
+    phone,
+    phoneNumbers: phone ? [phone] : [],
+    address: address || undefined,
+    location:
+      [value.city, value.country]
+        .filter((part): part is string => typeof part === 'string' && Boolean(part.trim()))
+        .join(', ') || undefined,
+    openingHours: requiredString(value.openingHours),
+    deliveryAvailable:
+      typeof value.deliveryAvailable === 'boolean' ? value.deliveryAvailable : false,
+    allowOrders: typeof value.allowOrders === 'boolean' ? value.allowOrders : true,
+    fontFamily: value.fontFamily,
+    menuStyle: value.menuStyle,
+    onboarded: typeof value.onboarded === 'boolean' ? value.onboarded : inferredOnboarded,
+  };
+}
+
 function slugifyBusiness(name: string) {
   return name
     .toLowerCase()
@@ -159,8 +286,11 @@ export const api = {
           .parse((await http.post('/customer/me/qr')).data),
   businessPromotions: async () =>
     z.array(promotionSchema).parse((await http.get('/business/promotions')).data),
-  business: async () =>
-    isDemo ? readDB().business : businessSchema.parse((await http.get('api/business/card')).data),
+  business: async () => {
+    if (isDemo) return readDB().business;
+    const { data } = await http.get('api/business/card');
+    return businessSchema.parse(normalizeBusinessConfig(data));
+  },
   saveBusiness: async (input: BusinessConfig) => {
     const config = businessSchema.parse(input);
     if (!isDemo) return http.put('/business/card', config);

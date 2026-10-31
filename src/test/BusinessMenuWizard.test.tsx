@@ -3,7 +3,7 @@ import userEvent from '@testing-library/user-event';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { BusinessMenuWizard } from '../features/BusinessMenuWizard';
-import { readDB } from '../services/demo';
+import { readDB, updateDB } from '../services/demo';
 
 function setup() {
   const queryClient = new QueryClient({
@@ -23,6 +23,26 @@ beforeEach(() => {
 });
 
 describe('Configurador Mi menú', () => {
+  it('muestra el formulario por pasos aunque el perfil llegue vacío', async () => {
+    updateDB((db) => {
+      db.business = {
+        ...db.business,
+        name: '',
+        logo: undefined,
+        banner: undefined,
+        categories: [],
+        menuItems: [],
+      };
+    });
+    setup();
+
+    expect(await screen.findByRole('heading', { name: 'Mi menú' })).toBeInTheDocument();
+    expect(screen.getByRole('textbox', { name: 'Nombre del negocio' })).toHaveValue('');
+    expect(screen.getByRole('button', { name: /Categorías/ })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Productos/ })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Servicio/ })).toBeInTheDocument();
+  });
+
   it('muestra los cinco pasos y actualiza la vista previa al editar el negocio', async () => {
     const user = setup();
     expect(await screen.findByRole('heading', { name: 'Mi menú' })).toBeInTheDocument();

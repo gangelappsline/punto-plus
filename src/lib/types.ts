@@ -134,7 +134,9 @@ export const foodCategories = [
 ] as const;
 export type FoodCategory = (typeof foodCategories)[number];
 export const businessSchema = z.object({
-  name: z.string().min(2, 'Escribe al menos 2 caracteres'),
+  // El backend puede devolver un negocio recién creado con `name: null`.
+  // Se representa como cadena vacía para que el asistente permita completarlo.
+  name: z.string().min(2, 'Escribe al menos 2 caracteres').or(z.literal('')),
   reward: z.string().min(3, 'Describe tu recompensa'),
   goal: z.coerce.number().int().min(2, 'Mínimo 2 sellos').max(12, 'Máximo 12 sellos'),
   theme: z.enum(['forest', 'terracotta', 'lavender']),
