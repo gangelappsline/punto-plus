@@ -5275,15 +5275,20 @@ main#main-content {
 .restaurant-menu {
   --restaurant-primary: #187f79;
   --restaurant-soft: #f4d5b3;
+  width: min(100%, 440px);
   min-height: 100vh;
+  min-height: 100dvh;
+  margin: 0 auto;
   padding-bottom: 92px;
+  overflow-x: clip;
   color: #18364c;
   background: #f7f6f2;
+  box-shadow: 0 0 48px #1c34400f;
   font-family: 'DM Sans Variable', 'DM Sans', sans-serif;
 }
 .restaurant-hero {
   position: relative;
-  min-height: 390px;
+  min-height: 370px;
   overflow: hidden;
   color: #fff;
   background: #18364c;
@@ -5372,7 +5377,7 @@ main#main-content {
 .restaurant-identity {
   display: flex;
   max-width: 680px;
-  min-height: 300px;
+  min-height: 284px;
   flex-direction: column;
   align-items: center;
   justify-content: center;
@@ -5450,7 +5455,7 @@ main#main-content {
 .restaurant-content {
   position: relative;
   z-index: 2;
-  width: min(1080px, calc(100% - 44px));
+  width: min(560px, calc(100% - 30px));
   margin: -6px auto 0;
 }
 .restaurant-welcome {
@@ -5604,19 +5609,26 @@ main#main-content {
 }
 .popular-dishes {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 15px;
+  grid-template-columns: repeat(3, minmax(148px, 1fr));
+  gap: 12px;
+  overflow-x: auto;
+  margin-right: -15px;
+  padding: 0 15px 9px 0;
+  scrollbar-width: none;
+}
+.popular-dishes::-webkit-scrollbar {
+  display: none;
 }
 .menu-catalog-grid {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 14px;
+  grid-template-columns: 1fr;
+  gap: 10px;
 }
 .dish-card {
   position: relative;
   display: flex;
   min-width: 0;
-  min-height: 132px;
+  min-height: 120px;
   align-items: stretch;
   overflow: hidden;
   border: 1px solid #eae9e3;
@@ -5642,8 +5654,8 @@ main#main-content {
 .dish-image-wrap {
   position: relative;
   display: block;
-  flex: 0 0 108px;
-  height: 108px;
+  flex: 0 0 96px;
+  height: 96px;
   overflow: hidden;
   border-radius: 11px;
   background: #e5e4dc;
@@ -5743,7 +5755,7 @@ main#main-content {
   font-weight: 750;
 }
 .dish-card-popular {
-  min-height: 248px;
+  min-height: 228px;
   flex-direction: column;
 }
 .dish-card-popular .dish-card-open {
@@ -5754,7 +5766,7 @@ main#main-content {
 .dish-card-popular .dish-image-wrap {
   flex-basis: auto;
   width: 100%;
-  height: 130px;
+  height: 116px;
 }
 .dish-card-popular .dish-card-copy {
   width: 100%;
@@ -5793,7 +5805,8 @@ main#main-content {
 }
 .menu-login-callout {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
+  flex-wrap: wrap;
   gap: 13px;
   margin: 18px 0 34px;
   padding: 17px 19px;
@@ -5832,9 +5845,10 @@ main#main-content {
 }
 .restaurant-footer {
   display: flex;
-  align-items: center;
+  flex-direction: column;
+  align-items: flex-start;
   justify-content: space-between;
-  gap: 16px;
+  gap: 7px;
   margin-top: 45px;
   padding: 19px 0;
   border-top: 1px solid #e5e5de;
@@ -5887,7 +5901,7 @@ main#main-content {
   font-weight: 800;
 }
 .menu-detail-dialog {
-  width: min(440px, calc(100vw - 30px));
+  width: min(410px, calc(100vw - 30px));
   padding: 0;
   overflow: hidden;
 }
@@ -5940,7 +5954,7 @@ main#main-content {
   background: var(--restaurant-primary);
 }
 .menu-order-dialog {
-  width: min(480px, calc(100vw - 28px));
+  width: min(420px, calc(100vw - 28px));
 }
 .menu-order-items {
   display: flex;
@@ -6037,7 +6051,12 @@ main#main-content {
   text-align: center;
 }
 .menu-state-modern {
+  width: min(100%, 440px);
+  min-height: 100vh;
+  min-height: 100dvh;
+  margin: 0 auto;
   background: #f7f6f2;
+  box-shadow: 0 0 48px #1c34400f;
 }
 .menu-state-icon {
   display: grid;
