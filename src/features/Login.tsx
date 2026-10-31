@@ -42,8 +42,14 @@ export function Login() {
         // Si el guard nos dejó aquí al intentar abrir un panel, volvemos a esa ruta.
         const from = (location.state as { from?: string } | null)?.from ?? '';
         const panel = panelForPath(from);
-        const target =
-          panel && panelAllows(panel, session.user?.role) ? from : panelPathFor(session.user?.role);
+        const safePublicReturn = from.startsWith('/') && !from.startsWith('//');
+        const target = panel
+          ? panelAllows(panel, session.user?.role)
+            ? from
+            : panelPathFor(session.user?.role)
+          : safePublicReturn
+            ? from
+            : panelPathFor(session.user?.role);
         navigate(target, { replace: true });
       },
       onError: (error) => {

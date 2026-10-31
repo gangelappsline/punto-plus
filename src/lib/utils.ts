@@ -8,6 +8,16 @@ export const cn = (...inputs: ClassValue[]) => twMerge(clsx(inputs));
  * desarrollo: `VITE_DATA_MODE=demo`.
  */
 export const isDemo = import.meta.env.VITE_DATA_MODE === 'demo';
+
+/** URL pública de la SPA; facilita generar enlaces de menú con dominio personalizado. */
+export function getAppBaseUrl() {
+  return (import.meta.env.VITE_BASE_APP_URL || window.location.origin).replace(/\/+$/, '');
+}
+
+export function publicMenuUrl(slug: string) {
+  return `${getAppBaseUrl()}/${encodeURIComponent(slug)}`;
+}
+
 /** Cada panel es un layout independiente con su propia ruta raíz. */
 export type Panel = 'customer' | 'business' | 'admin';
 /** Ruta raíz del layout asignado a cada rol. */

@@ -9,7 +9,7 @@ SPA de fidelidad **React 19 + TypeScript + Vite 6**, en español, responsive y p
 | `/`                    | Landing de marca y publicidad (qué, cómo funciona, para negocios, historias, CTA) | Público                           |
 | `/login`               | Inicio de sesión contra la API (redirige al panel según rol)                      | Público; con sesión va a su panel |
 | `/registro`            | Alta de cuentas: clientes y negocios (lazy)                                       | Público; con sesión va a su panel |
-| `/menu/:negocio`       | Menú digital público del negocio, con su QR                                       | Público                           |
+| `/:business_slug`      | Menú público del restaurante: populares, categorías, búsqueda y orden             | Público; ordenar requiere cliente |
 | `/app`                 | Panel de cliente: mis tarjetas, explorar, recompensas, actividad                  | Cliente con token vigente         |
 | `/business`            | Panel de negocio: resumen, tarjeta, compras y promociones                         | Negocio con token vigente         |
 | `/business/negocio`    | Configuración de tarjeta y promociones (lazy)                                     | Negocio con token vigente         |
@@ -66,6 +66,13 @@ npm run test:e2e      # 10 pruebas: escritorio + móvil (corren en modo demo)
 - Contraseña con confirmación, medidor de seguridad y envío deshabilitado mientras hay petición en vuelo.
 - En modo demo ninguna credencial sale del navegador: se crea una sesión local identificada como demo.
 
+### Menú público y orden
+
+- Cada restaurante publica su menú en `/<business_slug>` con banner, logotipo, platillos más pedidos, categorías, búsqueda y vista de detalle.
+- Cualquier visitante puede explorar. Solo una sesión con rol `customer` puede agregar platillos al borrador de orden; al iniciar sesión se regresa al menú.
+- La orden se mantiene en memoria del navegador. El envío/checkout requiere un endpoint de órdenes que aún debe acordarse con el backend.
+- En modo API, el frontend espera el endpoint público sin autenticación `GET /public/business/:slug/menu` (contrato propuesto, pendiente de confirmar).
+
 ### Cliente
 
 - Tarjetas con sellos, progreso, filtros y ordenación.
@@ -116,7 +123,7 @@ El panel de administración tiene un layout y una vista propios; las operaciones
 
 Definir `VITE_DATA_MODE=demo` en `.env` y reiniciar Vite.
 
-1. **Alta de negocio:** `/registro` → _Tengo un negocio_ → nombre, correo, teléfono y contraseña. Con la API real, una cuenta nueva entra a `/business` sin perfil y el aviso _Termina de configurar tu negocio_ la lleva al asistente. En el demo, Café Avellaneda ya viene configurado (tiene clientes, sellos e historial), así que el asistente se abre directo en `/business/onboarding`: logo → banner → nombre → categorías → menú → colores → promoción → publicar. Al publicar, `/business/negocio` muestra el editor y `/menu/<negocio>` el menú digital con su QR.
+1. **Alta de negocio:** `/registro` → _Tengo un negocio_ → nombre, correo, teléfono y contraseña. Con la API real, una cuenta nueva entra a `/business` sin perfil y el aviso _Termina de configurar tu negocio_ la lleva al asistente. En el demo, Café Avellaneda ya viene configurado (tiene clientes, sellos e historial), así que el asistente se abre directo en `/business/onboarding`: logo → banner → nombre → categorías → menú → colores → promoción → publicar. Al publicar, `/business/negocio` muestra el editor y `/<business_slug>` abre el menú digital. El enlace/QR usa `VITE_BASE_APP_URL` (o el dominio actual si está vacío).
 2. **Canje:** abrir Matcha & Co. → Canjear → Confirmar. Se consumen cinco sellos y se registra un evento.
 3. **Compra:** Mi negocio → Registrar una compra → Probar con un QR de demostración → Confirmar. Agrega un sello a Café Avellaneda; una tarjeta completa no admite más sellos hasta canjear.
 4. **Alta:** Escanear un negocio → Probar con un QR de demostración → Agregar a mis tarjetas. Incorpora Casa Botánica.
@@ -147,7 +154,7 @@ src/
 │   ├── AdminDashboard.tsx     # Resumen del negocio
 │   ├── BusinessPage.tsx       # Configuración, compras y promociones (lazy)
 │   ├── BusinessOnboarding.tsx # Asistente por pasos: logo, banner, menú, colores, promoción (lazy)
-│   ├── MenuPage.tsx           # Menú digital público con el QR del negocio
+│   ├── MenuPage.tsx           # Menú público por slug, búsqueda y borrador de orden
 │   ├── Dialogs.tsx            # QR, detalle, canje y promoción
 │   ├── AuthLayout.tsx         # Columna de marca + formulario (login y registro)
 │   ├── Login.tsx              # Inicio de sesión

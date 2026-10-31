@@ -100,6 +100,7 @@ export default function App() {
       >
         <Route index element={<AdminDashboard />} />
       </Route>
+      <Route path="/:businessSlug" element={<MenuPage />} />
       <Route path="*" element={<NotFoundPage />} />
     </Routes>
   );

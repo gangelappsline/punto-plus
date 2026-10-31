@@ -5,6 +5,7 @@ import {
   businessSchema,
   cardSchema,
   promotionSchema,
+  publicMenuSchema,
   type BusinessConfig,
   type Promotion,
 } from '../lib/types';
@@ -19,6 +20,23 @@ export type PromotionInput = {
   expires: string;
   image: string;
 } & Partial<Promotion>;
+
+function unwrapPublicMenu(payload: unknown): unknown {
+  if (!payload || typeof payload !== 'object' || Array.isArray(payload)) return payload;
+  const value = payload as Record<string, unknown>;
+  for (const key of ['data', 'business', 'menu']) {
+    if (value[key] && typeof value[key] === 'object') return unwrapPublicMenu(value[key]);
+  }
+  return payload;
+}
+
+function slugifyBusiness(name: string) {
+  return name
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '');
+}
 
 export const api = {
   cards: async () =>
@@ -35,6 +53,16 @@ export const api = {
     isDemo
       ? readDB().favorites
       : z.array(z.string()).parse((await http.get('/customer/me/favorites')).data),
+  publicBusinessMenu: async (slug: string) => {
+    if (isDemo) {
+      const business = readDB().business;
+      if (slug !== slugifyBusiness(business.name) && slug !== 'demo')
+        throw new Error('No encontramos este menú.');
+      return publicMenuSchema.parse(business);
+    }
+    const { data } = await http.get(`/public/business/${encodeURIComponent(slug)}/menu`);
+    return publicMenuSchema.parse(unwrapPublicMenu(data));
+  },
   toggleFavorite: async (id: string) =>
     isDemo
       ? updateDB((db) => {

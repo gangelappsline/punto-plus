@@ -195,11 +195,16 @@ multipart, URLs firmadas o almacenamiento dedicado, y un límite distinto por im
 Sustituir la conversión y el payload según el backend; no asumir que admite data URLs.
 Tres imágenes por negocio en data URL pueden superar la cuota de `localStorage` en el demo.
 
-**Menú digital público.** `/menu/:negocio` se sirve sin sesión y lee `GET /business/card`
-del negocio indicado. **Confirmar:** si el backend expone un endpoint público de menú
-(por ejemplo `GET /public/business/:slug/menu`) — hoy la ruta pública del frontend no tiene
-forma autenticada de resolver el slug, y en modo API requiere sesión, lo cual rompe el caso
-de un cliente que escanea el QR sin cuenta.
+**Menú digital público.** El frontend sirve `/:business_slug` sin sesión y espera el endpoint
+público `GET /public/business/:slug/menu`, que puede responder el objeto del negocio o un
+recurso envuelto en `{ data: … }`, `{ business: … }` o `{ menu: … }`. Debe incluir `name`,
+`banner`, `logo`, `categories`, `menuItems` (con `id`, `name`, `description`, `price`,
+`category`, `image` e indicador de popularidad/cantidad de pedidos opcionales) y, si están
+disponibles, `primaryColor`, `secondaryColor`, `location` y `openingHours`. **Este endpoint es
+una propuesta pendiente de confirmación**; no debe reutilizar `GET /business/card`, que es
+privado y devuelve la configuración del negocio autenticado. En modo demo la vista usa el
+restaurante de prueba. El carrito/orden actual es un borrador local; falta acordar un endpoint
+de órdenes antes de poder enviar pedidos al negocio.
 
 ## QR y operaciones sensibles
 

@@ -68,9 +68,33 @@ export const menuItemSchema = z.object({
   id: z.string(),
   name: z.string().min(1, 'El plato necesita un nombre'),
   description: z.string().optional(),
-  price: z.string().optional(),
+  price: z.union([z.string(), z.number()]).transform(String).optional(),
   category: z.string().optional(),
+  image: z.string().optional(),
+  imageUrl: z.string().optional(),
+  popular: z.boolean().optional(),
+  isPopular: z.boolean().optional(),
+  orderCount: z.coerce.number().nonnegative().optional(),
+  ordersCount: z.coerce.number().nonnegative().optional(),
+  available: z.boolean().optional(),
 });
+export const publicMenuSchema = z.object({
+  id: z.union([z.string(), z.number()]).optional(),
+  slug: z.string().optional(),
+  name: z.string().min(1),
+  description: z.string().optional(),
+  logo: z.string().optional(),
+  banner: z.string().optional(),
+  categories: z.array(z.string()).default([]),
+  menuItems: z.array(menuItemSchema).default([]),
+  primaryColor: z.string().optional(),
+  secondaryColor: z.string().optional(),
+  address: z.string().optional(),
+  location: z.string().optional(),
+  phone: z.string().optional(),
+  openingHours: z.string().optional(),
+});
+export type PublicMenu = z.infer<typeof publicMenuSchema>;
 export type MenuItem = z.infer<typeof menuItemSchema>;
 /** Categorías de comida que el negocio puede vender. */
 export const foodCategories = [
