@@ -628,7 +628,7 @@ export const api = {
     });
   },
   saveBusinessStep: async ({ step, data, config }: BusinessWizardStepSave) => {
-    if (!isDemo) return http.patch('/business/card', { step, data });
+    if (!isDemo) return http.put('/business/card', { step, data });
     const validated = businessSchema.parse(config);
     return updateDB((db) => {
       db.business = validated;

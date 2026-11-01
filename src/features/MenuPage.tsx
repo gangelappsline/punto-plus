@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
+import LogoPunto from '../assets/images/logo_2.webp';
 import {
   ArrowLeft,
   ArrowRight,
@@ -504,9 +505,9 @@ export function MenuPage() {
           </aside>
         )}
 
-        <footer className="flex flex-col gap-2 border-t border-stone-200 py-6 text-xs text-slate-400 sm:flex-row sm:items-center sm:justify-between">
+        <footer className="flex flex-col justify-center items-center gap-2 border-t border-stone-200 py-6 text-xs text-slate-400 sm:flex-row sm:items-center sm:justify-between">
           <span className="inline-flex items-center gap-2 font-extrabold tracking-[0.16em] text-slate-500">
-            <Sparkles size={14} /> PUNTO PLUS
+            <img src={LogoPunto}  className="h-6 block mx-auto" alt="Logo Punto +" />
           </span>
           <span>Sabores de {data.name}, cerca de ti.</span>
         </footer>
