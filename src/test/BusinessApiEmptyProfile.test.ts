@@ -68,6 +68,51 @@ describe('Perfil de negocio recién creado', () => {
     expect(business.banner).toBeUndefined();
   });
 
+  it('restaura productos guardados con categoría por ID e imagen en el arreglo images', async () => {
+    apiMock.onGet('business/card').reply(200, {
+      ...emptyBusinessProfile,
+      name: 'Taqueria Chayito',
+      categories: [
+        { id: 2, category_id: 2, name: 'Tacos', sort_order: 0 },
+        { id: 3, category_id: 3, name: 'Quesadillas', sort_order: 1 },
+      ],
+      products: [
+        {
+          id: '9fd34130-6dd4-4371-b407-d200055084cd',
+          name: 'Taco de Asada',
+          description: 'Taco',
+          price: '20.00',
+          sort_order: 0,
+          is_available: true,
+          menu_category_id: null,
+          category_id: 2,
+          images: [
+            {
+              id: 1,
+              url: '[foto](http://127.0.0.1:8000/storage/products/taco.webp)',
+              sort_order: 0,
+            },
+          ],
+        },
+      ],
+    });
+
+    const business = await api.business();
+
+    expect(business.categories).toEqual(['Tacos', 'Quesadillas']);
+    expect(business.menuItems).toEqual([
+      {
+        id: '9fd34130-6dd4-4371-b407-d200055084cd',
+        name: 'Taco de Asada',
+        description: 'Taco',
+        price: '20.00',
+        category: 'Tacos',
+        image: 'https://api.punto-plus.com.mx/storage/products/taco.webp',
+        available: true,
+      },
+    ]);
+  });
+
   it('también acepta el perfil dentro de una envoltura data', async () => {
     apiMock.onGet('business/card').reply(200, { data: emptyBusinessProfile });
 
