@@ -1,8 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import {
-  Bell,
-  Check,
   ChevronDown,
   ChevronRight,
   CircleHelp,
@@ -15,18 +13,17 @@ import {
   MapPin,
   Menu,
   QrCode,
-  Search,
   ShieldCheck,
   Sparkles,
   Store,
   X,
 } from 'lucide-react';
 import { toast } from 'sonner';
-import { CardDialog, PromotionDialog, QRDialog } from './Dialogs';
+import { CardDialog, PromotionDialog } from './Dialogs';
 import { Button } from '../components/ui/button';
 import { Dialog } from '../components/ui/dialog';
 import { Scanner } from '../components/Scanner';
-import { useLoyalty } from '../lib/queries';
+import { useCards } from '../lib/queries';
 import { useLogout } from '../lib/session';
 import { isDemo } from '../lib/utils';
 import { demoUser, useAuth } from '../stores/auth';
@@ -54,26 +51,23 @@ export function CustomerLayout() {
   const realUser = useAuth((s) => s.user);
   // Con la API real el guard garantiza el usuario; en demo se usa el de muestra.
   const user = realUser ?? demoUser;
-  const { cards, activity } = useLoyalty();
   const location = useLocation();
+  const cards = useCards(location.pathname === '/app');
   const navigate = useNavigate();
   const logout = useLogout();
   const [search, setSearch] = useState('');
-  const [qrOpen, setQROpen] = useState(false);
   const [scanOpen, setScanOpen] = useState(false);
   const [card, setCard] = useState<LoyaltyCard | null>(null);
   const [promotion, setPromotion] = useState<Promotion | null>(null);
   const [help, setHelp] = useState(false);
   const [profile, setProfile] = useState(false);
-  const [notifications, setNotifications] = useState(false);
   const [mobileNav, setMobileNav] = useState(false);
-  const [notificationRead, setNotificationRead] = useState(false);
   const [installEvent, setInstallEvent] = useState<InstallEvent | null>(null);
   const [installHelp, setInstallHelp] = useState(false);
   const [online, setOnline] = useState(navigator.onLine);
   useEffect(() => {
-    if (scanOpen || qrOpen || help || profile) setMobileNav(false);
-  }, [scanOpen, qrOpen, help, profile]);
+    if (scanOpen || help || profile) setMobileNav(false);
+  }, [scanOpen, help, profile]);
   useEffect(() => {
     if (!mobileNav) return;
     const escape = (e: KeyboardEvent) => {
@@ -82,7 +76,6 @@ export function CustomerLayout() {
     window.addEventListener('keydown', escape);
     return () => window.removeEventListener('keydown', escape);
   }, [mobileNav]);
-  const ready = cards.data?.filter((c) => c.joined && c.stamps >= c.goal).length || 0;
   const canManage = isDemo || user.role === 'business' || user.role === 'admin';
   const title = customerNavigation.find((n) => n.path === location.pathname)?.title || 'Punto Plus';
   useEffect(() => {
@@ -134,7 +127,6 @@ export function CustomerLayout() {
   const context: PageContext = {
     search,
     userName: user.name,
-    showQR: () => setQROpen(true),
     showCard: setCard,
     showPromotion: setPromotion,
     scan: () => setScanOpen(true),
@@ -180,23 +172,6 @@ export function CustomerLayout() {
             </NavLink>
           ))}
         </nav>
-        <div className="sidebar-qr-card">
-          <div className="mini-qr">
-            <QrCode size={27} strokeWidth={1.3} />
-            <Sparkles className="mini-sparkle" size={17} aria-hidden="true" />
-          </div>
-          <h3>Tu próxima visita cuenta.</h3>
-          <p>
-            Muestra tu QR, suma sellos
-            <br />y disfruta las recompensas.
-          </p>
-          <button onClick={() => setQROpen(true)}>
-            Ver mi código QR <ChevronRight size={15} />
-          </button>
-        </div>
-        <button className="sidebar-scan" onClick={() => setScanOpen(true)}>
-          <QrCode size={17} /> Escanear un negocio
-        </button>
         <div className="sidebar-bottom">
           {canManage && (
             <NavLink to="/business" className="business-nav">
@@ -252,17 +227,6 @@ export function CustomerLayout() {
               </button>
             )}
             <button
-              className="notification-button icon-button"
-              aria-label="Ver notificaciones"
-              onClick={() => {
-                setNotifications(true);
-                setNotificationRead(true);
-              }}
-            >
-              <Bell size={19} />
-              {!notificationRead && <span />}
-            </button>
-            <button
               className="avatar small-avatar"
               aria-label="Mi perfil"
               onClick={() => setProfile(true)}
@@ -281,19 +245,19 @@ export function CustomerLayout() {
         )}
         <main id="main-content">
           <div className="main-topline"></div>
-          <div className="flex space-x-2 rounded-xl">
-            {/* Pestaña Activa */}
+          <nav className="customer-section-tabs" aria-label="Secciones del cliente">
             {customerNavigation.map(({ path, icon: Icon, title, end }) => (
-              <Link
+              <NavLink
                 key={path}
                 to={path}
-                className="w-full flex gap-2 rounded-lg bg-white px-3 py-1.5 text-sm font-medium text-gray-900 shadow"
+                end={end}
+                className={({ isActive }) => `customer-section-tab${isActive ? ' active' : ''}`}
               >
-                <Icon size={17} />
+                <Icon size={17} aria-hidden="true" />
                 <span>{title}</span>
-              </Link>
+              </NavLink>
             ))}
-          </div>
+          </nav>
           <Outlet context={context} />
           <footer className="main-footer">
             <span>© {new Date().getFullYear()} Punto Plus. Lo bueno está cerca.</span>
@@ -303,74 +267,15 @@ export function CustomerLayout() {
           </footer>
         </main>
       </div>
-      <QRDialog open={qrOpen} onOpenChange={setQROpen} name={user.name} />
-      <CardDialog
-        selected={card}
-        onClose={() => setCard(null)}
-        onQR={() => {
-          setCard(null);
-          setQROpen(true);
-        }}
-      />
+      <CardDialog selected={card} onClose={() => setCard(null)} />
       <PromotionDialog promotion={promotion} onClose={() => setPromotion(null)} />
       <Dialog
         open={scanOpen}
         onOpenChange={setScanOpen}
-        title="Escanear una compra"
-        description="Escanea el QR del negocio para abrir su tarjeta y mostrar tu código al realizar una compra."
+        title="Escanear un negocio"
+        description="Escanea el QR de un negocio participante para consultar la información de su tarjeta."
       >
         <Scanner onResult={scanned} />
-      </Dialog>
-      <Dialog
-        open={notifications}
-        onOpenChange={setNotifications}
-        title="Buenas noticias para ti"
-        description="Las novedades de tu comunidad, en un solo lugar."
-      >
-        <div className="notification-list">
-          {ready > 0 && (
-            <button
-              onClick={() => {
-                setNotifications(false);
-                navigate('/app/recompensas');
-              }}
-            >
-              <span className="stat-icon purple">
-                <Gift size={21} />
-              </span>
-              <div>
-                <h3>
-                  Tienes {ready} {ready === 1 ? 'recompensa lista' : 'recompensas listas'} 🎉
-                </h3>
-                <p>Un pequeño gusto que ya te ganaste.</p>
-              </div>
-              <ChevronRight size={17} />
-            </button>
-          )}
-          {activity.data?.slice(0, 3).map((a) => (
-            <button
-              key={a.id}
-              onClick={() => {
-                setNotifications(false);
-                navigate('/app/actividad');
-              }}
-            >
-              <span className="stat-icon green">
-                <Check size={19} />
-              </span>
-              <div>
-                <h3>{a.title}</h3>
-                <p>{a.business}</p>
-              </div>
-              <ChevronRight size={17} />
-            </button>
-          ))}
-          {!ready && !activity.data?.length && (
-            <p className="muted">
-              Por ahora no tienes novedades. Tu próxima visita puede cambiarlo.
-            </p>
-          )}
-        </div>
       </Dialog>
       <Dialog
         open={profile}
@@ -441,12 +346,12 @@ export function CustomerLayout() {
             {
               icon: Compass,
               title: '1. Encuentra tu lugar',
-              text: 'Explora los negocios y agrega sus tarjetas a tu colección.',
+              text: 'Consulta tus tarjetas, promociones y negocios cercanos en las secciones del perfil.',
             },
             {
               icon: QrCode,
               title: '2. Visita y suma',
-              text: 'Muestra tu QR al pagar. El negocio registra tu compra y agrega un sello.',
+              text: 'Visita el negocio y consulta con su personal cómo registrar tu compra para sumar sellos.',
             },
             {
               icon: Gift,

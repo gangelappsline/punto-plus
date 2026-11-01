@@ -399,75 +399,6 @@ h3 {
 .nav-item.active .active-nav-dot {
   display: block;
 }
-.sidebar-qr-card {
-  margin: 34px 2px 0;
-  padding: 19px 15px 0;
-  text-align: center;
-  border: 1px solid #eed9be;
-  border-radius: 11px;
-  background: #faf1e4;
-  position: relative;
-  overflow: hidden;
-}
-.mini-qr {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: #fefbf6;
-  border: 1px solid #ecd9bd;
-  color: #a06a33;
-  width: 46px;
-  height: 46px;
-  border-radius: 12px;
-  margin: 0 auto 13px;
-  transform: rotate(-7deg);
-  position: relative;
-}
-.mini-sparkle {
-  position: absolute;
-  color: var(--brand);
-  top: -7px;
-  right: -10px;
-  font-size: 21px;
-}
-.sidebar-qr-card h3 {
-  font-size: 11.5px;
-  letter-spacing: -0.3px;
-}
-.sidebar-qr-card p {
-  font-size: 10.5px;
-  line-height: 1.8;
-  color: #7d6a50;
-  margin: 8px 0 17px;
-}
-.sidebar-qr-card > button {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  width: calc(100% + 30px);
-  margin-left: -15px;
-  font-weight: 600;
-  font-size: 10.5px;
-  padding: 12px 17px;
-  border-top: 1px solid #e8d3b3;
-  background: #f3e6d2;
-  color: #7d6a50;
-}
-.sidebar-qr-card > button:hover {
-  background: #ecdcc4;
-}
-.sidebar-scan {
-  display: flex;
-  align-items: center;
-  gap: 9px;
-  justify-content: center;
-  margin: 16px 0;
-  font-size: 10px;
-  color: #93a5b8;
-}
-.sidebar-scan:hover {
-  color: var(--brand);
-}
 .sidebar-bottom {
   margin-top: auto;
   padding-top: 32px;
@@ -642,7 +573,56 @@ main#main-content {
   justify-content: space-between;
   align-items: center;
   min-height: 35px;
-  margin-bottom: 26px;
+  margin-bottom: 16px;
+}
+.customer-section-tabs {
+  display: flex;
+  gap: 8px;
+  margin: 0 0 28px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--line);
+}
+.customer-section-tab {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 42px;
+  padding: 0 16px;
+  border: 1px solid transparent;
+  border-radius: 9px 9px 0 0;
+  color: #60758a;
+  font-size: 12px;
+  font-weight: 650;
+  text-decoration: none;
+  transition:
+    background-color 150ms ease,
+    color 150ms ease,
+    border-color 150ms ease;
+}
+.customer-section-tab:hover {
+  background: #f0f5f7;
+  color: var(--brand);
+}
+.customer-section-tab.active {
+  position: relative;
+  border-color: #d5e2e9;
+  background: #eaf3f6;
+  color: #022f53;
+}
+.customer-section-tab.active::after {
+  position: absolute;
+  right: 12px;
+  bottom: -11px;
+  left: 12px;
+  height: 3px;
+  border-radius: 3px 3px 0 0;
+  background: #127a82;
+  content: '';
+}
+.customer-section-tab:focus-visible {
+  outline: 3px solid #70b7bd;
+  outline-offset: 2px;
 }
 .section-eyebrow {
   font-size: 8px;
@@ -3103,24 +3083,6 @@ main#main-content {
     font-size: 11px;
     padding: 0 11px;
     gap: 10px;
-  }
-  .sidebar-qr-card {
-    padding: 17px 10px 0;
-  }
-  .sidebar-qr-card h3 {
-    font-size: 10px;
-  }
-  .sidebar-qr-card p {
-    font-size: 10px;
-  }
-  .sidebar-qr-card > button {
-    width: calc(100% + 20px);
-    margin-left: -10px;
-    padding: 12px;
-    font-size: 10px;
-  }
-  .sidebar-scan {
-    font-size: 9px;
   }
   .profile-button {
     gap: 7px;
@@ -6853,13 +6815,6 @@ main#main-content {
   }
 }
 
-.customer-tabs {
-  margin: 0 0 28px;
-  scrollbar-width: none;
-}
-.customer-tabs::-webkit-scrollbar {
-  display: none;
-}
 .customer-card-actions {
   display: flex;
   align-items: center;
@@ -6882,18 +6837,6 @@ main#main-content {
 }
 .customer-cards-intro .main-qr-button > svg:last-child {
   display: block;
-}
-.customer-secondary-links {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 18px;
-  margin: 18px 0 28px;
-}
-.customer-secondary-links a {
-  color: #647b90;
-  font-size: 11px;
-  text-decoration: underline;
-  text-underline-offset: 3px;
 }
 .customer-map-layout {
   display: grid;
@@ -7031,8 +6974,15 @@ main#main-content {
   }
 }
 @media (max-width: 540px) {
-  .customer-tabs {
-    margin-bottom: 22px;
+  .customer-section-tabs {
+    gap: 4px;
+  }
+  .customer-section-tab {
+    flex: 1;
+    gap: 5px;
+    min-width: 0;
+    padding: 0 7px;
+    font-size: 10px;
   }
   .customer-card-actions {
     width: 100%;
@@ -7045,7 +6995,7 @@ main#main-content {
   }
   .customer-cards-intro .customer-card-actions {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-columns: minmax(0, 1fr);
   }
   .customer-cards-intro .main-qr-button {
     position: static;

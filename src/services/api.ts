@@ -30,7 +30,6 @@ import {
   readAdminBusinesses,
   readAdminCategories,
   readDB,
-  redeemDemo,
   updateAdminBusinesses,
   updateAdminCategories,
   updateDB,
@@ -885,6 +884,8 @@ function slugifyBusiness(name: string) {
 export const api = {
   cards: async () =>
     isDemo ? readDB().cards : z.array(cardSchema).parse((await http.get('/customer/cards')).data),
+  nearMe: async () =>
+    isDemo ? readDB().cards : z.array(cardSchema).parse((await http.get('/customer/near-me')).data),
   promotions: async () =>
     isDemo
       ? readDB().promotions
@@ -893,10 +894,6 @@ export const api = {
     isDemo
       ? readDB().activity
       : z.array(activitySchema).parse((await http.get('/customer/me/activity')).data),
-  favorites: async () =>
-    isDemo
-      ? readDB().favorites
-      : z.array(z.string()).parse((await http.get('/customer/me/favorites')).data),
   publicBusinessMenu: async (slug: string) => {
     if (isDemo) {
       const business = readDB().business;
@@ -1083,45 +1080,6 @@ export const api = {
     }
     return http.delete(`/api/admin/business/${encodeURIComponent(id)}`);
   },
-  toggleFavorite: async (id: string) =>
-    isDemo
-      ? updateDB((db) => {
-          db.favorites = db.favorites.includes(id)
-            ? db.favorites.filter((f) => f !== id)
-            : [...db.favorites, id];
-        })
-      : http.post(`/customer/me/favorites/${encodeURIComponent(id)}/toggle`),
-  join: async (id: string) => {
-    if (!isDemo) return http.post(`/customer/cards/${encodeURIComponent(id)}/join`);
-    return updateDB((db) => {
-      const card = db.cards.find((c) => c.id === id);
-      if (!card) throw new Error('No se encontró el negocio.');
-      if (card.joined) return;
-      card.joined = true;
-      db.activity.unshift({
-        id: crypto.randomUUID(),
-        business: card.name,
-        title: 'Te uniste a su comunidad',
-        date: new Date().toISOString(),
-        type: 'join',
-        amount: 0,
-      });
-    });
-  },
-  redeem: async (id: string) =>
-    isDemo
-      ? redeemDemo(id)
-      : http.post(
-          `/customer/cards/${encodeURIComponent(id)}/redeem`,
-          {},
-          { headers: { 'Idempotency-Key': crypto.randomUUID() } },
-        ),
-  qr: async () =>
-    isDemo
-      ? { token: 'punto-plus:demo:sofia', expiresAt: null }
-      : z
-          .object({ token: z.string(), expiresAt: z.string().datetime() })
-          .parse((await http.post('/customer/me/qr')).data),
   businessPromotions: async () =>
     z.array(promotionSchema).parse((await http.get('/business/promotions')).data),
   business: async () => {
