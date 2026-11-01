@@ -11,7 +11,7 @@ import { Button } from './ui/button';
 import { readImage } from '../lib/image';
 import type { BusinessConfig } from '../lib/types';
 import { publicMenuUrl } from '../lib/utils';
-import { useSaveBusiness } from '../lib/queries';
+import { useSaveBusinessQRConfiguration } from '../lib/queries';
 
 type ShapeChoice<T extends string> = { value: T; label: string };
 
@@ -131,7 +131,7 @@ export function BusinessQRSettings({ config }: { config: BusinessConfig }) {
   const qrPreview = useRef<HTMLDivElement>(null);
   const qrCode = useRef<QRCodeStyling | null>(null);
   const logoPicker = useRef<HTMLInputElement>(null);
-  const mutation = useSaveBusiness();
+  const mutation = useSaveBusinessQRConfiguration();
   const menuUrl = publicMenuUrl(slugify(config.name));
   const savedForeground = validHexColor(config.qrForeground, '#000000');
   const savedBackground = validHexColor(config.qrBackground, '#FFFFFF');
@@ -256,16 +256,15 @@ export function BusinessQRSettings({ config }: { config: BusinessConfig }) {
 
   function saveSettings() {
     mutation.mutate({
-      ...config,
-      qrForeground: foreground,
-      qrBackground: background,
-      qrEyeColor: eyeColor,
-      qrContent: content.trim() || menuUrl,
-      qrLogo: logo || undefined,
-      qrBodyStyle: bodyShape,
-      qrEyeFrameStyle: frameShape,
-      qrEyeStyle: eyeShape,
-      qrSize: resolution,
+      content: content.trim() || menuUrl,
+      foreground,
+      background,
+      eyeColor,
+      logo: logo || undefined,
+      bodyStyle: bodyShape,
+      eyeFrameStyle: frameShape,
+      eyeStyle: eyeShape,
+      size: resolution,
     });
   }
 

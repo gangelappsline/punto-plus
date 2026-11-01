@@ -190,6 +190,34 @@ export const businessSchema = z.object({
   menuStyle: z.enum(['cozy', 'compact']).optional(),
 });
 export type BusinessConfig = z.infer<typeof businessSchema>;
+export const businessQRConfigurationSchema = z.object({
+  content: z.string().trim().min(1),
+  foreground: z.string().regex(/^#[\da-f]{6}$/i),
+  background: z.string().regex(/^#[\da-f]{6}$/i),
+  eyeColor: z.string().regex(/^#[\da-f]{6}$/i),
+  logo: z.string().optional(),
+  bodyStyle: z.enum(['square', 'dots', 'rounded', 'extra-rounded', 'classy', 'classy-rounded']),
+  eyeFrameStyle: z.enum([
+    'square',
+    'dot',
+    'dots',
+    'rounded',
+    'extra-rounded',
+    'classy',
+    'classy-rounded',
+  ]),
+  eyeStyle: z.enum([
+    'square',
+    'dot',
+    'dots',
+    'rounded',
+    'extra-rounded',
+    'classy',
+    'classy-rounded',
+  ]),
+  size: z.number().int().min(256).max(2048),
+});
+export type BusinessQRConfiguration = z.infer<typeof businessQRConfigurationSchema>;
 export interface LogoAnalysis {
   primary: string;
   secondary: string;
