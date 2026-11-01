@@ -13,7 +13,7 @@ import {
   type BusinessConfig,
   type Promotion,
 } from '../lib/types';
-import { http } from './http';
+import { baseURL, http } from './http';
 import * as authService from './auth';
 import { readAdminCategories, readDB, redeemDemo, updateAdminCategories, updateDB } from './demo';
 // Contrato de guardado por paso del asistente de configuración del menú.
@@ -73,8 +73,53 @@ export class PublicMenuNotFoundError extends Error {
 function publicAssetUrl(value: unknown): string | undefined {
   if (typeof value !== 'string' || !value.trim()) return undefined;
   const source = value.trim();
-  const markdownLink = source.match(/^\[[^\]]*\]\((https?:\/\/[^)]+)\)$/);
-  return markdownLink?.[1] ?? source;
+  const markdownLink = source.match(/^\[[^\]]*\]\(([^)]+)\)$/);
+  const asset = markdownLink?.[1] ?? source;
+  try {
+    const url = new URL(asset, baseURL);
+    const apiUrl = new URL(baseURL);
+    // URLs persisted by local/dev APIs must not point the customer's browser at its own localhost.
+    if (['localhost', '127.0.0.1', '[::1]'].includes(url.hostname)) {
+      url.protocol = apiUrl.protocol;
+      url.hostname = apiUrl.hostname;
+      url.port = apiUrl.port;
+    }
+    return url.href;
+  } catch {
+    return asset;
+  }
+}
+
+function publicProductImage(product: Record<string, unknown>): string | undefined {
+  for (const candidate of [
+    product.image_url,
+    product.image,
+    product.imageUrl,
+    product.photo_url,
+    product.photo,
+  ]) {
+    const image = publicAssetUrl(candidate);
+    if (image) return image;
+  }
+
+  if (!Array.isArray(product.images)) return undefined;
+  const images = product.images
+    .map((image, index) => ({ image: record(image), index }))
+    .sort((a, b) => {
+      const position = (item: Record<string, unknown>, fallback: number) => {
+        const value = Number(item.sort_order ?? fallback);
+        return Number.isFinite(value) ? value : fallback;
+      };
+      return position(a.image, a.index) - position(b.image, b.index);
+    });
+
+  for (const { image } of images) {
+    const url = publicAssetUrl(
+      image.url ?? image.image_url ?? image.image ?? image.path ?? image.src,
+    );
+    if (url) return url;
+  }
+  return undefined;
 }
 
 function parsePhoneValues(value: unknown): string[] {
@@ -160,9 +205,7 @@ function normalizePublicBusinessMenu(payload: unknown) {
         (typeof item.category_name === 'string' ? item.category_name : undefined) ||
         categoryNameById.get(categoryId) ||
         (rawCategory && !/^\d+$/.test(rawCategory) ? rawCategory : undefined);
-      const image = publicAssetUrl(
-        item.image_url ?? item.image ?? item.imageUrl ?? item.photo_url ?? item.photo,
-      );
+      const image = publicProductImage(item);
       const available = [item.available, item.is_available, item.is_active].find(
         (candidate): candidate is boolean => typeof candidate === 'boolean',
       );
