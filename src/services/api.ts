@@ -884,8 +884,11 @@ function slugifyBusiness(name: string) {
 export const api = {
   cards: async () =>
     isDemo ? readDB().cards : z.array(cardSchema).parse((await http.get('/customer/cards')).data),
-  nearMe: async () =>
-    isDemo ? readDB().cards : z.array(cardSchema).parse((await http.get('/customer/near-me')).data),
+  nearMe: async (coordinates: { latitude: number; longitude: number }) => {
+    if (isDemo) return readDB().cards;
+    const { data } = await http.get('/customer/near-me', { params: coordinates });
+    return z.array(cardSchema).parse(data);
+  },
   promotions: async () =>
     isDemo
       ? readDB().promotions

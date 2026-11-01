@@ -244,8 +244,8 @@ export function PromotionsPage() {
 
 export function NearbyPage() {
   const { search } = useOutletContext<PageContext>();
-  const businessesQuery = useNearMe();
   const [position, setPosition] = useState<{ latitude: number; longitude: number } | null>(null);
+  const businessesQuery = useNearMe(position);
   const [locationStatus, setLocationStatus] = useState<
     'idle' | 'loading' | 'ready' | 'denied' | 'unavailable'
   >('idle');
@@ -331,9 +331,20 @@ export function NearbyPage() {
               </a>
             )}
           </div>
-          {businessesQuery.isPending ? (
+          {locationStatus === 'idle' ? (
             <div className="customer-map-placeholder" role="status">
-              Cargando negocios…
+              <div>
+                <MapPin size={22} />
+                <p>Usa tu ubicación para buscar negocios cercanos.</p>
+              </div>
+            </div>
+          ) : locationStatus === 'loading' || businessesQuery.isPending ? (
+            <div className="customer-map-placeholder" role="status">
+              {locationStatus === 'loading' ? 'Obteniendo tu ubicación…' : 'Cargando negocios…'}
+            </div>
+          ) : locationStatus === 'denied' || locationStatus === 'unavailable' ? (
+            <div className="customer-map-placeholder" role="status">
+              Permite el acceso a tu ubicación para buscar negocios cercanos.
             </div>
           ) : businessesQuery.isError ? (
             <div className="customer-map-placeholder">

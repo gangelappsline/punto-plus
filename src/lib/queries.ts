@@ -16,7 +16,7 @@ import { errorMessage, isDemo } from './utils';
  */
 export const queryKeys = {
   cards: ['cards'] as const,
-  nearMe: ['near-me'] as const,
+  nearMe: (latitude?: number, longitude?: number) => ['near-me', latitude, longitude] as const,
   promotions: ['promotions'] as const,
   activity: ['activity'] as const,
   business: ['business'] as const,
@@ -32,8 +32,12 @@ export function useCards(enabled = true) {
   return useQuery({ queryKey: queryKeys.cards, queryFn: api.cards, enabled });
 }
 
-export function useNearMe() {
-  return useQuery({ queryKey: queryKeys.nearMe, queryFn: api.nearMe });
+export function useNearMe(coordinates: { latitude: number; longitude: number } | null) {
+  return useQuery({
+    queryKey: queryKeys.nearMe(coordinates?.latitude, coordinates?.longitude),
+    queryFn: () => api.nearMe(coordinates!),
+    enabled: coordinates !== null,
+  });
 }
 
 export function usePromotions() {
