@@ -1,6 +1,15 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
-import { ArrowUpRight, LayoutDashboard, LogOut, ScanLine, Store, Utensils } from 'lucide-react';
+import {
+  ArrowUpRight,
+  LayoutDashboard,
+  LogOut,
+  Menu,
+  ScanLine,
+  Store,
+  Utensils,
+  X,
+} from 'lucide-react';
 import { toast } from 'sonner';
 import { useLogout } from '../lib/session';
 import { demoUser, useAuth } from '../stores/auth';
@@ -27,22 +36,48 @@ export function BusinessLayout() {
   const location = useLocation();
   const navigate = useNavigate();
   const logout = useLogout();
+  const [mobileNav, setMobileNav] = useState(false);
   const title = businessNavigation.find((n) => n.path === location.pathname)?.title || 'Negocio';
   useEffect(() => {
+    setMobileNav(false);
     window.scrollTo({ top: 0 });
     document.title = `${title} · Negocio · Punto Plus`;
   }, [location.pathname, title]);
+  useEffect(() => {
+    if (!mobileNav) return;
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setMobileNav(false);
+    };
+    window.addEventListener('keydown', closeOnEscape);
+    return () => window.removeEventListener('keydown', closeOnEscape);
+  }, [mobileNav]);
   return (
     <div className="app-shell">
       <a className="skip-link" href="#main-content">
         Saltar al contenido
       </a>
-      <aside className="sidebar admin-sidebar">
+      {mobileNav && (
+        <button
+          type="button"
+          className="sidebar-backdrop"
+          aria-label="Ocultar opciones del menú"
+          onClick={() => setMobileNav(false)}
+        />
+      )}
+      <aside className={`sidebar admin-sidebar ${mobileNav ? 'mobile-open' : ''}`}>
+        <button
+          type="button"
+          className="mobile-sidebar-close icon-button"
+          aria-label="Ocultar opciones del menú"
+          onClick={() => setMobileNav(false)}
+        >
+          <X size={18} />
+        </button>
         <Link to="/" className="admin-brand block" aria-label="Punto Plus · Inicio">
           <img src={logo} alt="Punto Plus" className="block mx-auto" />
         </Link>
         <div className="admin-label">PANEL DE NEGOCIO</div>
-        <nav className="admin-nav" aria-label="Navegación de negocio">
+        <nav id="business-navigation" className="admin-nav" aria-label="Navegación de negocio">
           {businessNavigation.map(({ path, icon: Icon, title: label, end }) => (
             <NavLink
               key={path}
@@ -85,6 +120,16 @@ export function BusinessLayout() {
       <div className="workspace">
         <header className="topbar">
           <div className="topbar-left">
+            <button
+              type="button"
+              className="icon-button mobile-menu"
+              aria-label="Mostrar opciones del menú"
+              aria-controls="business-navigation"
+              aria-expanded={mobileNav}
+              onClick={() => setMobileNav(true)}
+            >
+              <Menu size={22} />
+            </button>
             <span className="breadcrumb">
               Mi negocio <ArrowUpRight size={13} /> <strong>{title}</strong>
             </span>
@@ -121,14 +166,6 @@ export function BusinessLayout() {
           </footer>
         </main>
       </div>
-      <nav className="bottom-nav" aria-label="Navegación móvil">
-        {businessNavigation.map(({ path, icon: Icon, title: label, end }) => (
-          <NavLink key={path} end={end} to={path}>
-            <Icon size={21} />
-            <span>{label}</span>
-          </NavLink>
-        ))}
-      </nav>
     </div>
   );
 }

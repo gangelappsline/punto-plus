@@ -1,6 +1,15 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
-import { ArrowUpRight, Building2, LayoutDashboard, LogOut, ScanLine, Tags } from 'lucide-react';
+import {
+  ArrowUpRight,
+  Building2,
+  LayoutDashboard,
+  LogOut,
+  Menu,
+  ScanLine,
+  Tags,
+  X,
+} from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '../components/ui/button';
 import { useLogout } from '../lib/session';
@@ -15,6 +24,7 @@ export function AdminLayout() {
   const location = useLocation();
   const navigate = useNavigate();
   const logout = useLogout();
+  const [mobileNav, setMobileNav] = useState(false);
   const title = location.pathname.startsWith('/admin/categorias')
     ? 'Categorías'
     : location.pathname.startsWith('/admin/negocios')
@@ -22,21 +32,47 @@ export function AdminLayout() {
       : 'Resumen';
 
   useEffect(() => {
+    setMobileNav(false);
     window.scrollTo({ top: 0 });
     document.title = `${title} · Administración de plataforma · Punto Plus`;
-  }, [location.pathname]);
+  }, [location.pathname, title]);
+
+  useEffect(() => {
+    if (!mobileNav) return;
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setMobileNav(false);
+    };
+    window.addEventListener('keydown', closeOnEscape);
+    return () => window.removeEventListener('keydown', closeOnEscape);
+  }, [mobileNav]);
 
   return (
     <div className="app-shell">
       <a className="skip-link" href="#main-content">
         Saltar al contenido
       </a>
-      <aside className="sidebar admin-sidebar">
+      {mobileNav && (
+        <button
+          type="button"
+          className="sidebar-backdrop"
+          aria-label="Ocultar opciones del menú"
+          onClick={() => setMobileNav(false)}
+        />
+      )}
+      <aside className={`sidebar admin-sidebar ${mobileNav ? 'mobile-open' : ''}`}>
+        <button
+          type="button"
+          className="mobile-sidebar-close icon-button"
+          aria-label="Ocultar opciones del menú"
+          onClick={() => setMobileNav(false)}
+        >
+          <X size={18} />
+        </button>
         <Link to="/" className="admin-brand block" aria-label="Punto Plus · Inicio">
           <img src={logo} alt="Punto Plus" className="block mx-auto" />
         </Link>
         <div className="admin-label">ADMINISTRACIÓN DE PLATAFORMA</div>
-        <nav className="admin-nav" aria-label="Navegación de administración">
+        <nav id="admin-navigation" className="admin-nav" aria-label="Navegación de administración">
           <NavLink
             to="/admin"
             end
@@ -90,6 +126,16 @@ export function AdminLayout() {
       <div className="workspace">
         <header className="topbar">
           <div className="topbar-left">
+            <button
+              type="button"
+              className="icon-button mobile-menu"
+              aria-label="Mostrar opciones del menú"
+              aria-controls="admin-navigation"
+              aria-expanded={mobileNav}
+              onClick={() => setMobileNav(true)}
+            >
+              <Menu size={22} />
+            </button>
             <span className="breadcrumb">
               Administración de plataforma <ArrowUpRight size={13} /> <strong>{title}</strong>
             </span>
@@ -124,20 +170,6 @@ export function AdminLayout() {
           </footer>
         </main>
       </div>
-      <nav className="bottom-nav" aria-label="Navegación móvil">
-        <NavLink to="/admin" end>
-          <LayoutDashboard size={21} />
-          <span>Resumen</span>
-        </NavLink>
-        <NavLink to="/admin/categorias">
-          <Tags size={21} />
-          <span>Categorías</span>
-        </NavLink>
-        <NavLink to="/admin/negocios">
-          <Building2 size={21} />
-          <span>Negocios</span>
-        </NavLink>
-      </nav>
     </div>
   );
 }
