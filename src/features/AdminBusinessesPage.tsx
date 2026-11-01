@@ -4,8 +4,12 @@ import {
   ArrowUpRight,
   Building2,
   CalendarClock,
+  ChevronLeft,
+  ChevronRight,
   CircleDollarSign,
   Clock3,
+  BarChart3,
+  CreditCard,
   LoaderCircle,
   Pencil,
   Plus,
@@ -62,15 +66,16 @@ function daysUntil(value?: string) {
   return date ? Math.ceil((date.getTime() - new Date().setHours(12, 0, 0, 0)) / 86400000) : null;
 }
 function isMembershipActive(business: AdminBusiness) {
-  return business.membershipActive ?? business.status === 'active';
+  return business.membershipActive;
 }
 function isExpiringSoon(business: AdminBusiness) {
   const days = daysUntil(business.membershipExpiresAt);
-  return isMembershipActive(business) && days !== null && days >= 0 && days <= 30;
+  return business.membershipActive === true && days !== null && days >= 0 && days <= 30;
 }
 
 export function AdminBusinessesPage() {
-  const report = useAdminBusinesses();
+  const [page, setPage] = useState(1);
+  const report = useAdminBusinesses(page);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | AdminBusiness['status']>('all');
   const [formOpen, setFormOpen] = useState(false);
@@ -81,27 +86,35 @@ export function AdminBusinessesPage() {
   const deleteBusiness = useDeleteAdminBusiness(() => setDeleteTarget(null));
 
   const businesses = report.data?.businesses ?? [];
+  const statistics = report.data?.statistics;
+  const pagination = report.data?.pagination;
   const filteredBusinesses = useMemo(() => {
     const normalized = search.trim().toLocaleLowerCase('es-MX');
     return businesses.filter((business) => {
-      const matchesSearch = [business.name, business.email, business.phone, business.slug].some(
-        (value) => value?.toLocaleLowerCase('es-MX').includes(normalized),
-      );
+      const matchesSearch = [
+        business.name,
+        business.email,
+        business.ownerName,
+        business.ownerEmail,
+        business.phone,
+        business.category,
+        business.slug,
+      ].some((value) => value?.toLocaleLowerCase('es-MX').includes(normalized));
       return matchesSearch && (statusFilter === 'all' || business.status === statusFilter);
     });
   }, [businesses, search, statusFilter]);
 
   const currentMonthCustomers =
-    report.data?.statistics?.currentMonthCustomers ??
+    statistics?.currentMonthCustomers ??
     sumAvailable(businesses.map((business) => business.currentMonthCustomerCount));
   const previousMonthCustomers =
-    report.data?.statistics?.previousMonthCustomers ??
+    statistics?.previousMonthCustomers ??
     sumAvailable(businesses.map((business) => business.previousMonthCustomerCount));
   const currentMonthRevenue =
-    report.data?.statistics?.currentMonthRevenue ??
+    statistics?.currentMonthRevenue ??
     sumAvailable(businesses.map((business) => business.currentMonthRevenue));
   const previousMonthRevenue =
-    report.data?.statistics?.previousMonthRevenue ??
+    statistics?.previousMonthRevenue ??
     sumAvailable(businesses.map((business) => business.previousMonthRevenue));
   const expiringBusinesses = businesses
     .filter(isExpiringSoon)
@@ -109,8 +122,18 @@ export function AdminBusinessesPage() {
       (a, b) =>
         (daysUntil(a.membershipExpiresAt) ?? 999) - (daysUntil(b.membershipExpiresAt) ?? 999),
     );
-  const expiringCount = report.data?.statistics?.expiringMemberships ?? expiringBusinesses.length;
-  const activeCount = businesses.filter((business) => business.status === 'active').length;
+  const expiringCount = statistics?.expiringMemberships;
+  const activeCount =
+    statistics?.businesses?.active ??
+    businesses.filter((business) => business.status === 'active').length;
+  const totalCount = statistics?.businesses?.total ?? pagination?.total ?? businesses.length;
+  const growth = statistics?.growth ?? [];
+  const hasMembershipData =
+    expiringCount !== undefined ||
+    businesses.some(
+      (business) => business.membershipActive !== undefined || business.membershipExpiresAt,
+    );
+  const hasRevenueData = currentMonthRevenue !== undefined || previousMonthRevenue !== undefined;
 
   function startCreate() {
     setEditing(null);
@@ -133,11 +156,11 @@ export function AdminBusinessesPage() {
             <Building2 size={15} /> DIRECTORIO DE PLATAFORMA
           </div>
           <h1 className="text-3xl font-semibold tracking-tight text-slate-900 sm:text-4xl">
-            Negocios <span className="text-teal-700">y membresías.</span>
+            Directorio <span className="text-teal-700">de negocios.</span>
           </h1>
           <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-600">
-            Consulta el crecimiento, los ingresos y las renovaciones; administra el ciclo de vida de
-            cada negocio.
+            Supervisa el crecimiento y la actividad de la plataforma, y administra el ciclo de vida
+            de cada negocio.
           </p>
         </div>
         <Button onClick={startCreate}>
@@ -150,7 +173,7 @@ export function AdminBusinessesPage() {
         aria-label="Estadísticas de negocios"
       >
         <MetricCard
-          label="Clientes este mes"
+          label="Clientes nuevos este mes"
           value={
             currentMonthCustomers === undefined ? '—' : numberFormat.format(currentMonthCustomers)
           }
@@ -161,30 +184,79 @@ export function AdminBusinessesPage() {
         <MetricCard
           label="Ingresos de este mes"
           value={currentMonthRevenue === undefined ? '—' : currency.format(currentMonthRevenue)}
-          comparison={comparison(
-            currentMonthRevenue,
-            previousMonthRevenue,
-            'vs. mes anterior',
-            true,
-          )}
+          comparison={
+            hasRevenueData
+              ? comparison(currentMonthRevenue, previousMonthRevenue, 'vs. mes anterior', true)
+              : 'La API no incluye ingresos mensuales'
+          }
           icon={<CircleDollarSign size={20} />}
           tone="green"
         />
         <MetricCard
           label="Membresías por vencer"
-          value={numberFormat.format(expiringCount)}
-          comparison="En los próximos 30 días"
+          value={expiringCount === undefined ? '—' : numberFormat.format(expiringCount)}
+          comparison={
+            hasMembershipData ? 'En los próximos 30 días' : 'Sin datos de vencimiento en la API'
+          }
           icon={<CalendarClock size={20} />}
           tone="amber"
         />
         <MetricCard
           label="Negocios activos"
           value={numberFormat.format(activeCount)}
-          comparison={`${numberFormat.format(businesses.length)} en total`}
+          comparison={`${numberFormat.format(totalCount)} en total`}
           icon={<Building2 size={20} />}
           tone="blue"
         />
       </section>
+
+      <section
+        className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4"
+        aria-label="Resumen de actividad"
+      >
+        <MiniStat
+          label="Clientes registrados"
+          value={statistics?.customers?.total}
+          icon={<Users size={17} />}
+        />
+        <MiniStat
+          label="Tarjetas de lealtad"
+          value={statistics?.loyaltyCards?.total}
+          icon={<CreditCard size={17} />}
+        />
+        <MiniStat
+          label="Sellos registrados"
+          value={statistics?.stamps?.total}
+          icon={<BarChart3 size={17} />}
+        />
+        <MiniStat
+          label="Promociones activas"
+          value={statistics?.promotions?.active}
+          icon={<Building2 size={17} />}
+        />
+        <MiniStat
+          label="Canjes registrados"
+          value={statistics?.redemptions?.total}
+          icon={<CreditCard size={17} />}
+        />
+        <MiniStat
+          label="Recompensas activas"
+          value={statistics?.rewards?.active}
+          icon={<BarChart3 size={17} />}
+        />
+        <MiniStat
+          label="Productos activos"
+          value={statistics?.products?.active}
+          icon={<Building2 size={17} />}
+        />
+        <MiniStat
+          label="Propietarios"
+          value={statistics?.owners?.total}
+          icon={<Users size={17} />}
+        />
+      </section>
+
+      {growth.length > 0 && <GrowthChart data={growth} />}
 
       <section className="rounded-2xl border border-slate-200 bg-white shadow-sm">
         <div className="flex flex-col justify-between gap-4 border-b border-slate-100 p-5 sm:flex-row sm:items-center sm:p-6">
@@ -195,7 +267,10 @@ export function AdminBusinessesPage() {
             </p>
           </div>
           <span className="inline-flex w-fit items-center gap-2 rounded-full bg-amber-50 px-3 py-1.5 text-sm font-semibold text-amber-800">
-            <Clock3 size={15} /> {numberFormat.format(expiringCount)} por vencer
+            <Clock3 size={15} />
+            {expiringCount === undefined
+              ? 'Sin datos de vencimiento'
+              : `${numberFormat.format(expiringCount)} por vencer`}
           </span>
         </div>
         {report.isPending ? (
@@ -231,9 +306,11 @@ export function AdminBusinessesPage() {
           </div>
         ) : (
           <div className="px-5 py-8 text-center text-sm text-slate-500">
-            {report.data?.statistics?.expiringMemberships
-              ? `${report.data.statistics.expiringMemberships} membresías están próximas a vencer. Revisa el directorio para ver sus fechas.`
-              : 'No hay membresías activas por vencer en los próximos 30 días.'}
+            {!hasMembershipData
+              ? 'La respuesta de la API no incluye fechas ni estados de membresía; no es posible calcular los vencimientos.'
+              : expiringCount
+                ? `${expiringCount} membresías están próximas a vencer, pero la API no devolvió sus negocios o fechas.`
+                : 'No hay membresías activas por vencer en los próximos 30 días.'}
           </div>
         )}
       </section>
@@ -244,7 +321,7 @@ export function AdminBusinessesPage() {
             <h2 className="text-lg font-semibold text-slate-900">Directorio de negocios</h2>
             <p className="mt-1 text-sm text-slate-500">
               {report.isSuccess
-                ? `${businesses.length} ${businesses.length === 1 ? 'negocio registrado' : 'negocios registrados'}`
+                ? `Mostrando ${numberFormat.format(businesses.length)} de ${numberFormat.format(totalCount)} negocios`
                 : 'Gestiona los negocios de la plataforma'}
             </p>
           </div>
@@ -257,7 +334,10 @@ export function AdminBusinessesPage() {
                 placeholder="Buscar negocio"
                 className="min-w-0 flex-1 bg-transparent text-sm text-slate-800 outline-none placeholder:text-slate-400"
                 value={search}
-                onChange={(event) => setSearch(event.target.value)}
+                onChange={(event) => {
+                  setSearch(event.target.value);
+                  setPage(1);
+                }}
               />
               {search && (
                 <button type="button" aria-label="Limpiar búsqueda" onClick={() => setSearch('')}>
@@ -269,7 +349,10 @@ export function AdminBusinessesPage() {
               aria-label="Filtrar por estado"
               className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 outline-none focus:border-teal-600"
               value={statusFilter}
-              onChange={(event) => setStatusFilter(event.target.value as typeof statusFilter)}
+              onChange={(event) => {
+                setStatusFilter(event.target.value as typeof statusFilter);
+                setPage(1);
+              }}
             >
               <option value="all">Todos los estados</option>
               {statusOptions.map((status) => (
@@ -295,14 +378,15 @@ export function AdminBusinessesPage() {
         )}
         {report.isSuccess && filteredBusinesses.length > 0 && (
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[840px] text-left text-sm">
+            <table className="w-full min-w-[1050px] text-left text-sm">
               <thead className="bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
                 <tr>
                   <th className="px-6 py-3 font-semibold">Negocio</th>
                   <th className="px-4 py-3 font-semibold">Estado</th>
                   <th className="px-4 py-3 font-semibold">Membresía</th>
+                  <th className="px-4 py-3 font-semibold">Tarjetas</th>
                   <th className="px-4 py-3 font-semibold">Clientes</th>
-                  <th className="px-4 py-3 font-semibold">Ingresos este mes</th>
+                  <th className="px-4 py-3 font-semibold">Sellos</th>
                   <th className="px-5 py-3 text-right font-semibold">Acciones</th>
                 </tr>
               </thead>
@@ -310,9 +394,34 @@ export function AdminBusinessesPage() {
                 {filteredBusinesses.map((business) => (
                   <tr key={business.id} className="transition-colors hover:bg-slate-50/70">
                     <td className="px-6 py-4">
-                      <div className="font-semibold text-slate-900">{business.name}</div>
-                      <div className="mt-1 text-xs text-slate-500">
-                        {business.email || business.phone || 'Sin datos de contacto'}
+                      <div className="flex min-w-0 items-center gap-3">
+                        {business.logo ? (
+                          <img
+                            src={business.logo}
+                            alt=""
+                            className="size-10 rounded-xl object-cover"
+                          />
+                        ) : (
+                          <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-teal-50 text-teal-700">
+                            <Building2 size={19} />
+                          </span>
+                        )}
+                        <div className="min-w-0">
+                          <div className="truncate font-semibold text-slate-900">
+                            {business.name}
+                          </div>
+                          <div className="mt-1 truncate text-xs text-slate-500">
+                            {[
+                              business.category,
+                              business.ownerName,
+                              business.email || business.ownerEmail,
+                            ]
+                              .filter(Boolean)
+                              .join(' · ') ||
+                              business.slug ||
+                              'Sin datos de contacto'}
+                          </div>
+                        </div>
                       </div>
                     </td>
                     <td className="px-4 py-4">
@@ -320,15 +429,24 @@ export function AdminBusinessesPage() {
                     </td>
                     <td className="px-4 py-4">
                       <div className="font-medium text-slate-700">
-                        {isMembershipActive(business) ? 'Activa' : 'Inactiva'}
+                        {isMembershipActive(business) === undefined
+                          ? 'Sin información'
+                          : isMembershipActive(business)
+                            ? 'Activa'
+                            : 'Inactiva'}
                       </div>
                       <div
                         className={`mt-1 text-xs ${isExpiringSoon(business) ? 'font-semibold text-amber-700' : 'text-slate-500'}`}
                       >
                         {business.membershipExpiresAt
                           ? `Vence ${formatDate(business.membershipExpiresAt)}`
-                          : 'Sin fecha de vencimiento'}
+                          : 'Vencimiento no informado'}
                       </div>
+                    </td>
+                    <td className="px-4 py-4 text-slate-700">
+                      {business.loyaltyCardCount === undefined
+                        ? '—'
+                        : numberFormat.format(business.loyaltyCardCount)}
                     </td>
                     <td className="px-4 py-4 text-slate-700">
                       {business.customerCount === undefined
@@ -336,9 +454,9 @@ export function AdminBusinessesPage() {
                         : numberFormat.format(business.customerCount)}
                     </td>
                     <td className="px-4 py-4 font-medium text-slate-700">
-                      {business.currentMonthRevenue === undefined
+                      {business.stampsCount === undefined
                         ? '—'
-                        : currency.format(business.currentMonthRevenue)}
+                        : numberFormat.format(business.stampsCount)}
                     </td>
                     <td className="px-5 py-4">
                       <div className="flex justify-end gap-1">
@@ -377,6 +495,37 @@ export function AdminBusinessesPage() {
                 ? 'Prueba con otra búsqueda o cambia el filtro.'
                 : 'Crea el primer negocio para empezar el directorio.'}
             </p>
+          </div>
+        )}
+        {pagination && (pagination.lastPage ?? 1) > 1 && (
+          <div className="flex flex-col gap-3 border-t border-slate-100 px-5 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-6">
+            <p className="text-xs text-slate-500">
+              Página {pagination.currentPage ?? page} de {pagination.lastPage} ·{' '}
+              {numberFormat.format(pagination.total ?? totalCount)} negocios
+            </p>
+            <div className="flex items-center justify-end gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                disabled={(pagination.currentPage ?? page) <= 1 || report.isFetching}
+                onClick={() => setPage((pagination.currentPage ?? page) - 1)}
+              >
+                <ChevronLeft size={15} /> Anterior
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                disabled={
+                  (pagination.currentPage ?? page) >= (pagination.lastPage ?? 1) ||
+                  report.isFetching
+                }
+                onClick={() => setPage((pagination.currentPage ?? page) + 1)}
+              >
+                Siguiente <ChevronRight size={15} />
+              </Button>
+            </div>
           </div>
         )}
       </section>
@@ -422,6 +571,84 @@ export function AdminBusinessesPage() {
         )}
       </Dialog>
     </div>
+  );
+}
+
+function MiniStat({ label, value, icon }: { label: string; value?: number; icon: ReactNode }) {
+  return (
+    <article className="flex items-center gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3 shadow-sm">
+      <span className="rounded-lg bg-slate-50 p-2 text-slate-500">{icon}</span>
+      <div>
+        <p className="text-xs font-medium text-slate-500">{label}</p>
+        <p className="mt-0.5 text-lg font-semibold text-slate-900">
+          {value === undefined ? '—' : numberFormat.format(value)}
+        </p>
+      </div>
+    </article>
+  );
+}
+
+type GrowthPoint = { month: string; businesses: number; customers: number };
+function GrowthChart({ data }: { data: GrowthPoint[] }) {
+  const maximum = Math.max(1, ...data.flatMap((item) => [item.businesses, item.customers]));
+  return (
+    <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+        <div>
+          <h2 className="flex items-center gap-2 text-lg font-semibold text-slate-900">
+            <BarChart3 size={18} className="text-teal-700" /> Crecimiento mensual
+          </h2>
+          <p className="mt-1 text-sm text-slate-500">
+            Negocios y clientes nuevos, según la estadística de la API.
+          </p>
+        </div>
+        <div className="flex flex-wrap gap-4 text-xs text-slate-600">
+          <span className="inline-flex items-center gap-1.5">
+            <i className="size-2.5 rounded-sm bg-teal-600" /> Clientes
+          </span>
+          <span className="inline-flex items-center gap-1.5">
+            <i className="size-2.5 rounded-sm bg-amber-400" /> Negocios
+          </span>
+        </div>
+      </div>
+      <div className="mt-5 grid grid-cols-3 gap-3 sm:grid-cols-6">
+        {data.map((item) => {
+          const monthDate = new Date(`${item.month}-01T12:00:00`);
+          const monthLabel = Number.isNaN(monthDate.getTime())
+            ? item.month
+            : new Intl.DateTimeFormat('es-MX', { month: 'short' }).format(monthDate);
+          const customerHeight = item.customers ? Math.max(5, (item.customers / maximum) * 100) : 0;
+          const businessHeight = item.businesses
+            ? Math.max(5, (item.businesses / maximum) * 100)
+            : 0;
+          return (
+            <div
+              key={item.month}
+              className="flex min-w-0 flex-col items-center gap-2"
+              aria-label={`${item.month}: ${item.customers} clientes nuevos y ${item.businesses} negocios nuevos`}
+            >
+              <div className="flex h-24 w-full items-end justify-center gap-1 rounded-lg bg-slate-50 px-2 pt-2">
+                <div className="flex h-full w-4 items-end" title={`${item.customers} clientes`}>
+                  <span
+                    className="w-full rounded-t bg-teal-600"
+                    style={{ height: `${customerHeight}%` }}
+                  />
+                </div>
+                <div className="flex h-full w-4 items-end" title={`${item.businesses} negocios`}>
+                  <span
+                    className="w-full rounded-t bg-amber-400"
+                    style={{ height: `${businessHeight}%` }}
+                  />
+                </div>
+              </div>
+              <span className="text-[11px] font-medium capitalize text-slate-500">
+                {monthLabel}
+              </span>
+            </div>
+          );
+        })}
+      </div>
+    </section>
   );
 }
 

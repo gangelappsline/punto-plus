@@ -79,19 +79,45 @@ function unwrapAdminCategoryList(payload: unknown): unknown {
 function unwrapAdminBusinessResponse(payload: unknown) {
   const containers: Record<string, unknown>[] = [];
   let current = payload;
-  for (let depth = 0; depth < 5; depth += 1) {
-    if (Array.isArray(current)) return { businesses: current, containers };
+  let businesses: unknown[] = [];
+  let pagination: Record<string, unknown> | undefined;
+  for (let depth = 0; depth < 6; depth += 1) {
+    if (Array.isArray(current)) {
+      businesses = current;
+      break;
+    }
     if (!current || typeof current !== 'object') break;
     const value = record(current);
     containers.push(value);
-    for (const key of ['businesses', 'items', 'results', 'data']) {
-      if (Array.isArray(value[key])) return { businesses: value[key] as unknown[], containers };
+    if (Array.isArray(value.businesses)) {
+      businesses = value.businesses;
+      break;
     }
+    const businessPage = record(value.businesses);
+    if (Object.keys(businessPage).length) {
+      containers.push(businessPage);
+      for (const key of ['data', 'items', 'results']) {
+        if (Array.isArray(businessPage[key])) {
+          businesses = businessPage[key] as unknown[];
+          pagination = record(businessPage.meta);
+          break;
+        }
+      }
+      if (businesses.length || Array.isArray(businessPage.data)) break;
+    }
+    for (const key of ['items', 'results', 'data']) {
+      if (Array.isArray(value[key])) {
+        businesses = value[key] as unknown[];
+        pagination = record(value.meta);
+        break;
+      }
+    }
+    if (businesses.length || Array.isArray(value.data)) break;
     const nested = value.data ?? value.result ?? value.payload;
     if (!nested || typeof nested !== 'object' || Array.isArray(nested)) break;
     current = nested;
   }
-  return { businesses: [], containers };
+  return { businesses, containers, pagination };
 }
 
 function firstDefined(source: Record<string, unknown>, names: string[]) {
@@ -116,12 +142,16 @@ function numberValue(value: unknown): number | undefined {
 const adminBusinessStatuses = new Set(['pending', 'active', 'cancelled', 'onboarding']);
 function normalizeAdminBusiness(payload: unknown, index: number): AdminBusiness {
   const value = record(payload);
+  const owner = record(value.owner);
   const membership = record(value.membership ?? value.subscription);
-  const rawStatus = String(
-    firstDefined(value, ['status', 'business_status', 'subscription_status']) ??
-      firstDefined(membership, ['status']) ??
-      'pending',
+  const explicitStatus = String(
+    firstDefined(value, ['status', 'business_status']) ?? '',
   ).toLowerCase();
+  const activeValue = firstDefined(value, ['is_active', 'isActive', 'active']);
+  const isActive = typeof activeValue === 'boolean' ? activeValue : undefined;
+  const isDeleted =
+    value.is_deleted === true || value.isDeleted === true || Boolean(value.deleted_at);
+  const rawStatus = explicitStatus || (isDeleted ? 'cancelled' : isActive ? 'active' : 'pending');
   const expiry =
     firstDefined(value, [
       'membership_expires_at',
@@ -129,23 +159,54 @@ function normalizeAdminBusiness(payload: unknown, index: number): AdminBusiness 
       'expires_at',
       'subscription_expires_at',
     ]) ?? firstDefined(membership, ['expires_at', 'expiresAt', 'end_date']);
-  const active =
+  const membershipActiveValue =
     firstDefined(value, ['membership_active', 'membershipActive', 'is_membership_active']) ??
     firstDefined(membership, ['active', 'is_active']);
+  const phones = Array.isArray(value.phone_numbers)
+    ? value.phone_numbers
+    : Array.isArray(value.phoneNumbers)
+      ? value.phoneNumbers
+      : [];
+  const categories = Array.isArray(value.categories) ? value.categories : [];
+  const categoryName = categories
+    .map((category) => record(category))
+    .sort((a, b) => Number(a.sort_order ?? 0) - Number(b.sort_order ?? 0))
+    .map((category) => stringValue(category.name))
+    .find((name): name is string => Boolean(name));
+  const rawCategory = firstDefined(value, ['category', 'business_category']) ?? categoryName;
   const business: AdminBusiness = {
     id: String(value.id ?? value.business_id ?? `business-${index + 1}`),
     name: String(firstDefined(value, ['name', 'business_name', 'title']) ?? 'Negocio sin nombre'),
     slug: stringValue(firstDefined(value, ['slug', 'business_slug'])),
-    email: stringValue(firstDefined(value, ['email', 'contact_email'])),
-    phone: stringValue(firstDefined(value, ['phone', 'phone_number', 'contact_phone'])),
+    description: stringValue(value.description),
+    category: stringValue(typeof rawCategory === 'object' ? record(rawCategory).name : rawCategory),
+    email: stringValue(firstDefined(value, ['email', 'contact_email']) ?? owner.email),
+    phone: stringValue(
+      firstDefined(value, ['phone', 'phone_number', 'contact_phone']) ?? phones[0] ?? owner.phone,
+    ),
+    logo: publicAssetUrl(value.logo_url ?? value.logo),
     status: adminBusinessStatuses.has(rawStatus)
       ? (rawStatus as AdminBusiness['status'])
-      : 'pending',
-    membershipActive: typeof active === 'boolean' ? active : undefined,
+      : isDeleted
+        ? 'cancelled'
+        : isActive
+          ? 'active'
+          : 'pending',
+    isActive,
+    isDeleted,
+    ownerName: stringValue(owner.name),
+    ownerEmail: stringValue(owner.email),
+    membershipActive:
+      typeof membershipActiveValue === 'boolean' ? membershipActiveValue : undefined,
     membershipExpiresAt: stringValue(expiry),
     customerCount: numberValue(
       firstDefined(value, ['customer_count', 'customers_count', 'customerCount']),
     ),
+    loyaltyCardCount: numberValue(
+      firstDefined(value, ['loyalty_cards_count', 'loyaltyCardsCount', 'loyalty_card_count']),
+    ),
+    stampsCount: numberValue(firstDefined(value, ['stamps_count', 'stampsCount'])),
+    promotionsCount: numberValue(firstDefined(value, ['promotions_count', 'promotionsCount'])),
     currentMonthCustomerCount: numberValue(
       firstDefined(value, [
         'current_month_customers',
@@ -163,58 +224,137 @@ function normalizeAdminBusiness(payload: unknown, index: number): AdminBusiness 
       firstDefined(value, ['previous_month_revenue', 'revenue_previous_month']),
     ),
     createdAt: stringValue(firstDefined(value, ['created_at', 'createdAt'])),
+    updatedAt: stringValue(firstDefined(value, ['updated_at', 'updatedAt'])),
   };
   return adminBusinessSchema.parse(business);
 }
 
 function getAdminBusinessStatistics(containers: Record<string, unknown>[]) {
-  const sources: Record<string, unknown>[] = [];
-  for (const container of containers) {
-    sources.push(container);
-    for (const key of ['statistics', 'stats', 'summary', 'metrics']) {
-      const nested = container[key];
-      if (nested && typeof nested === 'object' && !Array.isArray(nested))
-        sources.unshift(record(nested));
-    }
-  }
-  const metric = (names: string[]) => {
-    for (const source of sources) {
-      const value = numberValue(firstDefined(source, names));
-      if (value !== undefined) return value;
-    }
-    return undefined;
-  };
+  const stats =
+    containers
+      .map((container) => record(container.stats ?? container.statistics ?? container.summary))
+      .find((value) => Object.keys(value).length) ?? {};
+  const metric = (source: Record<string, unknown>, names: string[]) =>
+    numberValue(firstDefined(source, names));
+  const group = (key: string) => record(stats[key]);
+  const businessesStats = group('businesses');
+  const customersStats = group('customers');
+  const cardsStats = group('loyalty_cards');
+  const stampsStats = group('stamps');
+  const promotionsStats = group('promotions');
+  const ownersStats = group('owners');
+  const redemptionsStats = group('redemptions');
+  const rewardsStats = group('rewards');
+  const productsStats = group('products');
+  const averagesStats = group('averages');
+  const revenueStats = group('revenue');
+  const growth = (Array.isArray(stats.growth) ? stats.growth : [])
+    .map((item) => {
+      const value = record(item);
+      const month = stringValue(value.month);
+      const businesses = numberValue(value.businesses);
+      const customers = numberValue(value.customers);
+      return month && businesses !== undefined && customers !== undefined
+        ? { month, businesses, customers }
+        : null;
+    })
+    .filter((item): item is { month: string; businesses: number; customers: number } =>
+      Boolean(item),
+    )
+    .sort((a, b) => a.month.localeCompare(b.month));
+  const currentGrowth = growth.at(-1);
+  const previousGrowth = growth.at(-2);
   const statistics = {
-    currentMonthCustomers: metric([
-      'current_month_customers',
-      'customers_current_month',
-      'customer_count_current_month',
-      'currentMonthCustomers',
-    ]),
-    previousMonthCustomers: metric([
-      'previous_month_customers',
-      'customers_previous_month',
-      'customer_count_previous_month',
-      'previousMonthCustomers',
-    ]),
-    currentMonthRevenue: metric([
-      'current_month_revenue',
-      'revenue_current_month',
-      'earned_current_month',
-      'currentMonthRevenue',
-    ]),
-    previousMonthRevenue: metric([
-      'previous_month_revenue',
-      'revenue_previous_month',
-      'earned_previous_month',
-      'previousMonthRevenue',
-    ]),
-    expiringMemberships: metric([
-      'expiring_memberships',
-      'memberships_expiring',
-      'expiring_memberships_count',
-      'expiringMemberships',
-    ]),
+    currentMonthCustomers:
+      metric(stats, [
+        'current_month_customers',
+        'customers_current_month',
+        'currentMonthCustomers',
+      ]) ?? currentGrowth?.customers,
+    previousMonthCustomers:
+      metric(stats, [
+        'previous_month_customers',
+        'customers_previous_month',
+        'previousMonthCustomers',
+      ]) ?? previousGrowth?.customers,
+    currentMonthRevenue:
+      metric(stats, ['current_month_revenue', 'revenue_current_month', 'earned_current_month']) ??
+      metric(revenueStats, ['current_month', 'this_month', 'current']),
+    previousMonthRevenue:
+      metric(stats, [
+        'previous_month_revenue',
+        'revenue_previous_month',
+        'earned_previous_month',
+      ]) ?? metric(revenueStats, ['previous_month', 'last_month', 'previous']),
+    expiringMemberships:
+      metric(stats, [
+        'expiring_memberships',
+        'memberships_expiring',
+        'expiring_memberships_count',
+      ]) ?? metric(group('memberships'), ['expiring', 'expiring_soon']),
+    businesses: {
+      total: metric(businessesStats, ['total']),
+      active: metric(businessesStats, ['active']),
+      inactive: metric(businessesStats, ['inactive']),
+      withoutLoyaltyCards: metric(businessesStats, [
+        'without_loyalty_cards',
+        'withoutLoyaltyCards',
+      ]),
+      newLast30Days: metric(businessesStats, ['new_last_30_days', 'newLast30Days']),
+      newThisMonth: metric(businessesStats, ['new_this_month', 'newThisMonth']),
+      trashed: metric(businessesStats, ['trashed']),
+    },
+    customers: {
+      total: metric(customersStats, ['total']),
+      active: metric(customersStats, ['active']),
+      completed: metric(customersStats, ['completed']),
+      newLast30Days: metric(customersStats, ['new_last_30_days', 'newLast30Days']),
+    },
+    loyaltyCards: {
+      total: metric(cardsStats, ['total']),
+      active: metric(cardsStats, ['active']),
+      public: metric(cardsStats, ['public']),
+    },
+    stamps: {
+      total: metric(stampsStats, ['total']),
+      today: metric(stampsStats, ['today']),
+      last30Days: metric(stampsStats, ['last_30_days', 'last30Days']),
+    },
+    promotions: {
+      total: metric(promotionsStats, ['total']),
+      active: metric(promotionsStats, ['active']),
+    },
+    owners: {
+      total: metric(ownersStats, ['total']),
+      active: metric(ownersStats, ['active']),
+      inactive: metric(ownersStats, ['inactive']),
+    },
+    redemptions: {
+      total: metric(redemptionsStats, ['total']),
+      today: metric(redemptionsStats, ['today']),
+      last30Days: metric(redemptionsStats, ['last_30_days', 'last30Days']),
+    },
+    rewards: {
+      total: metric(rewardsStats, ['total']),
+      active: metric(rewardsStats, ['active']),
+    },
+    products: {
+      total: metric(productsStats, ['total']),
+      active: metric(productsStats, ['active']),
+    },
+    averages: {
+      customersPerBusiness: metric(averagesStats, [
+        'customers_per_business',
+        'customersPerBusiness',
+      ]),
+      cardsPerBusiness: metric(averagesStats, ['cards_per_business', 'cardsPerBusiness']),
+      stampsPerCustomer: metric(averagesStats, ['stamps_per_customer', 'stampsPerCustomer']),
+      redemptionsPerCustomer: metric(averagesStats, [
+        'redemptions_per_customer',
+        'redemptionsPerCustomer',
+      ]),
+    },
+    growth: growth.length ? growth : undefined,
   };
   return Object.values(statistics).some((value) => value !== undefined) ? statistics : undefined;
 }
@@ -822,7 +962,7 @@ export const api = {
     }
     return http.delete(`/admin/categories/${encodeURIComponent(id)}`);
   },
-  adminBusinesses: async (): Promise<AdminBusinessReport> => {
+  adminBusinesses: async (page = 1): Promise<AdminBusinessReport> => {
     if (isDemo) {
       const businesses = readAdminBusinesses();
       const expiringMemberships = businesses.filter((business) => {
@@ -850,14 +990,41 @@ export const api = {
             0,
           ),
           expiringMemberships,
+          businesses: {
+            total: businesses.length,
+            active: businesses.filter((business) => business.status === 'active').length,
+            inactive: businesses.filter((business) => business.status !== 'active').length,
+          },
+          customers: {
+            total: businesses.reduce((sum, business) => sum + (business.customerCount ?? 0), 0),
+          },
+        },
+        pagination: {
+          currentPage: 1,
+          lastPage: 1,
+          perPage: businesses.length || 1,
+          total: businesses.length,
         },
       });
     }
-    const { data } = await http.get('/api/admin/business');
+    const { data } = await http.get(
+      '/api/admin/business',
+      page > 1 ? { params: { page } } : undefined,
+    );
     const response = unwrapAdminBusinessResponse(data);
+    const meta = response.pagination;
+    const pagination = {
+      currentPage: numberValue(firstDefined(meta ?? {}, ['current_page', 'currentPage'])),
+      lastPage: numberValue(firstDefined(meta ?? {}, ['last_page', 'lastPage'])),
+      perPage: numberValue(firstDefined(meta ?? {}, ['per_page', 'perPage'])),
+      total: numberValue(firstDefined(meta ?? {}, ['total'])),
+    };
     return adminBusinessReportSchema.parse({
       businesses: response.businesses.map(normalizeAdminBusiness),
       statistics: getAdminBusinessStatistics(response.containers),
+      pagination: Object.values(pagination).some((value) => value !== undefined)
+        ? pagination
+        : undefined,
     });
   },
   createAdminBusiness: async (input: AdminBusinessInput) => {

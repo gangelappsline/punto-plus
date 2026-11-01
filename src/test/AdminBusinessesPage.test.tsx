@@ -24,10 +24,10 @@ describe('Administración del directorio de negocios', () => {
   it('muestra estados, métricas y membresías desde los datos de demostración', async () => {
     setup();
     expect(
-      await screen.findByRole('heading', { name: /Negocios y membresías/ }),
+      await screen.findByRole('heading', { level: 1, name: /Directorio de negocios/ }),
     ).toBeInTheDocument();
-    expect(await screen.findByText('326')).toBeInTheDocument();
-    expect(screen.getByText('Clientes este mes')).toBeInTheDocument();
+    expect(await screen.findAllByText('326')).not.toHaveLength(0);
+    expect(screen.getByText('Clientes nuevos este mes')).toBeInTheDocument();
     expect(screen.getByText('Ingresos de este mes')).toBeInTheDocument();
     expect(screen.getByText('Membresías próximas a vencer')).toBeInTheDocument();
     expect(screen.getAllByText('Café Avellaneda').length).toBeGreaterThan(0);
