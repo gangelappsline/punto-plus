@@ -32,9 +32,9 @@ import type { PageContext } from './CustomerPages';
 import logo from '../assets/images/logo_2.webp';
 
 export const customerNavigation = [
-  { path: '/app', icon: CreditCard, title: 'Tarjetas', end: true },
-  { path: '/app/promociones', icon: Gift, title: 'Promociones', end: true },
-  { path: '/app/cerca-de-mi', icon: MapPin, title: 'Cerca de mí', end: true },
+  { path: '/app', icon: CreditCard, title: 'Tarjetas' },
+  { path: '/app/promociones', icon: Gift, title: 'Promociones' },
+  { path: '/app/cerca-de-mi', icon: MapPin, title: 'Cerca de mí' },
 ];
 
 interface InstallEvent extends Event {
@@ -159,11 +159,11 @@ export function CustomerLayout() {
         <div className="community-label">TU COMUNIDAD, TUS RECOMPENSAS</div>
         <div className="sidebar-section-label">MI ESPACIO</div>
         <nav id="customer-navigation" aria-label="Navegación principal">
-          {customerNavigation.map(({ path, icon: Icon, title: label, end }) => (
+          {customerNavigation.map(({ path, icon: Icon, title: label }) => (
             <NavLink
               key={path}
               to={path}
-              end={end}
+              end={path === '/app'}
               className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}
             >
               <Icon size={19} strokeWidth={1.65} />
@@ -246,11 +246,11 @@ export function CustomerLayout() {
         <main id="main-content">
           <div className="main-topline"></div>
           <nav className="customer-section-tabs" aria-label="Secciones del cliente">
-            {customerNavigation.map(({ path, icon: Icon, title, end }) => (
+            {customerNavigation.map(({ path, icon: Icon, title }) => (
               <NavLink
                 key={path}
                 to={path}
-                end={end}
+                end={path === '/app'}
                 className={({ isActive }) => `customer-section-tab${isActive ? ' active' : ''}`}
               >
                 <Icon size={17} aria-hidden="true" />

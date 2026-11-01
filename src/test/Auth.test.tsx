@@ -83,7 +83,7 @@ describe('Página de registro', () => {
     expect(await screen.findByRole('heading', { name: 'Panel de cliente' })).toBeInTheDocument();
     expect(readStoredSession()?.user).toMatchObject({
       email: 'sofia@example.com',
-      role: 'customer',
+      role: 'client',
     });
   });
 

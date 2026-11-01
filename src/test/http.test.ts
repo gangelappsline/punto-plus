@@ -7,7 +7,7 @@ const { http } = await import('../services/http');
 const refresh = createSpy.mock.results[1].value;
 const apiMock = new AxiosMockAdapter(http);
 const refreshMock = new AxiosMockAdapter(refresh, { delayResponse: 10 });
-const user = { id: 'u1', name: 'Sofía', email: 'sofia@example.com', role: 'customer' as const };
+const user = { id: 'u1', name: 'Sofía', email: 'sofia@example.com', role: 'client' as const };
 afterEach(() => {
   apiMock.reset();
   refreshMock.reset();

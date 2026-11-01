@@ -141,8 +141,8 @@ describe('Traducción del usuario y rol del backend', () => {
   it('mapea los roles del backend al vocabulario de la app', () => {
     expect(normalizeRole('ADMIN')).toBe('admin');
     expect(normalizeRole('merchant')).toBe('business');
-    expect(normalizeRole('cliente')).toBe('customer');
-    expect(normalizeRole(undefined)).toBe('customer');
+    expect(normalizeRole('cliente')).toBe('client');
+    expect(normalizeRole(undefined)).toBe('client');
   });
 });
 
@@ -152,7 +152,7 @@ describe('Sesión en el store', () => {
       id: '3',
       name: 'Sofía',
       email: 'sofia@example.com',
-      role: 'customer',
+      role: 'client',
     });
     expect(useAuth.getState().accessToken).toBe(session.accessToken);
     expect(useAuth.getState().refreshToken).toBe('def50200refresh');
@@ -168,7 +168,7 @@ describe('Sesión en el store', () => {
       id: '3',
       name: 'Sofía',
       email: 'sofia@example.com',
-      role: 'customer',
+      role: 'client',
     });
     const rotated = useAuth.getState().setTokens({
       token_type: 'Bearer',
