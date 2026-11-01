@@ -280,33 +280,20 @@ export function CustomerLayout() {
           </div>
         )}
         <main id="main-content">
-          <div className="main-topline">
-            <span className="section-eyebrow">PEQUEÑAS VISITAS. GRANDES RECOMPENSAS.</span>
-            <div className="search-box">
-              <Search size={16} />
-              <input
-                aria-label="Buscar negocios o tarjetas"
-                placeholder="Buscar un negocio, una tarjeta…"
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-              />
-              {search ? (
-                <button aria-label="Limpiar búsqueda" onClick={() => setSearch('')}>
-                  <X size={14} />
-                </button>
-              ) : (
-                <span aria-hidden="true" />
-              )}
-            </div>
-          </div>
-          <nav className="customer-tabs" aria-label="Secciones del cliente">
+          <div className="main-topline"></div>
+          <div className="flex space-x-2 rounded-xl">
+            {/* Pestaña Activa */}
             {customerNavigation.map(({ path, icon: Icon, title, end }) => (
-              <NavLink key={path} to={path} end={end}>
+              <Link
+                key={path}
+                to={path}
+                className="w-full flex gap-2 rounded-lg bg-white px-3 py-1.5 text-sm font-medium text-gray-900 shadow"
+              >
                 <Icon size={17} />
                 <span>{title}</span>
-              </NavLink>
+              </Link>
             ))}
-          </nav>
+          </div>
           <Outlet context={context} />
           <footer className="main-footer">
             <span>© {new Date().getFullYear()} Punto Plus. Lo bueno está cerca.</span>

@@ -124,5 +124,5 @@ export const demoUser: User = {
   id: 'demo-sofia',
   name: 'Sofía García',
   email: 'sofia@example.com',
-  role: 'customer',
+  role: 'client',
 };

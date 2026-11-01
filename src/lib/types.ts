@@ -3,7 +3,7 @@ export const userSchema = z.object({
   id: z.string(),
   name: z.string(),
   email: z.string().email(),
-  role: z.enum(['customer', 'business', 'admin']),
+  role: z.enum(['client', 'business', 'admin']),
 });
 export type User = z.infer<typeof userSchema>;
 export const loyaltyCardThemes = [

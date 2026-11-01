@@ -38,9 +38,9 @@ export const authConfig = {
     env.VITE_AUTH_REFRESH_PATH,
     loginMode === 'json' ? '/api/refresh' : '/oauth/token',
   ),
-  registerPath: path(env.VITE_AUTH_REGISTER_PATH, '/api/auth/register'),
-  logoutPath: path(env.VITE_AUTH_LOGOUT_PATH, '/api/logout'),
-  profilePath: path(env.VITE_AUTH_PROFILE_PATH, '/api/me'),
+  registerPath: path(env.VITE_AUTH_REGISTER_PATH, '/auth/register'),
+  logoutPath: path(env.VITE_AUTH_LOGOUT_PATH, '/logout'),
+  profilePath: path(env.VITE_AUTH_PROFILE_PATH, '/me'),
   /** Solo para password grant: el client_id de Passport. */
   passportClientId: env.VITE_PASSPORT_CLIENT_ID || '',
   passportClientSecret: env.VITE_PASSPORT_CLIENT_SECRET || '',

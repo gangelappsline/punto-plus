@@ -22,7 +22,7 @@ const phoneRule = /^$|^[0-9+()\s-]{7,20}$/;
 
 const schema = z
   .object({
-    role: z.enum(['customer', 'business']),
+    role: z.enum(['client', 'business']),
     name: z.string().trim().min(3, 'Escribe tu nombre completo'),
     email: z.string().trim().min(1, 'Escribe tu correo').email('Escribe un correo válido'),
     phone: z.string().trim(),
@@ -102,7 +102,7 @@ export function Register() {
   } = useForm<RegisterForm>({
     resolver: zodResolver(schema),
     defaultValues: {
-      role: 'customer',
+      role: 'client',
       name: '',
       email: '',
       phone: '',
@@ -122,7 +122,7 @@ export function Register() {
   const onSubmit = handleSubmit((values) => {
     mutation.mutate(toRegisterInput(values), {
       onSuccess: (session) => {
-        const effectiveRole = session.user?.role ?? (isBusiness ? 'business' : 'customer');
+        const effectiveRole = session.user?.role ?? (isBusiness ? 'business' : 'client');
         toast.success(
           isBusiness
             ? '¡Cuenta de negocio creada! Ahora completa tu perfil.'
@@ -137,7 +137,7 @@ export function Register() {
     });
   });
 
-  function selectRole(next: 'customer' | 'business') {
+  function selectRole(next: 'client' | 'business') {
     setValue('role', next, { shouldValidate: false });
     clearErrors();
   }
@@ -197,7 +197,7 @@ export function Register() {
         onKeyDown={(event) => {
           if (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight') return;
           event.preventDefault();
-          selectRole(isBusiness ? 'customer' : 'business');
+          selectRole(isBusiness ? 'client' : 'business');
         }}
       >
         <button
@@ -205,7 +205,7 @@ export function Register() {
           role="radio"
           aria-checked={!isBusiness}
           className={`role-option ${!isBusiness ? 'active' : ''}`}
-          onClick={() => selectRole('customer')}
+          onClick={() => selectRole('client')}
         >
           <span className="role-icon">
             <UserRound size={18} />

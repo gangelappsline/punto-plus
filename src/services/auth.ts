@@ -27,7 +27,7 @@ export interface RegisterBusinessInput {
 }
 
 export interface RegisterInput extends LoginCredentials {
-  role: 'customer' | 'business';
+  role: 'client' | 'business';
   name: string;
   phone?: string;
   business?: RegisterBusinessInput;
@@ -83,7 +83,7 @@ export async function login(credentials: LoginCredentials): Promise<StoredSessio
  */
 export async function register(input: RegisterInput): Promise<StoredSession> {
   const payload = buildRegisterPayload(input);
-  if (isDemo) return demoSession(input.email, input.role, input.name);
+  //if (isDemo) return demoSession(input.email, input.role, input.name);
 
   const { data } = await http.post(authConfig.registerPath, payload, {
     headers: tokenRequestHeaders(null),
@@ -168,7 +168,7 @@ export function demoSession(email: string, role?: User['role'], name?: string): 
       ? 'admin'
       : /(negocio|business|empresa)/.test(email)
         ? 'business'
-        : 'customer');
+        : 'client');
   const fallbackName = (email.split('@')[0] || 'Invitado').replace(/[._-]+/g, ' ');
   const user: User = {
     id: `demo-${email}`,
