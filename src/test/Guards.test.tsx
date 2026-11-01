@@ -28,7 +28,7 @@ const { readStoredSession } = await import('../lib/tokenStorage');
 const apiMock = new AxiosMockAdapter(http);
 const refreshMock = new AxiosMockAdapter(createSpy.mock.results[1].value as AxiosInstance);
 const profile = { id: 7, name: 'Ana Ramírez', email: 'ana@example.com', role: 'business' };
-type Role = 'customer' | 'business' | 'admin';
+type Role = 'client' | 'business' | 'admin';
 
 function Pane({ label }: { label: string }) {
   const location = useLocation();
@@ -91,7 +91,7 @@ function renderAt(path: string, state?: unknown) {
 function signIn(role: Role, expired = false) {
   useAuth
     .getState()
-    .setSession({ id: '1', name: 'Ana', email: 'ana@example.com', role }, 'access-token', {
+    .setSession({ id: '1', name: 'Ana', email: 'ana@example.com', role: role }, 'access-token', {
       refreshToken: 'refresh-token',
       expiresAt: expired ? Date.now() - 1_000 : Date.now() + 3_600_000,
     });
@@ -117,7 +117,7 @@ describe('Acceso a los paneles', () => {
   });
 
   it('abre el panel de cliente solo con una sesión de cliente', async () => {
-    signIn('customer');
+    signIn('client');
     renderAt('/app');
     expect(await screen.findByRole('heading', { name: 'Panel de cliente' })).toBeInTheDocument();
   });
@@ -144,7 +144,7 @@ describe('Acceso a los paneles', () => {
   });
 
   it('envía a cada cuenta a su propio panel si pide el otro', async () => {
-    signIn('customer');
+    signIn('client');
     renderAt('/business');
     expect(await screen.findByRole('heading', { name: 'Panel de cliente' })).toBeInTheDocument();
     expect(screen.getByTestId('location')).toHaveTextContent('/app');
@@ -157,7 +157,7 @@ describe('Acceso a los paneles', () => {
   });
 
   it('vuelve a la ruta pedida cuando corresponde a su rol', async () => {
-    signIn('customer');
+    signIn('client');
     renderAt('/login', { from: '/app' });
     expect(await screen.findByRole('heading', { name: 'Panel de cliente' })).toBeInTheDocument();
   });
@@ -187,7 +187,7 @@ describe('Acceso a los paneles', () => {
     useAuth
       .getState()
       .setSession(
-        { id: '1', name: 'Ana', email: 'ana@example.com', role: 'customer' },
+        { id: '1', name: 'Ana', email: 'ana@example.com', role: 'client' },
         'access-token',
         { expiresAt: Date.now() - 1_000 },
       );

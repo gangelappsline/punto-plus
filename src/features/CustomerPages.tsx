@@ -293,26 +293,10 @@ export function PromotionsPage() {
   );
 }
 
-function distanceInKm(
-  origin: { latitude: number; longitude: number },
-  destination: { latitude?: number; longitude?: number },
-) {
-  if (destination.latitude === undefined || destination.longitude === undefined) return undefined;
-  const radians = (degrees: number) => (degrees * Math.PI) / 180;
-  const latitudeDelta = radians(destination.latitude - origin.latitude);
-  const longitudeDelta = radians(destination.longitude - origin.longitude);
-  const a =
-    Math.sin(latitudeDelta / 2) ** 2 +
-    Math.cos(radians(origin.latitude)) *
-      Math.cos(radians(destination.latitude)) *
-      Math.sin(longitudeDelta / 2) ** 2;
-  return 6371 * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-}
-
 export function NearbyPage() {
   const { search } = useOutletContext<PageContext>();
   const { cards } = useLoyalty();
-  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [selectedId] = useState<string | null>(null);
   const [position, setPosition] = useState<{ latitude: number; longitude: number } | null>(null);
   const [locationStatus, setLocationStatus] = useState<
     'idle' | 'loading' | 'ready' | 'denied' | 'unavailable'

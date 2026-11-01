@@ -15,7 +15,6 @@ import {
   MapPin,
   Menu,
   QrCode,
-  Search,
   ShieldCheck,
   Sparkles,
   Store,
@@ -35,9 +34,9 @@ import type { PageContext } from './CustomerPages';
 import logo from '../assets/images/logo_2.webp';
 
 export const customerNavigation = [
-  { path: '/app', icon: CreditCard, title: 'Tarjetas', end: true },
-  { path: '/app/promociones', icon: Gift, title: 'Promociones', end: true },
-  { path: '/app/cerca-de-mi', icon: MapPin, title: 'Cerca de mí', end: true },
+  { path: '/app', icon: CreditCard, title: 'Tarjetas' },
+  { path: '/app/promociones', icon: Gift, title: 'Promociones' },
+  { path: '/app/cerca-de-mi', icon: MapPin, title: 'Cerca de mí' },
 ];
 
 interface InstallEvent extends Event {
@@ -167,11 +166,10 @@ export function CustomerLayout() {
         <div className="community-label">TU COMUNIDAD, TUS RECOMPENSAS</div>
         <div className="sidebar-section-label">MI ESPACIO</div>
         <nav id="customer-navigation" aria-label="Navegación principal">
-          {customerNavigation.map(({ path, icon: Icon, title: label, end }) => (
+          {customerNavigation.map(({ path, icon: Icon, title: label }) => (
             <NavLink
               key={path}
               to={path}
-              end={end}
               className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}
             >
               <Icon size={19} strokeWidth={1.65} />
@@ -283,7 +281,7 @@ export function CustomerLayout() {
           <div className="main-topline"></div>
           <div className="flex space-x-2 rounded-xl">
             {/* Pestaña Activa */}
-            {customerNavigation.map(({ path, icon: Icon, title, end }) => (
+            {customerNavigation.map(({ path, icon: Icon, title }) => (
               <Link
                 key={path}
                 to={path}

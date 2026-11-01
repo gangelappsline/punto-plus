@@ -145,14 +145,14 @@ describe('Login contra la API', () => {
       id: 9,
       name: 'Sofía García',
       email: 'sofia@example.com',
-      role: 'customer',
+      role: 'client',
     });
 
     await submit(user);
 
     expect(await screen.findByRole('heading', { name: 'Panel de cliente' })).toBeInTheDocument();
     expect(apiMock.history.get[0].headers?.Authorization).toBe('Bearer eyJ.access');
-    expect(readStoredSession()?.user).toMatchObject({ role: 'customer' });
+    expect(readStoredSession()?.user).toMatchObject({ role: 'client' });
   });
 
   it('muestra el error de credenciales de la API sin intentar un refresh', async () => {

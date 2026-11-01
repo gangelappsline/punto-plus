@@ -58,7 +58,7 @@ export function MenuPage() {
   const user = useAuth((state) => state.user);
   const accessToken = useAuth((state) => state.accessToken);
   const sessionStatus = useSessionStatus();
-  const isClient = user?.role === 'customer' && Boolean(accessToken) && sessionStatus === 'ready';
+  const isClient = user?.role === 'client' && Boolean(accessToken) && sessionStatus === 'ready';
   const isAuthenticated = Boolean(user && accessToken && sessionStatus === 'ready');
   const [search, setSearch] = useState('');
   const [category, setCategory] = useState('Todos');

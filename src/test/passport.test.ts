@@ -87,13 +87,13 @@ describe('Login contra Laravel Passport', () => {
 
   it('usa el usuario incluido en la respuesta sin pedir /api/me', async () => {
     apiMock.onPost('/oauth/token').reply(200, {
-      user: { id: 4, name: 'Sofía', email: 'sofia@example.com', role: 'customer' },
+      user: { id: 4, name: 'Sofía', email: 'sofia@example.com', role: 'client' },
       ...passportResponse,
     });
 
     const session = await login({ email: 'sofia@example.com', password: 'secreto123' });
     expect(apiMock.history.get).toHaveLength(0);
-    expect(session.user?.role).toBe('customer');
+    expect(session.user?.role).toBe('client');
   });
 
   it('traduce las credenciales inválidas de Passport a un mensaje claro', async () => {
@@ -112,14 +112,14 @@ describe('Login contra Laravel Passport', () => {
 describe('Registro de clientes y negocios', () => {
   it('arma el payload plano del cliente', () => {
     const payload = buildRegisterPayload({
-      role: 'customer',
+      role: 'client',
       name: ' Sofía García ',
       email: 'SOFIA@Example.com',
       password: 'punto1234',
       phone: ' 55 1234 5678 ',
     });
     expect(payload).toEqual({
-      role: 'customer',
+      role: 'client',
       name: 'Sofía García',
       email: 'sofia@example.com',
       password: 'punto1234',
@@ -214,11 +214,11 @@ describe('Registro de clientes y negocios', () => {
       id: 5,
       name: 'Sofía',
       email: 'sofia@example.com',
-      role: 'customer',
+      role: 'client',
     });
 
     const session = await register({
-      role: 'customer',
+      role: 'client',
       name: 'Sofía García',
       email: 'sofia@example.com',
       password: 'punto1234',

@@ -112,7 +112,7 @@ describe('Menú digital público por slug', () => {
     useAuth
       .getState()
       .setSession(
-        { id: 'client-1', name: 'Ana Cliente', email: 'ana@example.com', role: 'customer' },
+        { id: 'client-1', name: 'Ana Cliente', email: 'ana@example.com', role: 'client' },
         'client-token',
       );
     const user = setup(slugify(readDB().business.name));
