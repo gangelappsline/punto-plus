@@ -57,10 +57,11 @@ export function AdminDashboard() {
               <h3>Negocios</h3>
             </div>
             <p>
-              La gestión del perfil comercial corresponde al panel independiente de cada negocio.
+              Consulta estadísticas de clientes e ingresos, administra membresías y gestiona el
+              directorio de negocios.
             </p>
-            <Link to="/" className="text-link subtle-link">
-              Volver al sitio <ArrowUpRight size={14} />
+            <Link to="/admin/negocios" className="text-link subtle-link">
+              Administrar negocios <ArrowUpRight size={14} />
             </Link>
           </div>
           <div className="admin-action-card">
@@ -81,8 +82,8 @@ export function AdminDashboard() {
         <div className="notice" style={{ marginTop: 20 }}>
           <strong>Modo demostración.</strong>
           <p>
-            La información de administración se limita a esta vista; no se han conectado operaciones
-            de plataforma a la API.
+            Los negocios de ejemplo se guardan solo en este navegador; las cuentas reales utilizan
+            la API de administración.
           </p>
         </div>
       )}

@@ -64,6 +64,51 @@ export type AdminCategory = z.infer<typeof adminCategorySchema>;
 export const adminCategoryInputSchema = adminCategorySchema.omit({ id: true });
 export type AdminCategoryInput = z.infer<typeof adminCategoryInputSchema>;
 
+export const adminBusinessStatusSchema = z.enum(['pending', 'active', 'cancelled', 'onboarding']);
+export const adminBusinessSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  slug: z.string().optional(),
+  email: z.string().optional(),
+  phone: z.string().optional(),
+  status: adminBusinessStatusSchema,
+  membershipActive: z.boolean().optional(),
+  membershipExpiresAt: z.string().optional(),
+  customerCount: z.number().nonnegative().optional(),
+  currentMonthCustomerCount: z.number().nonnegative().optional(),
+  previousMonthCustomerCount: z.number().nonnegative().optional(),
+  currentMonthRevenue: z.number().nonnegative().optional(),
+  previousMonthRevenue: z.number().nonnegative().optional(),
+  createdAt: z.string().optional(),
+});
+export const adminBusinessInputSchema = z.object({
+  name: z.string().trim().min(2, 'Escribe al menos 2 caracteres'),
+  email: z.union([z.string().email('Escribe un correo válido'), z.literal('')]).optional(),
+  phone: z.string().trim().optional(),
+  status: adminBusinessStatusSchema,
+  membershipExpiresAt: z.string().optional(),
+});
+export const adminBusinessStatisticsSchema = z.object({
+  currentMonthCustomers: z.number().nonnegative().optional(),
+  previousMonthCustomers: z.number().nonnegative().optional(),
+  currentMonthRevenue: z.number().nonnegative().optional(),
+  previousMonthRevenue: z.number().nonnegative().optional(),
+  expiringMemberships: z.number().nonnegative().optional(),
+});
+export const adminBusinessReportSchema = z.object({
+  businesses: z.array(adminBusinessSchema),
+  statistics: adminBusinessStatisticsSchema.optional(),
+});
+export const adminBusinessEmailSchema = z.object({
+  type: z.enum(['reminder', 'thank_you', 'follow_up']),
+  subject: z.string().trim().min(3, 'Escribe un asunto'),
+  message: z.string().trim().min(10, 'Escribe un mensaje de al menos 10 caracteres'),
+});
+export type AdminBusiness = z.infer<typeof adminBusinessSchema>;
+export type AdminBusinessInput = z.infer<typeof adminBusinessInputSchema>;
+export type AdminBusinessReport = z.infer<typeof adminBusinessReportSchema>;
+export type AdminBusinessEmail = z.infer<typeof adminBusinessEmailSchema>;
+
 export const activitySchema = z.object({
   id: z.string(),
   business: z.string(),

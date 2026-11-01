@@ -1,7 +1,12 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { api, type PromotionInput } from '../services/api';
-import type { AdminCategoryInput, BusinessConfig, BusinessQRConfiguration } from './types';
+import type {
+  AdminBusinessInput,
+  AdminCategoryInput,
+  BusinessConfig,
+  BusinessQRConfiguration,
+} from './types';
 import { errorMessage, isDemo } from './utils';
 
 /**
@@ -19,6 +24,7 @@ export const queryKeys = {
   businessPromotions: ['business-promotions'] as const,
   publicCategories: ['public-categories'] as const,
   adminCategories: ['admin-categories'] as const,
+  adminBusinesses: ['admin-businesses'] as const,
 };
 
 /* ---------------------------------- consultas --------------------------------- */
@@ -61,6 +67,10 @@ export function useMyQR(enabled = true) {
 
 export function useAdminCategories() {
   return useQuery({ queryKey: queryKeys.adminCategories, queryFn: api.adminCategories });
+}
+
+export function useAdminBusinesses() {
+  return useQuery({ queryKey: queryKeys.adminBusinesses, queryFn: api.adminBusinesses });
 }
 
 export function useBusiness() {
@@ -178,6 +188,22 @@ export function useUpdateAdminCategory(onSuccess?: () => void) {
 
 export function useDeleteAdminCategory(onSuccess?: () => void) {
   return useAction(api.deleteAdminCategory, 'Categoría eliminada', onSuccess);
+}
+
+export function useCreateAdminBusiness(onSuccess?: () => void) {
+  return useAction<AdminBusinessInput>(api.createAdminBusiness, 'Negocio creado', onSuccess);
+}
+
+export function useUpdateAdminBusiness(onSuccess?: () => void) {
+  return useAction(
+    ({ id, ...input }: { id: string } & AdminBusinessInput) => api.updateAdminBusiness(id, input),
+    'Negocio actualizado',
+    onSuccess,
+  );
+}
+
+export function useDeleteAdminBusiness(onSuccess?: () => void) {
+  return useAction(api.deleteAdminBusiness, 'Negocio eliminado', onSuccess);
 }
 
 export function useStamp(onSuccess?: () => void) {
