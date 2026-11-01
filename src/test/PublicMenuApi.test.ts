@@ -114,7 +114,19 @@ describe('Menú público de negocio', () => {
           id: 11,
           name: 'Taco de asada',
           price: '28.00',
-          category: { id: 2, name: 'Tacos' },
+          category_id: 2,
+          images: [
+            {
+              id: 2,
+              url: '[alternate](http://127.0.0.1:8000/storage/products/alternate.webp)',
+              sort_order: 1,
+            },
+            {
+              id: 1,
+              url: '[primary](http://127.0.0.1:8000/storage/products/taco.webp)',
+              sort_order: 0,
+            },
+          ],
           is_popular: true,
         },
       ],
@@ -145,10 +157,10 @@ describe('Menú público de negocio', () => {
       categoryDetails: [
         { id: '2', name: 'Tacos', icon: 'https://cdn.example.test/tacos.webp' },
         { id: '3', name: 'Quesadillas', icon: undefined },
-        { id: '4', name: 'Bebidas', icon: '/storage/drinks.webp' },
+        { id: '4', name: 'Bebidas', icon: 'https://api.punto-plus.com.mx/storage/drinks.webp' },
       ],
-      logo: '/storage/logo.webp',
-      banner: '/storage/banner.webp',
+      logo: 'https://api.punto-plus.com.mx/storage/logo.webp',
+      banner: 'https://api.punto-plus.com.mx/storage/banner.webp',
       primaryColor: '#F59E0B',
       secondaryColor: '#111827',
       menuStyle: 'compact',
@@ -156,8 +168,19 @@ describe('Menú público de negocio', () => {
       phoneNumbers: [],
       allowOrders: false,
       menuItems: [
-        { id: '22', name: 'Agua de jamaica', category: 'Bebidas', image: '/storage/jamaica.webp' },
-        { id: '11', name: 'Taco de asada', category: 'Tacos', isPopular: true },
+        {
+          id: '22',
+          name: 'Agua de jamaica',
+          category: 'Bebidas',
+          image: 'https://api.punto-plus.com.mx/storage/jamaica.webp',
+        },
+        {
+          id: '11',
+          name: 'Taco de asada',
+          category: 'Tacos',
+          image: 'https://api.punto-plus.com.mx/storage/products/taco.webp',
+          isPopular: true,
+        },
       ],
     });
     expect(menu.phone).toBeUndefined();
