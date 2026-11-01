@@ -1,9 +1,9 @@
 /**
  * Análisis de colores de imagen del lado del cliente.
  *
- * Lee una imagen (logo del negocio) y elige la paleta que mejor combine:
- * un color principal, uno secundario y los colores de contraste para el QR
- * y el menú digital. Todo ocurre en el navegador, sin enviar la imagen a
+ * Lee una imagen (logo del negocio) y elige una paleta de marca con color
+ * principal y secundario; el QR conserva sus valores predeterminados de alto
+ * contraste en negro sobre blanco. Todo ocurre en el navegador, sin enviar la imagen a
  * ningún servidor.
  */
 
@@ -101,7 +101,7 @@ function hslToRgb(h: number, s: number, l: number): RGB {
 const defaultAnalysis: LogoAnalysis = {
   primary: '#2399A0',
   secondary: '#F5BE8B',
-  qrForeground: '#022F53',
+  qrForeground: '#000000',
   qrBackground: '#FFFFFF',
   palette: ['#2399A0', '#F5BE8B'],
 };
@@ -138,7 +138,7 @@ export async function extractPaletteFromFile(
     return {
       primary: '#2399A0',
       secondary: '#F5BE8B',
-      qrForeground: '#022F53',
+      qrForeground: '#000000',
       qrBackground: '#FFFFFF',
       palette: ['#2399A0', '#F5BE8B'],
     };
@@ -153,9 +153,9 @@ export async function extractPaletteFromFile(
   }
   const primaryHex = rgbToHex(primary);
   const secondaryHex = rgbToHex(secondary);
-  // QR: fondo claro, frente oscuro con suficiente contraste.
-  const qrBackground = lightnessContrast(secondaryHex, primaryHex) ? secondaryHex : '#FFFFFF';
-  const qrForeground = darkenForContrast(primaryHex, qrBackground);
+  // QR predeterminado de alto contraste, independiente de los colores de marca.
+  const qrForeground = '#000000';
+  const qrBackground = '#FFFFFF';
   return {
     primary: primaryHex,
     secondary: secondaryHex,
@@ -209,29 +209,4 @@ function pickContrast(primary: RGB, candidates: { rgb: RGB; count: number }[]): 
     }
   }
   return best;
-}
-
-function lightnessContrast(a: string, b: string): boolean {
-  const ra = hexToRgb(a);
-  const rb = hexToRgb(b);
-  if (!ra || !rb) return false;
-  return Math.abs(relativeLuminance(ra) - relativeLuminance(rb)) > 0.15;
-}
-
-/** Oscurece `color` hasta que contraste con `background` (ratio ≥ 4.5:1). */
-function darkenForContrast(color: string, background: string): string {
-  const rgb = hexToRgb(color);
-  const back = hexToRgb(background);
-  if (!rgb || !back) return '#022F53';
-  let current = rgb;
-  for (let amount = -5; amount >= -90; amount -= 5) {
-    const next = hslToRgb(
-      rgbToHsl(current)[0],
-      rgbToHsl(current)[1],
-      clamp(rgbToHsl(current)[2] + amount, 0, 100),
-    );
-    if (contrastRatio(next, back) >= 4.5) return rgbToHex(next);
-    current = next;
-  }
-  return rgbToHex(current);
 }

@@ -1,8 +1,9 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { MemoryRouter } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import QRCodeStyling from 'qr-code-styling';
 import { BusinessPage } from '../features/BusinessPage';
 import { readDB, updateDB } from '../services/demo';
 
@@ -72,58 +73,81 @@ describe('Guarda de alta del negocio en /business/negocio', () => {
     await waitFor(() => expect(readDB().business.qrForeground).toBe('#123456'));
   });
 
-  it('descarga el código QR como PNG y WebP', async () => {
+  it('parte de negro sobre blanco y guarda las opciones de diseño del QR', async () => {
     const user = userEvent.setup();
+    setOnboarded(true);
+    setup();
+    await screen.findByRole('button', { name: /Guardar configuración/ });
+    await user.click(screen.getByRole('button', { name: /Código QR/ }));
+
+    expect(screen.getByLabelText('Color del código QR')).toHaveValue('#000000');
+    expect(screen.getByLabelText('Color de fondo del QR')).toHaveValue('#ffffff');
+    expect(screen.getByLabelText('Seleccionar logo para el QR')).toBeInTheDocument();
+
+    await user.clear(screen.getByLabelText('Contenido del QR'));
+    await user.type(screen.getByLabelText('Contenido del QR'), 'https://ejemplo.test/menu');
+    await user.click(
+      within(screen.getByRole('group', { name: 'Forma del cuerpo' })).getByRole('button', {
+        name: 'Puntos',
+      }),
+    );
+    await user.click(
+      within(screen.getByRole('group', { name: 'Forma del marco del ojo' })).getByRole('button', {
+        name: 'Redondeado',
+      }),
+    );
+    await user.click(
+      within(screen.getByRole('group', { name: 'Forma del ojo' })).getByRole('button', {
+        name: 'Punto',
+      }),
+    );
+    fireEvent.change(screen.getByLabelText('Resolución del QR'), { target: { value: '1024' } });
+    await user.click(screen.getByRole('button', { name: /Guardar configuración/ }));
+
+    await waitFor(() => {
+      expect(readDB().business).toMatchObject({
+        qrContent: 'https://ejemplo.test/menu',
+        qrBodyStyle: 'dots',
+        qrEyeFrameStyle: 'rounded',
+        qrEyeStyle: 'dot',
+        qrSize: 1024,
+      });
+    });
+  });
+
+  it('descarga el código QR en PNG, SVG, WebP y JPG con la resolución configurada', async () => {
+    const user = userEvent.setup();
+    const download = vi.spyOn(QRCodeStyling.prototype, 'download').mockResolvedValue();
     setOnboarded(true);
     setup();
     await screen.findByRole('button', { name: /Guardar configuración/ });
     await user.click(screen.getByRole('button', { name: /Código QR/ }));
     await screen.findByTitle('Código QR del menú de Café Avellaneda');
 
-    const createDescriptor = Object.getOwnPropertyDescriptor(URL, 'createObjectURL');
-    const revokeDescriptor = Object.getOwnPropertyDescriptor(URL, 'revokeObjectURL');
-    Object.defineProperty(URL, 'createObjectURL', {
-      configurable: true,
-      value: vi.fn(() => 'blob:qr-preview'),
-    });
-    Object.defineProperty(URL, 'revokeObjectURL', { configurable: true, value: vi.fn() });
+    await user.click(screen.getByRole('button', { name: /Descargar PNG/ }));
+    await user.click(screen.getByRole('button', { name: 'SVG' }));
+    await user.click(screen.getByRole('button', { name: /Descargar WebP/ }));
+    await user.click(screen.getByRole('button', { name: 'JPG' }));
 
-    class ImmediateImage {
-      onload: (() => void) | null = null;
-      onerror: (() => void) | null = null;
-      set src(_value: string) {
-        this.onload?.();
-      }
-    }
-    vi.stubGlobal('Image', ImmediateImage);
-    const context = {
-      fillStyle: '',
-      fillRect: vi.fn(),
-      drawImage: vi.fn(),
-    } as unknown as CanvasRenderingContext2D;
-    vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue(context);
-    vi.spyOn(HTMLCanvasElement.prototype, 'toDataURL').mockImplementation(
-      (type = 'image/png') => `data:${type};base64,qr-preview`,
-    );
-    const filenames: string[] = [];
-    vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(function (
-      this: HTMLAnchorElement,
-    ) {
-      filenames.push(this.download);
+    await waitFor(() => {
+      expect(download).toHaveBeenNthCalledWith(1, {
+        name: 'caf-avellaneda-qr',
+        extension: 'png',
+      });
+      expect(download).toHaveBeenNthCalledWith(2, {
+        name: 'caf-avellaneda-qr',
+        extension: 'svg',
+      });
+      expect(download).toHaveBeenNthCalledWith(3, {
+        name: 'caf-avellaneda-qr',
+        extension: 'webp',
+      });
+      expect(download).toHaveBeenNthCalledWith(4, {
+        name: 'caf-avellaneda-qr',
+        extension: 'jpeg',
+      });
     });
-
-    try {
-      await user.click(screen.getByRole('button', { name: /Descargar PNG/ }));
-      await user.click(screen.getByRole('button', { name: /Descargar WebP/ }));
-      expect(filenames).toEqual(['caf-avellaneda-qr.png', 'caf-avellaneda-qr.webp']);
-    } finally {
-      vi.restoreAllMocks();
-      vi.unstubAllGlobals();
-      if (createDescriptor) Object.defineProperty(URL, 'createObjectURL', createDescriptor);
-      else delete (URL as unknown as { createObjectURL?: unknown }).createObjectURL;
-      if (revokeDescriptor) Object.defineProperty(URL, 'revokeObjectURL', revokeDescriptor);
-      else delete (URL as unknown as { revokeObjectURL?: unknown }).revokeObjectURL;
-    }
+    download.mockRestore();
   });
 
   it('conserva el acceso a compras y promociones mientras falta el perfil', async () => {

@@ -160,6 +160,19 @@ export const businessSchema = z.object({
   secondaryColor: z.string().optional(),
   qrForeground: z.string().optional(),
   qrBackground: z.string().optional(),
+  qrEyeColor: z.string().optional(),
+  qrContent: z.string().optional(),
+  qrLogo: z.string().optional(),
+  qrBodyStyle: z
+    .enum(['square', 'dots', 'rounded', 'extra-rounded', 'classy', 'classy-rounded'])
+    .optional(),
+  qrEyeFrameStyle: z
+    .enum(['square', 'dot', 'dots', 'rounded', 'extra-rounded', 'classy', 'classy-rounded'])
+    .optional(),
+  qrEyeStyle: z
+    .enum(['square', 'dot', 'dots', 'rounded', 'extra-rounded', 'classy', 'classy-rounded'])
+    .optional(),
+  qrSize: z.number().int().min(256).max(2048).optional(),
   onboarded: z.boolean().optional(),
   welcomeMessage: z.string().optional(),
   description: z.string().optional(),
