@@ -113,6 +113,34 @@ describe('Perfil de negocio recién creado', () => {
     ]);
   });
 
+  it('recupera la personalización del QR desde qr_settings', async () => {
+    apiMock.onGet('business/card').reply(200, {
+      ...emptyBusinessProfile,
+      name: 'Negocio con QR',
+      qr_settings: {
+        content: 'https://ejemplo.test/menu',
+        foreground: '#123456',
+        background: '#FEFEFE',
+        eye_color: '#654321',
+        body_style: 'dots',
+        eye_frame_style: 'rounded',
+        eye_style: 'dot',
+        size: 1024,
+      },
+    });
+
+    await expect(api.business()).resolves.toMatchObject({
+      qrContent: 'https://ejemplo.test/menu',
+      qrForeground: '#123456',
+      qrBackground: '#FEFEFE',
+      qrEyeColor: '#654321',
+      qrBodyStyle: 'dots',
+      qrEyeFrameStyle: 'rounded',
+      qrEyeStyle: 'dot',
+      qrSize: 1024,
+    });
+  });
+
   it('también acepta el perfil dentro de una envoltura data', async () => {
     apiMock.onGet('business/card').reply(200, { data: emptyBusinessProfile });
 

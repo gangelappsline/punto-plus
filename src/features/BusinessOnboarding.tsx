@@ -350,8 +350,8 @@ export function BusinessOnboarding() {
       menuItems: state.menuItems,
       primaryColor: colors.primary,
       secondaryColor: colors.secondary,
-      qrForeground: state.logoColors?.qrForeground ?? colors.primary,
-      qrBackground: state.logoColors?.qrBackground ?? colors.secondary,
+      qrForeground: state.logoColors?.qrForeground ?? '#000000',
+      qrBackground: state.logoColors?.qrBackground ?? '#FFFFFF',
       onboarded: true,
     };
 
@@ -826,7 +826,8 @@ function ColorsStep({ logo, businessName, menuUrl, colors, onChange, errors }: C
       <div className="step-eyebrow">Paso 6 de 7</div>
       <h2>Colores del menú y el QR</h2>
       <p className="muted">
-        Elegidos a partir de tu logo. Se aplican al menú digital y al QR que verán tus clientes.
+        El QR comienza en negro sobre blanco para facilitar el escaneo. Puedes personalizar su
+        estilo en la sección Código QR después de publicar.
       </p>
       <div className="color-pickers">
         <div className="color-field">
@@ -878,8 +879,8 @@ function ColorsStep({ logo, businessName, menuUrl, colors, onChange, errors }: C
             size={180}
             level="M"
             marginSize={2}
-            fgColor={colors.primary}
-            bgColor={colors.secondary}
+            fgColor="#000000"
+            bgColor="#FFFFFF"
           />
           <p className="muted">Tu QR con los colores del negocio</p>
         </div>

@@ -469,12 +469,41 @@ function normalizeBusinessConfig(payload: unknown) {
     (part): part is string => typeof part === 'string' && Boolean(part.trim()),
   );
   const address = addressParts.join(', ');
-  const logo = typeof value.logo_url === 'string' ? value.logo_url : value.logo;
-  const banner = typeof value.background_url === 'string' ? value.background_url : value.banner;
+  const logo = publicAssetUrl(value.logo_url ?? value.logo);
+  const banner = publicAssetUrl(value.background_url ?? value.banner);
   const primaryColor = cardSettings.primary_color ?? value.primaryColor;
   const secondaryColor = cardSettings.secondary_color ?? value.secondaryColor;
-  const qrForeground = cardSettings.qr_foreground ?? value.qrForeground;
-  const qrBackground = cardSettings.qr_background ?? value.qrBackground;
+  const qrSettings = record(value.qr_settings ?? value.qrSettings);
+  const qrForeground =
+    qrSettings.foreground ??
+    cardSettings.qr_foreground ??
+    value.qr_foreground ??
+    value.qrForeground;
+  const qrBackground =
+    qrSettings.background ??
+    cardSettings.qr_background ??
+    value.qr_background ??
+    value.qrBackground;
+  const qrEyeColor = qrSettings.eye_color ?? value.qr_eye_color ?? value.qrEyeColor;
+  const qrContent = qrSettings.content ?? value.qr_content ?? value.qrContent;
+  const qrLogo = qrSettings.logo ?? value.qr_logo ?? value.qrLogo;
+  const qrBodyStyle = qrSettings.body_style ?? value.qr_body_style ?? value.qrBodyStyle;
+  const qrEyeFrameStyle =
+    qrSettings.eye_frame_style ?? value.qr_eye_frame_style ?? value.qrEyeFrameStyle;
+  const qrEyeStyle = qrSettings.eye_style ?? value.qr_eye_style ?? value.qrEyeStyle;
+  const rawQrSize = Number(qrSettings.size ?? value.qr_size ?? value.qrSize);
+  const qrSize =
+    Number.isInteger(rawQrSize) && rawQrSize >= 256 && rawQrSize <= 2048 ? rawQrSize : undefined;
+  const qrBodyStyles = ['square', 'dots', 'rounded', 'extra-rounded', 'classy', 'classy-rounded'];
+  const qrEyeStyles = [
+    'square',
+    'dot',
+    'dots',
+    'rounded',
+    'extra-rounded',
+    'classy',
+    'classy-rounded',
+  ];
   const requiredString = (candidate: unknown) =>
     typeof candidate === 'string' && candidate.length ? candidate : undefined;
   const inferredOnboarded = Boolean(name.trim() && logo && categories.length);
@@ -494,6 +523,20 @@ function normalizeBusinessConfig(payload: unknown) {
     secondaryColor: typeof secondaryColor === 'string' ? secondaryColor : undefined,
     qrForeground: typeof qrForeground === 'string' ? qrForeground : undefined,
     qrBackground: typeof qrBackground === 'string' ? qrBackground : undefined,
+    qrEyeColor: typeof qrEyeColor === 'string' ? qrEyeColor : undefined,
+    qrContent: typeof qrContent === 'string' ? qrContent : undefined,
+    qrLogo: publicAssetUrl(qrLogo),
+    qrBodyStyle:
+      typeof qrBodyStyle === 'string' && qrBodyStyles.includes(qrBodyStyle)
+        ? qrBodyStyle
+        : undefined,
+    qrEyeFrameStyle:
+      typeof qrEyeFrameStyle === 'string' && qrEyeStyles.includes(qrEyeFrameStyle)
+        ? qrEyeFrameStyle
+        : undefined,
+    qrEyeStyle:
+      typeof qrEyeStyle === 'string' && qrEyeStyles.includes(qrEyeStyle) ? qrEyeStyle : undefined,
+    qrSize,
     welcomeMessage:
       requiredString(cardSettings.welcome_message) ?? requiredString(value.welcomeMessage),
     description: requiredString(value.description),
@@ -658,7 +701,7 @@ export const api = {
     });
   },
   saveBusinessStep: async ({ step, data, config }: BusinessWizardStepSave) => {
-    if (!isDemo) return http.put('/business/card', { step, data });
+    if (!isDemo) return http.patch('/business/card', { step, data });
     const validated = businessSchema.parse(config);
     return updateDB((db) => {
       db.business = validated;

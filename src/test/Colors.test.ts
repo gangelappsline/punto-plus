@@ -34,7 +34,7 @@ describe('Extracción de colores del logo', () => {
     const analysis = await extractPaletteFromFile(file);
     expect(analysis.primary).toBe('#2399A0');
     expect(analysis.secondary).toBe('#F5BE8B');
-    expect(analysis.qrForeground).toBe('#022F53');
+    expect(analysis.qrForeground).toBe('#000000');
     expect(analysis.qrBackground).toBe('#FFFFFF');
     expect(analysis.palette).toContain('#2399A0');
   });
