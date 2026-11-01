@@ -19,7 +19,8 @@ import {
   X,
 } from 'lucide-react';
 import { toast } from 'sonner';
-import type { BusinessConfig, MenuItem } from '../lib/types';
+import type { BusinessConfig, MenuItem, MenuFontFamily } from '../lib/types';
+import { fontOptions, fontStack } from '../components/LoyaltyCard';
 import { useBusiness, usePublicCategories, useSaveBusinessDraft } from '../lib/queries';
 import { readImage } from '../lib/image';
 import { publicMenuUrl } from '../lib/utils';
@@ -58,7 +59,7 @@ type Draft = {
   menuItems: MenuItem[];
   primaryColor: string;
   secondaryColor: string;
-  fontFamily: 'dm-sans' | 'manrope' | 'serif';
+  fontFamily: MenuFontFamily;
   menuStyle: 'cozy' | 'compact';
   serviceDays: number[];
   openingTime: string;
@@ -127,12 +128,6 @@ function slugify(value: string) {
       .replace(/[^a-z0-9]+/g, '-')
       .replace(/^-+|-+$/g, '') || 'negocio'
   );
-}
-
-function fontStack(font: Draft['fontFamily']) {
-  if (font === 'manrope') return "'Manrope Variable', 'Manrope', sans-serif";
-  if (font === 'serif') return "Georgia, 'Times New Roman', serif";
-  return "'DM Sans Variable', 'DM Sans', sans-serif";
 }
 
 function hoursLabel(draft: Pick<Draft, 'serviceDays' | 'openingTime' | 'closingTime'>) {
@@ -870,9 +865,11 @@ export function BusinessMenuWizard() {
                       update('fontFamily', event.target.value as Draft['fontFamily'])
                     }
                   >
-                    <option value="dm-sans">DM Sans · Moderna y legible</option>
-                    <option value="manrope">Manrope · Geométrica</option>
-                    <option value="serif">Serif · Clásica</option>
+                    {fontOptions.map((font) => (
+                      <option key={font.id} value={font.id}>
+                        {font.label} · {font.sample}
+                      </option>
+                    ))}
                   </select>
                 </label>
                 <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">

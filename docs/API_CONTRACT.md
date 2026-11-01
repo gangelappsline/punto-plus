@@ -97,8 +97,9 @@ el rol en el servidor. Un 401 definitivo cierra la sesión y devuelve a `/login`
   reward: string;
   stamps: number;        // entero >= 0
   goal: number;          // entero 2–12
-  theme: 'forest' | 'terracotta' | 'lavender';
-  icon: 'coffee' | 'bread' | 'leaf';
+  theme: 'forest' | 'terracotta' | 'lavender' | 'ocean' | 'matcha' | 'citrus' | 'berry' | 'rose' | 'chocolate' | 'sunset' | 'sky' | 'midnight';
+  icon: 'coffee' | 'bread' | 'leaf' | 'pizza' | 'cake' | 'ice-cream' | 'soup' | 'fish' | 'salad' | 'burger' | 'milk' | 'soda' | 'apple' | 'cookie' | 'taco' | 'croissant' | 'popcorn' | 'cherry' | 'candy' | 'utensils' | 'glass' | 'bean';
+  fontFamily?: 'dm-sans' | 'manrope' | 'serif' | 'outfit' | 'lora' | 'nunito';
   location: string;
   distance: string;      // texto, no calculado con GPS por este frontend
   joined: boolean;
@@ -157,8 +158,9 @@ Las colecciones se esperan como arrays directos. Si el backend pagina o utiliza 
   "name": "Café Avellaneda",
   "reward": "Un café de especialidad gratis",
   "goal": 8,
-  "theme": "forest",
-  "icon": "coffee",
+  "theme": "forest", // 12 paletas incluidas
+  "icon": "coffee", // 22 iconos de comida y bebida
+  "fontFamily": "dm-sans", // dm-sans | manrope | serif | outfit | lora | nunito
   "logo": "…", // data URL en demo; ver carga real abajo
   "banner": "…", // portada del menú digital
   "categories": ["Cafetería", "Repostería"], // categorías de comida que vende

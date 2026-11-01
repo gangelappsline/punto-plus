@@ -17,6 +17,7 @@ import {
 import { Link, useLocation, useParams } from 'react-router-dom';
 import { Button } from '../components/ui/button';
 import { Dialog } from '../components/ui/dialog';
+import { fontStack as menuFontStack } from '../components/LoyaltyCard';
 import { AppSplash } from '../components/AppSplash';
 import { useSessionStatus } from '../lib/session';
 import { panelPathFor } from '../lib/utils';
@@ -25,12 +26,6 @@ import { api, PublicMenuNotFoundError } from '../services/api';
 import { useAuth } from '../stores/auth';
 
 const currency = new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' });
-
-function menuFontStack(font?: 'dm-sans' | 'manrope' | 'serif') {
-  if (font === 'manrope') return "'Manrope Variable', 'Manrope', sans-serif";
-  if (font === 'serif') return "Georgia, 'Times New Roman', serif";
-  return "'DM Sans Variable', 'DM Sans', sans-serif";
-}
 
 function itemImage(item: MenuItem) {
   if (item.image || item.imageUrl) return item.image || item.imageUrl!;
@@ -507,7 +502,7 @@ export function MenuPage() {
 
         <footer className="flex flex-col justify-center items-center gap-2 border-t border-stone-200 py-6 text-xs text-slate-400 sm:flex-row sm:items-center sm:justify-between">
           <span className="inline-flex items-center gap-2 font-extrabold tracking-[0.16em] text-slate-500">
-            <img src={LogoPunto}  className="h-6 block mx-auto" alt="Logo Punto +" />
+            <img src={LogoPunto} className="h-6 block mx-auto" alt="Logo Punto +" />
           </span>
           <span>Sabores de {data.name}, cerca de ti.</span>
         </footer>

@@ -68,6 +68,28 @@ describe('Perfil de negocio recién creado', () => {
     expect(business.banner).toBeUndefined();
   });
 
+  it('recupera nuevas opciones de icono, paleta y tipografía para Mi negocio', async () => {
+    apiMock.onGet('business/card').reply(200, {
+      ...emptyBusinessProfile,
+      name: 'Taquería Chayito',
+      theme: 'sunset',
+      menu_design: { font_family: 'lora' },
+      card_settings: {
+        ...emptyBusinessProfile.card_settings,
+        stamp_icon: 'taco',
+      },
+    });
+
+    const business = await api.business();
+
+    expect(business).toMatchObject({
+      name: 'Taquería Chayito',
+      theme: 'sunset',
+      icon: 'taco',
+      fontFamily: 'lora',
+    });
+  });
+
   it('restaura productos guardados con categoría por ID e imagen en el arreglo images', async () => {
     apiMock.onGet('business/card').reply(200, {
       ...emptyBusinessProfile,

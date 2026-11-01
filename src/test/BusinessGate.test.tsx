@@ -54,6 +54,27 @@ describe('Guarda de alta del negocio en /business/negocio', () => {
     expect(readDB().business.onboarded).toBe(true);
   });
 
+  it('ofrece nuevas paletas, iconos de comida y tipografías en Mi negocio', async () => {
+    const user = userEvent.setup();
+    setOnboarded(true);
+    setup();
+    await screen.findByRole('button', { name: /Guardar configuración/ });
+
+    await user.click(screen.getByRole('button', { name: 'Atardecer' }));
+    await user.click(screen.getByRole('button', { name: 'Taco' }));
+    await user.click(screen.getByRole('button', { name: /Lora/ }));
+    await user.click(screen.getByRole('button', { name: /Guardar configuración/ }));
+
+    await waitFor(() => {
+      expect(readDB().business).toMatchObject({
+        theme: 'sunset',
+        icon: 'taco',
+        fontFamily: 'lora',
+      });
+    });
+    expect(screen.getByRole('button', { name: /Guardar configuración/ })).toBeDisabled();
+  });
+
   it('permite guardar colores del QR y ofrece descargas en PNG y WebP', async () => {
     const user = userEvent.setup();
     setOnboarded(true);

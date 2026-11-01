@@ -6,6 +6,58 @@ export const userSchema = z.object({
   role: z.enum(['customer', 'business', 'admin']),
 });
 export type User = z.infer<typeof userSchema>;
+export const loyaltyCardThemes = [
+  'forest',
+  'terracotta',
+  'lavender',
+  'ocean',
+  'matcha',
+  'citrus',
+  'berry',
+  'rose',
+  'chocolate',
+  'sunset',
+  'sky',
+  'midnight',
+] as const;
+export const foodBrandIcons = [
+  'coffee',
+  'bread',
+  'leaf',
+  'pizza',
+  'cake',
+  'ice-cream',
+  'soup',
+  'fish',
+  'salad',
+  'burger',
+  'milk',
+  'soda',
+  'apple',
+  'cookie',
+  'taco',
+  'croissant',
+  'popcorn',
+  'cherry',
+  'candy',
+  'utensils',
+  'glass',
+  'bean',
+] as const;
+export const menuFontFamilies = [
+  'dm-sans',
+  'manrope',
+  'serif',
+  'outfit',
+  'lora',
+  'nunito',
+] as const;
+export const loyaltyCardThemeSchema = z.enum(loyaltyCardThemes);
+export const foodBrandIconSchema = z.enum(foodBrandIcons);
+export const menuFontFamilySchema = z.enum(menuFontFamilies);
+export type LoyaltyCardTheme = (typeof loyaltyCardThemes)[number];
+export type FoodBrandIcon = (typeof foodBrandIcons)[number];
+export type MenuFontFamily = (typeof menuFontFamilies)[number];
 export const cardSchema = z.object({
   id: z.string(),
   businessId: z.string(),
@@ -15,8 +67,9 @@ export const cardSchema = z.object({
   reward: z.string(),
   stamps: z.number().int().nonnegative(),
   goal: z.number().int().min(2).max(12),
-  theme: z.enum(['forest', 'terracotta', 'lavender']),
-  icon: z.enum(['coffee', 'bread', 'leaf']),
+  theme: loyaltyCardThemeSchema,
+  icon: foodBrandIconSchema,
+  fontFamily: menuFontFamilySchema.optional(),
   location: z.string(),
   distance: z.string(),
   joined: z.boolean(),
@@ -162,7 +215,7 @@ export const publicMenuSchema = z.object({
   closingTime: z.string().optional(),
   deliveryAvailable: z.boolean().optional(),
   allowOrders: z.boolean().optional(),
-  fontFamily: z.enum(['dm-sans', 'manrope', 'serif']).optional(),
+  fontFamily: menuFontFamilySchema.optional(),
   menuStyle: z.enum(['cozy', 'compact']).optional(),
   openingHours: z.string().optional(),
 });
@@ -193,8 +246,8 @@ export const businessSchema = z.object({
   name: z.string().min(2, 'Escribe al menos 2 caracteres').or(z.literal('')),
   reward: z.string().min(3, 'Describe tu recompensa'),
   goal: z.coerce.number().int().min(2, 'Mínimo 2 sellos').max(12, 'Máximo 12 sellos'),
-  theme: z.enum(['forest', 'terracotta', 'lavender']),
-  icon: z.enum(['coffee', 'bread', 'leaf']),
+  theme: loyaltyCardThemeSchema,
+  icon: foodBrandIconSchema,
   logo: z.string().optional(),
   banner: z.string().optional(),
   categories: z.array(z.string()).default([]),
@@ -231,7 +284,7 @@ export const businessSchema = z.object({
   openingHours: z.string().optional(),
   deliveryAvailable: z.boolean().optional(),
   allowOrders: z.boolean().optional(),
-  fontFamily: z.enum(['dm-sans', 'manrope', 'serif']).optional(),
+  fontFamily: menuFontFamilySchema.optional(),
   menuStyle: z.enum(['cozy', 'compact']).optional(),
 });
 export type BusinessConfig = z.infer<typeof businessSchema>;

@@ -57,6 +57,20 @@ describe('Configurador Mi menú', () => {
     expect(screen.getByRole('status')).toHaveTextContent('Borrador guardado');
   });
 
+  it('ofrece seis tipografías y guarda el estilo elegido para el menú público', async () => {
+    const user = setup();
+    await screen.findByRole('heading', { name: 'Mi menú' });
+    await user.click(screen.getByRole('button', { name: /Diseño/ }));
+
+    const font = await screen.findByLabelText('Tipografía');
+    expect(font.querySelectorAll('option')).toHaveLength(6);
+    await user.selectOptions(font, 'outfit');
+    await user.click(screen.getByRole('button', { name: /Servicio/ }));
+
+    expect(await screen.findByText('Días de servicio')).toBeInTheDocument();
+    expect(readDB().business.fontFamily).toBe('outfit');
+  });
+
   it('muestra las categorías en cajas verticales y permite alternar su selección', async () => {
     const user = setup();
     await screen.findByRole('heading', { name: 'Mi menú' });
