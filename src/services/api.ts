@@ -5,12 +5,14 @@ import {
   adminCategoryInputSchema,
   adminCategorySchema,
   businessSchema,
+  businessQRConfigurationSchema,
   cardSchema,
   foodCategories,
   promotionSchema,
   publicMenuSchema,
   type AdminCategoryInput,
   type BusinessConfig,
+  type BusinessQRConfiguration,
   type Promotion,
 } from '../lib/types';
 import { baseURL, http } from './http';
@@ -698,6 +700,35 @@ export const api = {
       db.business = config;
       const card = db.cards.find((c) => c.id === 'cafe');
       if (card) Object.assign(card, { ...config, stamps: Math.min(card.stamps, config.goal) });
+    });
+  },
+  saveBusinessQRConfiguration: async (input: BusinessQRConfiguration) => {
+    const settings = businessQRConfigurationSchema.parse(input);
+    const payload = {
+      qr_content: settings.content,
+      qr_foreground: settings.foreground,
+      qr_background: settings.background,
+      qr_eye_color: settings.eyeColor,
+      qr_logo: settings.logo ?? null,
+      qr_body_style: settings.bodyStyle,
+      qr_eye_frame_style: settings.eyeFrameStyle,
+      qr_eye_style: settings.eyeStyle,
+      qr_size: settings.size,
+    };
+    if (!isDemo) return http.put('/business/configurations/qr-code', payload);
+    return updateDB((db) => {
+      db.business = {
+        ...db.business,
+        qrContent: settings.content,
+        qrForeground: settings.foreground,
+        qrBackground: settings.background,
+        qrEyeColor: settings.eyeColor,
+        qrLogo: settings.logo,
+        qrBodyStyle: settings.bodyStyle,
+        qrEyeFrameStyle: settings.eyeFrameStyle,
+        qrEyeStyle: settings.eyeStyle,
+        qrSize: settings.size,
+      };
     });
   },
   saveBusinessStep: async ({ step, data, config }: BusinessWizardStepSave) => {

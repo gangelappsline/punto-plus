@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { api, type PromotionInput } from '../services/api';
-import type { AdminCategoryInput, BusinessConfig } from './types';
+import type { AdminCategoryInput, BusinessConfig, BusinessQRConfiguration } from './types';
 import { errorMessage, isDemo } from './utils';
 
 /**
@@ -118,6 +118,34 @@ export function useToggleFavorite(onSuccess?: () => void) {
 
 export function useSaveBusiness(onSuccess?: () => void) {
   return useAction(api.saveBusiness, 'La configuración de tu negocio se guardó', onSuccess);
+}
+
+/** Persiste solo la configuración QR, sin volver a enviar el perfil completo del negocio. */
+export function useSaveBusinessQRConfiguration() {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: api.saveBusinessQRConfiguration,
+    onSuccess: (_result, settings: BusinessQRConfiguration) => {
+      client.setQueryData<BusinessConfig>(queryKeys.business, (current) =>
+        current
+          ? {
+              ...current,
+              qrContent: settings.content,
+              qrForeground: settings.foreground,
+              qrBackground: settings.background,
+              qrEyeColor: settings.eyeColor,
+              qrLogo: settings.logo,
+              qrBodyStyle: settings.bodyStyle,
+              qrEyeFrameStyle: settings.eyeFrameStyle,
+              qrEyeStyle: settings.eyeStyle,
+              qrSize: settings.size,
+            }
+          : current,
+      );
+      toast.success('La configuración del QR se guardó.');
+    },
+    onError: (error) => toast.error(errorMessage(error)),
+  });
 }
 
 /** Guarda el borrador de Mi menú sin invalidar el resto del panel ni interrumpir el asistente. */
