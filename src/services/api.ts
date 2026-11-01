@@ -381,49 +381,79 @@ function normalizeBusinessConfig(payload: unknown) {
   const value = unwrapBusinessConfig(payload);
   const cardSettings = record(value.card_settings ?? value.cardSettings);
   const name = typeof value.name === 'string' ? value.name : '';
-  const categories = (Array.isArray(value.categories) ? value.categories : [])
+  const rawCategories = Array.isArray(value.categories) ? value.categories : [];
+  const categoryDetails = rawCategories
     .map((category) => {
-      if (typeof category === 'string') return category;
+      if (typeof category === 'string') return { id: category, name: category };
       const categoryRecord = record(category);
-      return typeof categoryRecord.name === 'string' ? categoryRecord.name : '';
+      const name = typeof categoryRecord.name === 'string' ? categoryRecord.name.trim() : '';
+      if (!name) return null;
+      return {
+        id: String(categoryRecord.category_id ?? categoryRecord.id ?? categoryRecord.slug ?? name),
+        name,
+      };
     })
-    .filter(Boolean);
+    .filter((category): category is NonNullable<typeof category> => Boolean(category));
+  const categories = categoryDetails.map((category) => category.name);
+  const categoryNameById = new Map(categoryDetails.map((category) => [category.id, category.name]));
   const rawProducts = Array.isArray(value.products)
     ? value.products
-    : Array.isArray(value.menuItems)
-      ? value.menuItems
-      : [];
+    : Array.isArray(value.menu_items)
+      ? value.menu_items
+      : Array.isArray(value.menuItems)
+        ? value.menuItems
+        : [];
   const menuItems = rawProducts
-    .map((product, index) => {
+    .map((product, index) => ({ product, index }))
+    .sort((a, b) => {
+      const order = (product: unknown, fallback: number) => {
+        const item = record(product);
+        const position = Number(item.sort_order ?? item.position ?? fallback);
+        return Number.isFinite(position) ? position : fallback;
+      };
+      return order(a.product, a.index) - order(b.product, b.index);
+    })
+    .map(({ product, index }) => {
       const item = record(product);
       const productCategory = record(item.category);
       const itemName = typeof item.name === 'string' ? item.name : '';
       if (!itemName.trim()) return null;
       const price =
         typeof item.price === 'string' || typeof item.price === 'number' ? item.price : undefined;
-      const image = [item.image, item.image_url, item.imageUrl, item.photo_url].find(
-        (candidate): candidate is string => typeof candidate === 'string' && Boolean(candidate),
+      const categoryValue =
+        typeof item.category === 'string' || typeof item.category === 'number'
+          ? String(item.category)
+          : undefined;
+      const categoryId = String(
+        item.category_id ??
+          item.menu_category_id ??
+          productCategory.category_id ??
+          productCategory.id ??
+          categoryValue ??
+          '',
       );
+      const category =
+        (categoryValue && categoryNameById.get(categoryValue)) ||
+        (categoryValue && !/^\d+$/.test(categoryValue) ? categoryValue : undefined) ||
+        (typeof productCategory.name === 'string' ? productCategory.name : undefined) ||
+        (typeof item.category_name === 'string' ? item.category_name : undefined) ||
+        categoryNameById.get(categoryId);
+      const image = publicProductImage(item);
       return {
         id: String(item.id ?? `product-${index + 1}`),
         name: itemName,
         description: typeof item.description === 'string' ? item.description : undefined,
         price,
-        category:
-          typeof item.category === 'string'
-            ? item.category
-            : typeof productCategory.name === 'string'
-              ? productCategory.name
-              : typeof item.category_name === 'string'
-                ? item.category_name
-                : undefined,
+        category,
         image,
         available:
           typeof item.available === 'boolean'
             ? item.available
-            : typeof item.is_active === 'boolean'
-              ? item.is_active
-              : undefined,
+            : typeof item.is_available === 'boolean'
+              ? item.is_available
+              : typeof item.is_active === 'boolean'
+                ? item.is_active
+                : undefined,
       };
     })
     .filter((item): item is NonNullable<typeof item> => Boolean(item));
