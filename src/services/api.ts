@@ -10,7 +10,10 @@ import {
   businessSchema,
   businessQRConfigurationSchema,
   cardSchema,
+  foodBrandIcons,
   foodCategories,
+  loyaltyCardThemes,
+  menuFontFamilies,
   promotionSchema,
   publicMenuSchema,
   type AdminBusiness,
@@ -466,8 +469,9 @@ function normalizePublicBusinessMenu(payload: unknown) {
         ? (value.allow_orders ?? value.allowOrders)
         : undefined,
     fontFamily:
-      fontFamily === 'manrope' || fontFamily === 'serif' || fontFamily === 'dm-sans'
-        ? fontFamily
+      typeof fontFamily === 'string' &&
+      menuFontFamilies.includes(fontFamily as (typeof menuFontFamilies)[number])
+        ? (fontFamily as (typeof menuFontFamilies)[number])
         : undefined,
     menuStyle: menuStyle === 'compact' || menuStyle === 'cozy' ? menuStyle : undefined,
     openingHours: typeof openingHours === 'string' ? openingHours : undefined,
@@ -539,6 +543,9 @@ function normalizePublicCategories(payload: unknown): PublicCategory[] {
 function normalizeBusinessConfig(payload: unknown) {
   const value = unwrapBusinessConfig(payload);
   const cardSettings = record(value.card_settings ?? value.cardSettings);
+  const menuDesign = record(value.menu_design ?? value.menuDesign);
+  const rawFontFamily =
+    menuDesign.font_family ?? menuDesign.fontFamily ?? cardSettings.font_family ?? value.fontFamily;
   const name = typeof value.name === 'string' ? value.name : '';
   const rawCategories = Array.isArray(value.categories) ? value.categories : [];
   const categoryDetails = rawCategories
@@ -618,11 +625,18 @@ function normalizeBusinessConfig(payload: unknown) {
     .filter((item): item is NonNullable<typeof item> => Boolean(item));
   const rawGoal = Number(cardSettings.required_stamps ?? value.goal ?? 8);
   const goal = Number.isFinite(rawGoal) ? Math.min(12, Math.max(2, Math.round(rawGoal))) : 8;
-  const rawIcon = cardSettings.stamp_icon ?? value.icon;
+  const rawIcon = cardSettings.stamp_icon ?? cardSettings.icon ?? value.icon;
   const icon =
-    rawIcon === 'bread' || rawIcon === 'leaf' || rawIcon === 'coffee' ? rawIcon : 'coffee';
+    typeof rawIcon === 'string' &&
+    foodBrandIcons.includes(rawIcon as (typeof foodBrandIcons)[number])
+      ? (rawIcon as (typeof foodBrandIcons)[number])
+      : 'coffee';
+  const rawTheme = cardSettings.theme ?? cardSettings.card_theme ?? value.theme;
   const validTheme =
-    value.theme === 'terracotta' || value.theme === 'lavender' ? value.theme : 'forest';
+    typeof rawTheme === 'string' &&
+    loyaltyCardThemes.includes(rawTheme as (typeof loyaltyCardThemes)[number])
+      ? (rawTheme as (typeof loyaltyCardThemes)[number])
+      : 'forest';
   const phone = typeof value.phone === 'string' ? value.phone : undefined;
   const addressParts = [value.address, value.city, value.country].filter(
     (part): part is string => typeof part === 'string' && Boolean(part.trim()),
@@ -710,7 +724,11 @@ function normalizeBusinessConfig(payload: unknown) {
     deliveryAvailable:
       typeof value.deliveryAvailable === 'boolean' ? value.deliveryAvailable : false,
     allowOrders: typeof value.allowOrders === 'boolean' ? value.allowOrders : true,
-    fontFamily: value.fontFamily,
+    fontFamily:
+      typeof rawFontFamily === 'string' &&
+      menuFontFamilies.includes(rawFontFamily as (typeof menuFontFamilies)[number])
+        ? (rawFontFamily as (typeof menuFontFamilies)[number])
+        : undefined,
     menuStyle: value.menuStyle,
     onboarded: typeof value.onboarded === 'boolean' ? value.onboarded : inferredOnboarded,
   };

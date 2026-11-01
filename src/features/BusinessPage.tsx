@@ -33,7 +33,14 @@ import {
 } from '../lib/queries';
 import { readImage } from '../lib/image';
 import type { PromotionInput } from '../services/api';
-import { LoyaltyCard } from '../components/LoyaltyCard';
+import {
+  brandIconOptions,
+  brandThemeOptions,
+  fontOptions,
+  fontStack,
+  BrandIcon,
+  LoyaltyCard,
+} from '../components/LoyaltyCard';
 import { Button } from '../components/ui/button';
 import { Dialog } from '../components/ui/dialog';
 import { Scanner } from '../components/Scanner';
@@ -225,24 +232,64 @@ function BusinessEditor({ config }: { config: BusinessConfig }) {
           <input type="number" min="2" max="12" {...register('goal')} />
           {errors.goal && <span className="form-error">{errors.goal.message}</span>}
         </label>
-        <div className="form-columns">
-          <label>
-            Color de fondo
-            <select {...register('theme')}>
-              <option value="forest">Bosque</option>
-              <option value="terracotta">Terracota</option>
-              <option value="lavender">Lavanda</option>
-            </select>
-          </label>
-          <label>
-            Icono del sello
-            <select {...register('icon')}>
-              <option value="coffee">Café</option>
-              <option value="bread">Pan</option>
-              <option value="leaf">Hoja</option>
-            </select>
-          </label>
-        </div>
+        <fieldset className="business-style-picker">
+          <legend>Paleta de color</legend>
+          <p>Elige el ambiente que mejor representa tu negocio.</p>
+          <div className="business-theme-grid">
+            {brandThemeOptions.map((theme) => (
+              <button
+                type="button"
+                key={theme.id}
+                aria-pressed={values.theme === theme.id}
+                className={`business-theme-option ${values.theme === theme.id ? 'selected' : ''}`}
+                onClick={() => setValue('theme', theme.id, { shouldDirty: true })}
+              >
+                <span className="business-theme-swatch" style={{ background: theme.swatch }} />
+                <span>{theme.label}</span>
+              </button>
+            ))}
+          </div>
+        </fieldset>
+        <fieldset className="business-style-picker">
+          <legend>Icono de tu sello</legend>
+          <p>22 símbolos inspirados en comida y bebidas.</p>
+          <div className="business-icon-grid">
+            {brandIconOptions.map((option) => (
+              <button
+                type="button"
+                key={option.id}
+                aria-label={option.label}
+                aria-pressed={values.icon === option.id}
+                className={`business-icon-option ${values.icon === option.id ? 'selected' : ''}`}
+                onClick={() => setValue('icon', option.id, { shouldDirty: true })}
+              >
+                <BrandIcon icon={option.id} size={21} />
+                <span>{option.label}</span>
+              </button>
+            ))}
+          </div>
+        </fieldset>
+        <fieldset className="business-style-picker">
+          <legend>Tipografía</legend>
+          <p>Elige el estilo de letra para tu tarjeta y menú.</p>
+          <div className="business-font-grid">
+            {fontOptions.map((font) => (
+              <button
+                type="button"
+                key={font.id}
+                aria-pressed={(values.fontFamily ?? 'dm-sans') === font.id}
+                className={`business-font-option ${
+                  (values.fontFamily ?? 'dm-sans') === font.id ? 'selected' : ''
+                }`}
+                style={{ fontFamily: fontStack(font.id) }}
+                onClick={() => setValue('fontFamily', font.id, { shouldDirty: true })}
+              >
+                <strong>{font.label}</strong>
+                <span>{font.sample}</span>
+              </button>
+            ))}
+          </div>
+        </fieldset>
         <label className="upload-label">
           <ImagePlus size={18} />
           <span>
@@ -274,6 +321,40 @@ function BusinessEditor({ config }: { config: BusinessConfig }) {
               onClick={() => setValue('logo', '', { shouldDirty: true })}
             >
               Quitar
+            </Button>
+          </div>
+        )}
+        <label className="upload-label">
+          <ImagePlus size={18} />
+          <span>
+            {values.banner ? 'Cambiar portada del menú' : 'Subir portada del menú'}
+            <small>Imagen horizontal · JPG, PNG o WebP · hasta 2 MB</small>
+          </span>
+          <input
+            type="file"
+            accept="image/png,image/jpeg,image/webp"
+            onChange={async (event) => {
+              const file = event.target.files?.[0];
+              if (!file) return;
+              try {
+                setValue('banner', await readImage(file), { shouldDirty: true });
+              } catch (error) {
+                toast.error((error as Error).message);
+              }
+              event.target.value = '';
+            }}
+          />
+        </label>
+        {values.banner && (
+          <div className="business-banner-preview">
+            <img src={values.banner} alt="Vista previa de la portada del menú" />
+            <Button
+              type="button"
+              size="sm"
+              variant="ghost"
+              onClick={() => setValue('banner', '', { shouldDirty: true })}
+            >
+              Quitar portada
             </Button>
           </div>
         )}

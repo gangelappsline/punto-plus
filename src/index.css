@@ -13,6 +13,27 @@
   font-display: swap;
   src: url('@fontsource-variable/manrope/files/manrope-latin-wght-normal.woff2') format('woff2');
 }
+@font-face {
+  font-family: 'Outfit Variable';
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+  src: url('@fontsource-variable/outfit/files/outfit-latin-wght-normal.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'Lora Variable';
+  font-style: normal;
+  font-weight: 400 700;
+  font-display: swap;
+  src: url('@fontsource-variable/lora/files/lora-latin-wght-normal.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'Nunito Variable';
+  font-style: normal;
+  font-weight: 200 1000;
+  font-display: swap;
+  src: url('@fontsource-variable/nunito/files/nunito-latin-wght-normal.woff2') format('woff2');
+}
 
 @theme {
   --font-sans: 'DM Sans Variable', sans-serif;
@@ -1061,6 +1082,96 @@ main#main-content {
   background: var(--card-bg);
   color: var(--card-ink);
 }
+.ocean {
+  --card-bg: #187f87;
+  --card-ink: #f2ffff;
+  --stamp-fill: #e4f6f5;
+  --stamp-color: #17666b;
+  --stamp-border: #d8ffff66;
+  --card-muted: #b8e1df;
+  background: var(--card-bg);
+  color: var(--card-ink);
+}
+.matcha {
+  --card-bg: #67845b;
+  --card-ink: #fbfff5;
+  --stamp-fill: #ecf2df;
+  --stamp-color: #59744c;
+  --stamp-border: #eff9dd66;
+  --card-muted: #d3e2c4;
+  background: var(--card-bg);
+  color: var(--card-ink);
+}
+.citrus {
+  --card-bg: #e9c85d;
+  --card-ink: #453a1e;
+  --stamp-fill: #fff9df;
+  --stamp-color: #6b5717;
+  --stamp-border: #947a2a66;
+  --card-muted: #796b3c;
+  background: var(--card-bg);
+  color: var(--card-ink);
+}
+.berry {
+  --card-bg: #80536f;
+  --card-ink: #fff7fd;
+  --stamp-fill: #f4e6ef;
+  --stamp-color: #754461;
+  --stamp-border: #ffe7f366;
+  --card-muted: #e5bfd5;
+  background: var(--card-bg);
+  color: var(--card-ink);
+}
+.rose {
+  --card-bg: #e7a6b3;
+  --card-ink: #4d2c3b;
+  --stamp-fill: #fff5f5;
+  --stamp-color: #934d65;
+  --stamp-border: #9d627066;
+  --card-muted: #805765;
+  background: var(--card-bg);
+  color: var(--card-ink);
+}
+.chocolate {
+  --card-bg: #76533f;
+  --card-ink: #fff9f0;
+  --stamp-fill: #f4e8d9;
+  --stamp-color: #6a4937;
+  --stamp-border: #f9e7d466;
+  --card-muted: #e2c5a8;
+  background: var(--card-bg);
+  color: var(--card-ink);
+}
+.sunset {
+  --card-bg: #e78c62;
+  --card-ink: #452d28;
+  --stamp-fill: #fff2e9;
+  --stamp-color: #a95537;
+  --stamp-border: #a3543d66;
+  --card-muted: #734f43;
+  background: var(--card-bg);
+  color: var(--card-ink);
+}
+.sky {
+  --card-bg: #82b8d0;
+  --card-ink: #153c52;
+  --stamp-fill: #eef9fc;
+  --stamp-color: #24728b;
+  --stamp-border: #286a8066;
+  --card-muted: #36657a;
+  background: var(--card-bg);
+  color: var(--card-ink);
+}
+.midnight {
+  --card-bg: #39416c;
+  --card-ink: #f4f5ff;
+  --stamp-fill: #e8e8f5;
+  --stamp-color: #404874;
+  --stamp-border: #e4e5ff66;
+  --card-muted: #c3c8e5;
+  background: var(--card-bg);
+  color: var(--card-ink);
+}
 .card-watermark {
   position: absolute;
   right: -28px;
@@ -1090,14 +1201,13 @@ main#main-content {
   flex-shrink: 0;
 }
 .card-brand h3 {
-  font-family: 'Manrope Variable', sans-serif;
+  font-family: inherit;
   font-size: 15px;
   letter-spacing: -0.5px;
   line-height: 1.4;
   font-weight: 650;
 }
 .terracotta .card-brand h3 {
-  font-family: Georgia, serif;
   font-size: 19px;
   font-weight: 400;
   letter-spacing: -0.4px;
@@ -2229,6 +2339,119 @@ main#main-content {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 14px;
+}
+.business-style-picker {
+  border: 0;
+  padding: 0;
+  margin: 23px 0 17px;
+  min-width: 0;
+}
+.business-style-picker legend {
+  color: #254865;
+  font-size: 12px;
+  font-weight: 700;
+  margin-bottom: 5px;
+}
+.business-style-picker > p {
+  color: #93a5b8;
+  font-size: 10px;
+  line-height: 1.6;
+  margin: 0 0 10px;
+}
+.business-theme-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+}
+.business-theme-option,
+.business-icon-option,
+.business-font-option {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  border: 1px solid #e1e8ed;
+  border-radius: 9px;
+  background: #ffffff;
+  color: #536c82;
+  padding: 8px;
+  font-size: 9px;
+  line-height: 1.3;
+  text-align: left;
+  transition:
+    border-color 0.16s ease,
+    background 0.16s ease,
+    box-shadow 0.16s ease;
+}
+.business-theme-option:hover,
+.business-icon-option:hover,
+.business-font-option:hover {
+  border-color: #9dc9c7;
+  background: #f5fbfa;
+}
+.business-theme-option.selected,
+.business-icon-option.selected,
+.business-font-option.selected {
+  border-color: #2399a0;
+  background: #eff9f8;
+  box-shadow: 0 0 0 1px #2399a033;
+  color: #127a82;
+  font-weight: 700;
+}
+.business-theme-swatch {
+  width: 20px;
+  height: 20px;
+  flex: 0 0 auto;
+  border: 1px solid #022f5318;
+  border-radius: 50%;
+}
+.business-icon-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 7px;
+}
+.business-icon-option {
+  min-height: 57px;
+  flex-direction: column;
+  justify-content: center;
+  gap: 4px;
+  text-align: center;
+  padding: 6px 3px;
+}
+.business-font-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+.business-font-option {
+  min-height: 54px;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 2px;
+  padding: 8px 10px;
+}
+.business-font-option strong {
+  color: #254865;
+  font-size: 11px;
+}
+.business-font-option span {
+  color: #8799aa;
+  font-size: 9px;
+}
+.business-banner-preview {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px;
+  border: 1px solid #e4eaf0;
+  border-radius: 10px;
+}
+.business-banner-preview img {
+  width: 100px;
+  height: 56px;
+  object-fit: cover;
+  border-radius: 6px;
 }
 .card-preview-panel {
   padding: 22px 16px;
