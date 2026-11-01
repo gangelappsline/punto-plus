@@ -1,9 +1,11 @@
 import { z } from 'zod';
 import {
   activitySchema,
+  adminBusinessSchema,
   businessSchema,
   cardSchema,
   promotionSchema,
+  type AdminBusiness,
   type AdminCategory,
   type LoyaltyCard,
 } from '../lib/types';
@@ -266,6 +268,87 @@ export function updateAdminCategories<T>(update: (categories: AdminCategory[]) =
     localStorage.setItem(ADMIN_CATEGORIES_KEY, JSON.stringify(categories));
   } catch {
     throw new Error('No se pudieron guardar las categorías en este navegador.');
+  }
+  return result;
+}
+
+const ADMIN_BUSINESSES_KEY = 'punto-plus-admin-businesses-v1';
+const defaultAdminBusinesses: AdminBusiness[] = [
+  {
+    id: 'business-cafe-avellaneda',
+    name: 'Café Avellaneda',
+    slug: 'cafe-avellaneda',
+    email: 'hola@cafeavellaneda.mx',
+    phone: '55 5211 0742',
+    status: 'active',
+    membershipActive: true,
+    membershipExpiresAt: '2026-11-15',
+    customerCount: 186,
+    currentMonthCustomerCount: 186,
+    previousMonthCustomerCount: 174,
+    currentMonthRevenue: 12900,
+    previousMonthRevenue: 11200,
+    createdAt: '2026-02-08T12:00:00Z',
+  },
+  {
+    id: 'business-pan-de-barrio',
+    name: 'Pan de Barrio',
+    slug: 'pan-de-barrio',
+    email: 'equipo@pandebarrio.mx',
+    phone: '55 5556 1030',
+    status: 'active',
+    membershipActive: true,
+    membershipExpiresAt: '2026-11-24',
+    customerCount: 93,
+    currentMonthCustomerCount: 93,
+    previousMonthCustomerCount: 101,
+    currentMonthRevenue: 6900,
+    previousMonthRevenue: 7350,
+    createdAt: '2026-04-14T12:00:00Z',
+  },
+  {
+    id: 'business-matcha-co',
+    name: 'Matcha & Co.',
+    slug: 'matcha-co',
+    email: 'hola@matchaandco.mx',
+    status: 'onboarding',
+    membershipActive: false,
+    membershipExpiresAt: '2026-12-10',
+    customerCount: 47,
+    currentMonthCustomerCount: 47,
+    previousMonthCustomerCount: 38,
+    currentMonthRevenue: 3400,
+    previousMonthRevenue: 2800,
+    createdAt: '2026-08-22T12:00:00Z',
+  },
+  {
+    id: 'business-casa-botanica',
+    name: 'Casa Botánica',
+    slug: 'casa-botanica',
+    email: 'contacto@casabotanica.mx',
+    status: 'pending',
+    membershipActive: false,
+    createdAt: '2026-10-21T12:00:00Z',
+  },
+];
+
+export function readAdminBusinesses(): AdminBusiness[] {
+  try {
+    const saved = localStorage.getItem(ADMIN_BUSINESSES_KEY);
+    if (!saved) return defaultAdminBusinesses.map((business) => ({ ...business }));
+    return z.array(adminBusinessSchema).parse(JSON.parse(saved));
+  } catch {
+    return defaultAdminBusinesses.map((business) => ({ ...business }));
+  }
+}
+
+export function updateAdminBusinesses<T>(update: (businesses: AdminBusiness[]) => T): T {
+  const businesses = readAdminBusinesses();
+  const result = update(businesses);
+  try {
+    localStorage.setItem(ADMIN_BUSINESSES_KEY, JSON.stringify(businesses));
+  } catch {
+    throw new Error('No se pudieron guardar los negocios en este navegador.');
   }
   return result;
 }

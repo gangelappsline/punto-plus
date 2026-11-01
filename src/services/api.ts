@@ -2,6 +2,9 @@ import { z } from 'zod';
 import { isDemo } from '../lib/utils';
 import {
   activitySchema,
+  adminBusinessInputSchema,
+  adminBusinessReportSchema,
+  adminBusinessSchema,
   adminCategoryInputSchema,
   adminCategorySchema,
   businessSchema,
@@ -10,6 +13,9 @@ import {
   foodCategories,
   promotionSchema,
   publicMenuSchema,
+  type AdminBusiness,
+  type AdminBusinessInput,
+  type AdminBusinessReport,
   type AdminCategoryInput,
   type BusinessConfig,
   type BusinessQRConfiguration,
@@ -17,7 +23,15 @@ import {
 } from '../lib/types';
 import { baseURL, http } from './http';
 import * as authService from './auth';
-import { readAdminCategories, readDB, redeemDemo, updateAdminCategories, updateDB } from './demo';
+import {
+  readAdminBusinesses,
+  readAdminCategories,
+  readDB,
+  redeemDemo,
+  updateAdminBusinesses,
+  updateAdminCategories,
+  updateDB,
+} from './demo';
 // Contrato de guardado por paso del asistente de configuración del menú.
 /** Payload para crear una promoción: los campos de identidad los rellena el backend/demo. */
 export type PromotionInput = {
@@ -57,6 +71,149 @@ function unwrapAdminCategoryList(payload: unknown): unknown {
     current = value.data ?? value.categories ?? value.items;
   }
   return current;
+}
+
+function unwrapAdminBusinessResponse(payload: unknown) {
+  const containers: Record<string, unknown>[] = [];
+  let current = payload;
+  for (let depth = 0; depth < 5; depth += 1) {
+    if (Array.isArray(current)) return { businesses: current, containers };
+    if (!current || typeof current !== 'object') break;
+    const value = record(current);
+    containers.push(value);
+    for (const key of ['businesses', 'items', 'results', 'data']) {
+      if (Array.isArray(value[key])) return { businesses: value[key] as unknown[], containers };
+    }
+    const nested = value.data ?? value.result ?? value.payload;
+    if (!nested || typeof nested !== 'object' || Array.isArray(nested)) break;
+    current = nested;
+  }
+  return { businesses: [], containers };
+}
+
+function firstDefined(source: Record<string, unknown>, names: string[]) {
+  for (const name of names) {
+    const value = source[name];
+    if (value !== undefined && value !== null && value !== '') return value;
+  }
+  return undefined;
+}
+
+function stringValue(value: unknown): string | undefined {
+  return typeof value === 'string' || typeof value === 'number' ? String(value) : undefined;
+}
+
+function numberValue(value: unknown): number | undefined {
+  if (typeof value !== 'number' && typeof value !== 'string') return undefined;
+  if (typeof value === 'string' && !value.trim()) return undefined;
+  const parsed = Number(value);
+  return Number.isFinite(parsed) && parsed >= 0 ? parsed : undefined;
+}
+
+const adminBusinessStatuses = new Set(['pending', 'active', 'cancelled', 'onboarding']);
+function normalizeAdminBusiness(payload: unknown, index: number): AdminBusiness {
+  const value = record(payload);
+  const membership = record(value.membership ?? value.subscription);
+  const rawStatus = String(
+    firstDefined(value, ['status', 'business_status', 'subscription_status']) ??
+      firstDefined(membership, ['status']) ??
+      'pending',
+  ).toLowerCase();
+  const expiry =
+    firstDefined(value, [
+      'membership_expires_at',
+      'membershipExpiresAt',
+      'expires_at',
+      'subscription_expires_at',
+    ]) ?? firstDefined(membership, ['expires_at', 'expiresAt', 'end_date']);
+  const active =
+    firstDefined(value, ['membership_active', 'membershipActive', 'is_membership_active']) ??
+    firstDefined(membership, ['active', 'is_active']);
+  const business: AdminBusiness = {
+    id: String(value.id ?? value.business_id ?? `business-${index + 1}`),
+    name: String(firstDefined(value, ['name', 'business_name', 'title']) ?? 'Negocio sin nombre'),
+    slug: stringValue(firstDefined(value, ['slug', 'business_slug'])),
+    email: stringValue(firstDefined(value, ['email', 'contact_email'])),
+    phone: stringValue(firstDefined(value, ['phone', 'phone_number', 'contact_phone'])),
+    status: adminBusinessStatuses.has(rawStatus)
+      ? (rawStatus as AdminBusiness['status'])
+      : 'pending',
+    membershipActive: typeof active === 'boolean' ? active : undefined,
+    membershipExpiresAt: stringValue(expiry),
+    customerCount: numberValue(
+      firstDefined(value, ['customer_count', 'customers_count', 'customerCount']),
+    ),
+    currentMonthCustomerCount: numberValue(
+      firstDefined(value, [
+        'current_month_customers',
+        'customers_current_month',
+        'currentMonthCustomers',
+      ]),
+    ),
+    previousMonthCustomerCount: numberValue(
+      firstDefined(value, ['previous_month_customer_count', 'customers_previous_month']),
+    ),
+    currentMonthRevenue: numberValue(
+      firstDefined(value, ['current_month_revenue', 'revenue_current_month']),
+    ),
+    previousMonthRevenue: numberValue(
+      firstDefined(value, ['previous_month_revenue', 'revenue_previous_month']),
+    ),
+    createdAt: stringValue(firstDefined(value, ['created_at', 'createdAt'])),
+  };
+  return adminBusinessSchema.parse(business);
+}
+
+function getAdminBusinessStatistics(containers: Record<string, unknown>[]) {
+  const sources: Record<string, unknown>[] = [];
+  for (const container of containers) {
+    sources.push(container);
+    for (const key of ['statistics', 'stats', 'summary', 'metrics']) {
+      const nested = container[key];
+      if (nested && typeof nested === 'object' && !Array.isArray(nested))
+        sources.unshift(record(nested));
+    }
+  }
+  const metric = (names: string[]) => {
+    for (const source of sources) {
+      const value = numberValue(firstDefined(source, names));
+      if (value !== undefined) return value;
+    }
+    return undefined;
+  };
+  const statistics = {
+    currentMonthCustomers: metric([
+      'current_month_customers',
+      'customers_current_month',
+      'customer_count_current_month',
+      'currentMonthCustomers',
+    ]),
+    previousMonthCustomers: metric([
+      'previous_month_customers',
+      'customers_previous_month',
+      'customer_count_previous_month',
+      'previousMonthCustomers',
+    ]),
+    currentMonthRevenue: metric([
+      'current_month_revenue',
+      'revenue_current_month',
+      'earned_current_month',
+      'currentMonthRevenue',
+    ]),
+    previousMonthRevenue: metric([
+      'previous_month_revenue',
+      'revenue_previous_month',
+      'earned_previous_month',
+      'previousMonthRevenue',
+    ]),
+    expiringMemberships: metric([
+      'expiring_memberships',
+      'memberships_expiring',
+      'expiring_memberships_count',
+      'expiringMemberships',
+    ]),
+  };
+  return Object.values(statistics).some((value) => value !== undefined) ? statistics : undefined;
 }
 
 function record(value: unknown): Record<string, unknown> {
@@ -646,6 +803,100 @@ export const api = {
       });
     }
     return http.delete(`/admin/categories/${encodeURIComponent(id)}`);
+  },
+  adminBusinesses: async (): Promise<AdminBusinessReport> => {
+    if (isDemo) {
+      const businesses = readAdminBusinesses();
+      const expiringMemberships = businesses.filter((business) => {
+        if (!business.membershipActive || !business.membershipExpiresAt) return false;
+        const days = (new Date(business.membershipExpiresAt).getTime() - Date.now()) / 86400000;
+        return days >= 0 && days <= 30;
+      }).length;
+      return adminBusinessReportSchema.parse({
+        businesses,
+        statistics: {
+          currentMonthCustomers: businesses.reduce(
+            (sum, business) => sum + (business.currentMonthCustomerCount ?? 0),
+            0,
+          ),
+          previousMonthCustomers: businesses.reduce(
+            (sum, business) => sum + (business.previousMonthCustomerCount ?? 0),
+            0,
+          ),
+          currentMonthRevenue: businesses.reduce(
+            (sum, business) => sum + (business.currentMonthRevenue ?? 0),
+            0,
+          ),
+          previousMonthRevenue: businesses.reduce(
+            (sum, business) => sum + (business.previousMonthRevenue ?? 0),
+            0,
+          ),
+          expiringMemberships,
+        },
+      });
+    }
+    const { data } = await http.get('/api/admin/business');
+    const response = unwrapAdminBusinessResponse(data);
+    return adminBusinessReportSchema.parse({
+      businesses: response.businesses.map(normalizeAdminBusiness),
+      statistics: getAdminBusinessStatistics(response.containers),
+    });
+  },
+  createAdminBusiness: async (input: AdminBusinessInput) => {
+    const business = adminBusinessInputSchema.parse(input);
+    const payload = {
+      ...business,
+      email: business.email || undefined,
+      membership_expires_at: business.membershipExpiresAt || undefined,
+    };
+    delete (payload as Partial<typeof payload>).membershipExpiresAt;
+    if (isDemo) {
+      return updateAdminBusinesses((businesses) => {
+        const created: AdminBusiness = {
+          ...business,
+          email: business.email || undefined,
+          membershipActive: business.status === 'active',
+          id: crypto.randomUUID(),
+          createdAt: new Date().toISOString(),
+        };
+        businesses.unshift(created);
+        return created;
+      });
+    }
+    return http.post('/api/admin/business', payload);
+  },
+  updateAdminBusiness: async (id: string, input: AdminBusinessInput) => {
+    const business = adminBusinessInputSchema.parse(input);
+    const payload = {
+      ...business,
+      email: business.email || undefined,
+      membership_expires_at: business.membershipExpiresAt || undefined,
+    };
+    delete (payload as Partial<typeof payload>).membershipExpiresAt;
+    if (isDemo) {
+      return updateAdminBusinesses((businesses) => {
+        const index = businesses.findIndex((item) => item.id === id);
+        if (index < 0) throw new Error('No encontramos este negocio.');
+        businesses[index] = {
+          ...businesses[index],
+          ...business,
+          email: business.email || undefined,
+          membershipActive: business.status === 'active',
+        };
+        return businesses[index];
+      });
+    }
+    return http.put(`/api/admin/business/${encodeURIComponent(id)}`, payload);
+  },
+  deleteAdminBusiness: async (id: string) => {
+    if (isDemo) {
+      return updateAdminBusinesses((businesses) => {
+        const index = businesses.findIndex((item) => item.id === id);
+        if (index < 0) throw new Error('No encontramos este negocio.');
+        businesses.splice(index, 1);
+      });
+    }
+    return http.delete(`/api/admin/business/${encodeURIComponent(id)}`);
   },
   toggleFavorite: async (id: string) =>
     isDemo

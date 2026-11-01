@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
-import { ArrowUpRight, LayoutDashboard, LogOut, ScanLine, Tags } from 'lucide-react';
+import { ArrowUpRight, Building2, LayoutDashboard, LogOut, ScanLine, Tags } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '../components/ui/button';
 import { useLogout } from '../lib/session';
@@ -15,7 +15,11 @@ export function AdminLayout() {
   const location = useLocation();
   const navigate = useNavigate();
   const logout = useLogout();
-  const title = location.pathname.startsWith('/admin/categorias') ? 'Categorías' : 'Resumen';
+  const title = location.pathname.startsWith('/admin/categorias')
+    ? 'Categorías'
+    : location.pathname.startsWith('/admin/negocios')
+      ? 'Negocios'
+      : 'Resumen';
 
   useEffect(() => {
     window.scrollTo({ top: 0 });
@@ -47,6 +51,13 @@ export function AdminLayout() {
           >
             <Tags size={19} strokeWidth={1.65} />
             <span>Categorías</span>
+          </NavLink>
+          <NavLink
+            to="/admin/negocios"
+            className={({ isActive }) => `admin-nav-item ${isActive ? 'active' : ''}`}
+          >
+            <Building2 size={19} strokeWidth={1.65} />
+            <span>Negocios</span>
           </NavLink>
         </nav>
         <div className="sidebar-bottom">
@@ -121,6 +132,10 @@ export function AdminLayout() {
         <NavLink to="/admin/categorias">
           <Tags size={21} />
           <span>Categorías</span>
+        </NavLink>
+        <NavLink to="/admin/negocios">
+          <Building2 size={21} />
+          <span>Negocios</span>
         </NavLink>
       </nav>
     </div>
