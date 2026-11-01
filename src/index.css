@@ -606,9 +606,10 @@ main#main-content {
 }
 .customer-section-tab.active {
   position: relative;
-  border-color: #d5e2e9;
-  background: #eaf3f6;
-  color: #022f53;
+  /*border-color: #fff;
+  background: #fff;*/
+  color: #127a82;
+  font-weight: 900;
 }
 .customer-section-tab.active::after {
   position: absolute;
