@@ -24,7 +24,7 @@ export const queryKeys = {
   businessPromotions: ['business-promotions'] as const,
   publicCategories: ['public-categories'] as const,
   adminCategories: ['admin-categories'] as const,
-  adminBusinesses: ['admin-businesses'] as const,
+  adminBusinesses: (page = 1) => ['admin-businesses', page] as const,
 };
 
 /* ---------------------------------- consultas --------------------------------- */
@@ -69,8 +69,12 @@ export function useAdminCategories() {
   return useQuery({ queryKey: queryKeys.adminCategories, queryFn: api.adminCategories });
 }
 
-export function useAdminBusinesses() {
-  return useQuery({ queryKey: queryKeys.adminBusinesses, queryFn: api.adminBusinesses });
+export function useAdminBusinesses(page = 1) {
+  return useQuery({
+    queryKey: queryKeys.adminBusinesses(page),
+    queryFn: () => api.adminBusinesses(page),
+    placeholderData: (previous) => previous,
+  });
 }
 
 export function useBusiness() {

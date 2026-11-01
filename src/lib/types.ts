@@ -122,17 +122,28 @@ export const adminBusinessSchema = z.object({
   id: z.string(),
   name: z.string(),
   slug: z.string().optional(),
+  description: z.string().optional(),
+  category: z.string().optional(),
   email: z.string().optional(),
   phone: z.string().optional(),
+  logo: z.string().optional(),
   status: adminBusinessStatusSchema,
+  isActive: z.boolean().optional(),
+  isDeleted: z.boolean().optional(),
+  ownerName: z.string().optional(),
+  ownerEmail: z.string().optional(),
   membershipActive: z.boolean().optional(),
   membershipExpiresAt: z.string().optional(),
   customerCount: z.number().nonnegative().optional(),
+  loyaltyCardCount: z.number().nonnegative().optional(),
+  stampsCount: z.number().nonnegative().optional(),
+  promotionsCount: z.number().nonnegative().optional(),
   currentMonthCustomerCount: z.number().nonnegative().optional(),
   previousMonthCustomerCount: z.number().nonnegative().optional(),
   currentMonthRevenue: z.number().nonnegative().optional(),
   previousMonthRevenue: z.number().nonnegative().optional(),
   createdAt: z.string().optional(),
+  updatedAt: z.string().optional(),
 });
 export const adminBusinessInputSchema = z.object({
   name: z.string().trim().min(2, 'Escribe al menos 2 caracteres'),
@@ -141,16 +152,102 @@ export const adminBusinessInputSchema = z.object({
   status: adminBusinessStatusSchema,
   membershipExpiresAt: z.string().optional(),
 });
+const adminBusinessGrowthSchema = z.object({
+  month: z.string(),
+  businesses: z.number().nonnegative(),
+  customers: z.number().nonnegative(),
+});
 export const adminBusinessStatisticsSchema = z.object({
   currentMonthCustomers: z.number().nonnegative().optional(),
   previousMonthCustomers: z.number().nonnegative().optional(),
   currentMonthRevenue: z.number().nonnegative().optional(),
   previousMonthRevenue: z.number().nonnegative().optional(),
   expiringMemberships: z.number().nonnegative().optional(),
+  businesses: z
+    .object({
+      total: z.number().nonnegative().optional(),
+      active: z.number().nonnegative().optional(),
+      inactive: z.number().nonnegative().optional(),
+      withoutLoyaltyCards: z.number().nonnegative().optional(),
+      newLast30Days: z.number().nonnegative().optional(),
+      newThisMonth: z.number().nonnegative().optional(),
+      trashed: z.number().nonnegative().optional(),
+    })
+    .optional(),
+  customers: z
+    .object({
+      total: z.number().nonnegative().optional(),
+      active: z.number().nonnegative().optional(),
+      completed: z.number().nonnegative().optional(),
+      newLast30Days: z.number().nonnegative().optional(),
+    })
+    .optional(),
+  loyaltyCards: z
+    .object({
+      total: z.number().nonnegative().optional(),
+      active: z.number().nonnegative().optional(),
+      public: z.number().nonnegative().optional(),
+    })
+    .optional(),
+  stamps: z
+    .object({
+      total: z.number().nonnegative().optional(),
+      today: z.number().nonnegative().optional(),
+      last30Days: z.number().nonnegative().optional(),
+    })
+    .optional(),
+  promotions: z
+    .object({
+      total: z.number().nonnegative().optional(),
+      active: z.number().nonnegative().optional(),
+    })
+    .optional(),
+  owners: z
+    .object({
+      total: z.number().nonnegative().optional(),
+      active: z.number().nonnegative().optional(),
+      inactive: z.number().nonnegative().optional(),
+    })
+    .optional(),
+  redemptions: z
+    .object({
+      total: z.number().nonnegative().optional(),
+      today: z.number().nonnegative().optional(),
+      last30Days: z.number().nonnegative().optional(),
+    })
+    .optional(),
+  rewards: z
+    .object({
+      total: z.number().nonnegative().optional(),
+      active: z.number().nonnegative().optional(),
+    })
+    .optional(),
+  products: z
+    .object({
+      total: z.number().nonnegative().optional(),
+      active: z.number().nonnegative().optional(),
+    })
+    .optional(),
+  averages: z
+    .object({
+      customersPerBusiness: z.number().nonnegative().optional(),
+      cardsPerBusiness: z.number().nonnegative().optional(),
+      stampsPerCustomer: z.number().nonnegative().optional(),
+      redemptionsPerCustomer: z.number().nonnegative().optional(),
+    })
+    .optional(),
+  growth: z.array(adminBusinessGrowthSchema).optional(),
+});
+export const adminBusinessPaginationSchema = z.object({
+  currentPage: z.number().int().positive().optional(),
+  lastPage: z.number().int().positive().optional(),
+  perPage: z.number().int().positive().optional(),
+  total: z.number().nonnegative().optional(),
 });
 export const adminBusinessReportSchema = z.object({
   businesses: z.array(adminBusinessSchema),
   statistics: adminBusinessStatisticsSchema.optional(),
+  pagination: adminBusinessPaginationSchema.optional(),
 });
 export const adminBusinessEmailSchema = z.object({
   type: z.enum(['reminder', 'thank_you', 'follow_up']),
