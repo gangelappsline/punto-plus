@@ -11,7 +11,6 @@ import {
   Download,
   Gift,
   Heart,
-  History,
   LogOut,
   MapPin,
   Menu,
@@ -36,10 +35,9 @@ import type { PageContext } from './CustomerPages';
 import logo from '../assets/images/logo_2.webp';
 
 export const customerNavigation = [
-  { path: '/app', icon: CreditCard, title: 'Mis tarjetas' },
-  { path: '/app/explorar', icon: Compass, title: 'Explorar' },
-  { path: '/app/recompensas', icon: Gift, title: 'Recompensas' },
-  { path: '/app/actividad', icon: History, title: 'Mi actividad' },
+  { path: '/app', icon: CreditCard, title: 'Tarjetas', end: true },
+  { path: '/app/promociones', icon: Gift, title: 'Promociones', end: true },
+  { path: '/app/cerca-de-mi', icon: MapPin, title: 'Cerca de mí', end: true },
 ];
 
 interface InstallEvent extends Event {
@@ -169,18 +167,15 @@ export function CustomerLayout() {
         <div className="community-label">TU COMUNIDAD, TUS RECOMPENSAS</div>
         <div className="sidebar-section-label">MI ESPACIO</div>
         <nav id="customer-navigation" aria-label="Navegación principal">
-          {customerNavigation.map(({ path, icon: Icon, title: label }) => (
+          {customerNavigation.map(({ path, icon: Icon, title: label, end }) => (
             <NavLink
               key={path}
               to={path}
-              end
+              end={end}
               className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}
             >
               <Icon size={19} strokeWidth={1.65} />
               <span>{label}</span>
-              {path === '/app/recompensas' && ready > 0 && (
-                <span className="nav-count">{ready}</span>
-              )}
               {path === '/app' && <span className="active-nav-dot" />}
             </NavLink>
           ))}
@@ -304,6 +299,14 @@ export function CustomerLayout() {
               )}
             </div>
           </div>
+          <nav className="customer-tabs" aria-label="Secciones del cliente">
+            {customerNavigation.map(({ path, icon: Icon, title, end }) => (
+              <NavLink key={path} to={path} end={end}>
+                <Icon size={17} />
+                <span>{title}</span>
+              </NavLink>
+            ))}
+          </nav>
           <Outlet context={context} />
           <footer className="main-footer">
             <span>© {new Date().getFullYear()} Punto Plus. Lo bueno está cerca.</span>
@@ -326,8 +329,8 @@ export function CustomerLayout() {
       <Dialog
         open={scanOpen}
         onOpenChange={setScanOpen}
-        title="Descubre tu próximo favorito"
-        description="Escanea el QR del negocio para conocer su tarjeta y sumarte."
+        title="Escanear una compra"
+        description="Escanea el QR del negocio para abrir su tarjeta y mostrar tu código al realizar una compra."
       >
         <Scanner onResult={scanned} />
       </Dialog>

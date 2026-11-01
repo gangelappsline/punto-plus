@@ -58,6 +58,14 @@ export const menuFontFamilySchema = z.enum(menuFontFamilies);
 export type LoyaltyCardTheme = (typeof loyaltyCardThemes)[number];
 export type FoodBrandIcon = (typeof foodBrandIcons)[number];
 export type MenuFontFamily = (typeof menuFontFamilies)[number];
+const optionalLatitudeSchema = z.preprocess(
+  (value) => (value === null || value === '' ? undefined : value),
+  z.coerce.number().min(-90).max(90).optional(),
+);
+const optionalLongitudeSchema = z.preprocess(
+  (value) => (value === null || value === '' ? undefined : value),
+  z.coerce.number().min(-180).max(180).optional(),
+);
 export const cardSchema = z.object({
   id: z.string(),
   businessId: z.string(),
@@ -71,6 +79,9 @@ export const cardSchema = z.object({
   icon: foodBrandIconSchema,
   fontFamily: menuFontFamilySchema.optional(),
   location: z.string(),
+  address: z.string().optional(),
+  latitude: optionalLatitudeSchema,
+  longitude: optionalLongitudeSchema,
   distance: z.string(),
   joined: z.boolean(),
   logo: z.string().optional(),

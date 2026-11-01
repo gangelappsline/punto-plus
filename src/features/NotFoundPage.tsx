@@ -14,7 +14,7 @@ export function NotFoundPage() {
           <Link to="/">Ir al inicio</Link>
         </Button>
         <Button variant="outline" asChild>
-          <Link to="/app">Mis tarjetas</Link>
+          <Link to="/app">Tarjetas</Link>
         </Button>
       </div>
     </div>

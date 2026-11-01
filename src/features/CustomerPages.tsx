@@ -1,24 +1,15 @@
 import { useState } from 'react';
 import { Link, useOutletContext } from 'react-router-dom';
 import {
-  ArrowRight,
   ArrowUpRight,
-  BadgeCheck,
-  Check,
   ChevronDown,
-  Coffee,
-  Compass,
-  CreditCard,
   Gift,
   Heart,
-  Leaf,
   MapPin,
   QrCode,
   Search,
-  Sparkles,
-  Sun,
+  ScanLine,
   Stamp,
-  Wheat,
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -28,7 +19,6 @@ import { LoyaltyCard, BrandIcon } from '../components/LoyaltyCard';
 import { PromotionCard } from '../components/PromotionCard';
 import { Button } from '../components/ui/button';
 import { api } from '../services/api';
-import { isDemo } from '../lib/utils';
 export interface PageContext {
   search: string;
   userName: string;
@@ -93,15 +83,16 @@ const matches = (value: string, search: string) =>
         .toLowerCase(),
     );
 export function CardsPage() {
-  const { search, userName, showQR, showCard, showPromotion } = useOutletContext<PageContext>();
-  const { cards, promotions, favorites } = useLoyalty();
+  const { search, showQR, showCard, scan } = useOutletContext<PageContext>();
+  const { cards } = useLoyalty();
   const [filter, setFilter] = useState('all');
   const [sort, setSort] = useState('default');
-  const favorite = useAction(api.toggleFavorite, 'Tus favoritos se actualizaron');
-  const joined = (cards.data || []).filter((c) => c.joined);
-  const ready = joined.filter((c) => c.stamps >= c.goal).length;
+  const joined = (cards.data || []).filter((card) => card.joined);
+  const ready = joined.filter((card) => card.stamps >= card.goal).length;
   const filtered = joined
-    .filter((c) => matches(c.name, search) && (filter !== 'ready' || c.stamps >= c.goal))
+    .filter(
+      (card) => matches(card.name, search) && (filter !== 'ready' || card.stamps >= card.goal),
+    )
     .sort((a, b) =>
       sort === 'close'
         ? a.goal - a.stamps - (b.goal - b.stamps)
@@ -109,112 +100,34 @@ export function CardsPage() {
           ? a.name.localeCompare(b.name)
           : 0,
     );
-  const suggested = (promotions.data || [])
-    .filter((p) => matches(`${p.title} ${p.business}`, search))
-    .slice(0, 3);
+
   return (
     <>
-      <div className="page-intro">
+      <div className="page-intro customer-cards-intro">
         <div>
-          <div className="eyebrow">
-            <Sun className="sun-symbol" size={16} aria-hidden="true" /> QUÉ BUENO VERTE,{' '}
-            {userName.split(' ')[0].toUpperCase()}
-          </div>
+          <div className="eyebrow">TU COMUNIDAD, TUS RECOMPENSAS</div>
           <h1>
-            Tus favoritos, <span>te dan más.</span>
+            Tus tarjetas <span>de lealtad.</span>
           </h1>
-          <p>Esos lugares a los que siempre vuelves, ahora te recompensan.</p>
+          <p>Consulta tus tarjetas disponibles y sigue sumando sellos en tus negocios favoritos.</p>
         </div>
-        <Button onClick={showQR} className="main-qr-button">
-          <QrCode size={18} /> Mi código QR <ArrowUpRight size={17} />
-        </Button>
+        <div className="customer-card-actions">
+          <Button onClick={scan} className="main-qr-button" aria-label="Escanear una nueva compra">
+            <ScanLine size={18} /> Escanear compra <ArrowUpRight size={17} />
+          </Button>
+          <Button onClick={showQR} variant="outline">
+            <QrCode size={17} /> Mi código QR
+          </Button>
+        </div>
       </div>
-      <section className="welcome-banner">
-        <div className="banner-copy">
-          <span className="pill-eyebrow">
-            <Sparkles size={13} /> LO LOCAL SE DISFRUTA MÁS
-          </span>
-          <h2>
-            Tu próxima recompensa
-            <br />
-            está más cerca de lo que crees.
-          </h2>
-          <p>
-            Un café, un antojo, un sello más.
-            <br className="mobile-only" /> Sigue haciendo de lo cotidiano algo especial.
-          </p>
-          <Link to="/app/explorar" className="text-link">
-            Encuentra tu próximo favorito <ArrowRight size={16} />
-          </Link>
-        </div>
-        <div className="banner-photo">
-          <img
-            src="/images/coffee.webp"
-            alt="Dos cafés de especialidad, el inicio de una buena mañana"
-          />
-          <div className="photo-overlay" />
-          <span className="photo-caption">
-            <span>Hecho en tu barrio.</span>
-            <Heart size={14} />
-          </span>
-        </div>
-        <div className="floating-stamp">
-          <BadgeCheck size={26} />
-          <span>
-            Pequeñas visitas.
-            <br />
-            <strong>Grandes sonrisas.</strong>
-          </span>
-        </div>
-      </section>
-      <div className="stats-row">
-        <div className="stat">
-          <span className="stat-icon orange">
-            <CreditCard size={20} />
-          </span>
-          <div>
-            <strong>
-              {cards.isSuccess ? joined.length : '—'} <span>tarjetas activas</span>
-            </strong>
-            <small>Tus lugares de siempre</small>
-          </div>
-        </div>
-        <div className="stat">
-          <span className="stat-icon green">
-            <Stamp size={20} />
-          </span>
-          <div>
-            <strong>
-              {cards.isSuccess ? joined.reduce((s, c) => s + c.stamps, 0) : '—'}{' '}
-              <span>sellos acumulados</span>
-            </strong>
-            <small>Cada visita tiene su premio</small>
-          </div>
-        </div>
-        <Link className="stat reward-stat" to="/app/recompensas">
-          <span className="stat-icon purple">
-            <Gift size={20} />
-          </span>
-          <div>
-            <strong>
-              {cards.isSuccess ? ready : '—'}{' '}
-              <span>{ready === 1 ? 'recompensa lista' : 'recompensas listas'}</span>
-            </strong>
-            <small>
-              Un gusto que ya te ganaste <ArrowRight size={12} />
-            </small>
-          </div>
-          <ArrowUpRight className="stat-arrow" size={19} />
-        </Link>
-      </div>
-      <section className="section">
+      <section className="section customer-cards-section">
         <div className="section-title">
           <h2>
-            Mis tarjetas <span className="count-badge">{joined.length}</span>
+            Tarjetas disponibles <span className="count-badge">{joined.length}</span>
           </h2>
           <label className="sort-control">
             <span className="sr-only">Ordenar tarjetas</span>
-            <select value={sort} onChange={(e) => setSort(e.target.value)}>
+            <select value={sort} onChange={(event) => setSort(event.target.value)}>
               <option value="default">Más recientes</option>
               <option value="close">Más cerca del premio</option>
               <option value="name">Nombre del negocio</option>
@@ -238,8 +151,13 @@ export function CardsPage() {
         {cards.isSuccess &&
           (filtered.length ? (
             <div className="loyalty-grid">
-              {filtered.map((card, i) => (
-                <LoyaltyCard key={card.id} card={card} index={i} onClick={() => showCard(card)} />
+              {filtered.map((card, index) => (
+                <LoyaltyCard
+                  key={card.id}
+                  card={card}
+                  index={index}
+                  onClick={() => showCard(card)}
+                />
               ))}
             </div>
           ) : (
@@ -248,182 +166,324 @@ export function CardsPage() {
               description={
                 search
                   ? 'Prueba con otro nombre o cambia el filtro.'
-                  : 'Descubre un negocio y agrega tu primera tarjeta.'
+                  : 'Descubre un negocio cercano y agrega tu primera tarjeta.'
               }
             >
               <Button asChild variant="outline">
-                <Link to="/app/explorar">Explorar negocios</Link>
+                <Link to="/app/cerca-de-mi">Ver negocios cerca de mí</Link>
               </Button>
             </EmptyState>
           ))}
       </section>
-      <section className="section discover-section">
-        <div className="section-title">
-          <div>
-            <div className="little-label">UN BUEN PLAN CERCA DE TI</div>
-            <h2>
-              Algo nuevo que te va a encantar <Sparkles size={19} className="inline-sparkle" />
-            </h2>
-          </div>
-          <Link to="/app/explorar" className="text-link subtle-link">
-            Explorar todo <ArrowRight size={16} />
-          </Link>
-        </div>
-        <QueryState
-          loading={promotions.isPending}
-          error={promotions.isError}
-          retry={() => void promotions.refetch()}
-        />
-        <div className="promotion-grid">
-          {suggested.map((p) => (
-            <PromotionCard
-              key={p.id}
-              promotion={p}
-              favorite={favorites.data?.includes(p.id) || false}
-              pending={favorite.isPending}
-              onFavorite={() => favorite.mutate(p.id)}
-              onClick={() => showPromotion(p)}
-            />
-          ))}
-        </div>
-        {promotions.isSuccess && !suggested.length && (
-          <p className="muted">No hay promociones que coincidan con tu búsqueda.</p>
-        )}
-      </section>
-      <div className="bottom-note">
-        <Heart size={14} /> Comprar local se siente bien. Volver tiene su recompensa.
+      <div className="customer-secondary-links">
+        <Link to="/app/recompensas">Ver mis recompensas</Link>
+        <Link to="/app/actividad">Consultar mi actividad</Link>
       </div>
     </>
   );
 }
-export function ExplorePage() {
-  const { search, showCard, showPromotion } = useOutletContext<PageContext>();
-  const { cards, promotions, favorites } = useLoyalty();
-  const [category, setCategory] = useState('Todos');
+
+export function PromotionsPage() {
+  const { search, showPromotion } = useOutletContext<PageContext>();
+  const { cards, promotions, favorites, activity } = useLoyalty();
+  const [category, setCategory] = useState('Todas');
   const [onlyFavorites, setOnlyFavorites] = useState(false);
   const favorite = useAction(api.toggleFavorite, 'Tus favoritos se actualizaron');
-  const categories = [
-    { name: 'Todos', icon: Compass },
-    { name: 'Cafetería', icon: Coffee },
-    { name: 'Panadería', icon: Wheat },
-    { name: 'Bebidas', icon: Leaf },
-    { name: 'Bienestar', icon: Heart },
-  ];
-  const filtered = (promotions.data || []).filter(
-    (p) =>
-      (category === 'Todos' || category === p.category) &&
-      matches(p.business + p.title, search) &&
-      (!onlyFavorites || favorites.data?.includes(p.id)),
+  const purchasedCards = (cards.data || []).filter((card) => card.joined && card.stamps > 0);
+  const purchasedIds = new Set(purchasedCards.map((card) => card.businessId));
+  const purchasedNames = new Set([
+    ...purchasedCards.map((card) => normalizeText(card.name)),
+    ...(activity.data || [])
+      .filter((entry) => entry.type === 'stamp')
+      .map((entry) => normalizeText(entry.business)),
+  ]);
+  const eligiblePromotions = (promotions.data || []).filter(
+    (promotion) =>
+      purchasedIds.has(promotion.businessId) ||
+      purchasedNames.has(normalizeText(promotion.business)),
   );
+  const categories = [
+    'Todas',
+    ...new Set(eligiblePromotions.map((promotion) => promotion.category)),
+  ];
+  const filtered = eligiblePromotions.filter(
+    (promotion) =>
+      (category === 'Todas' || category === promotion.category) &&
+      matches(`${promotion.business} ${promotion.title} ${promotion.description}`, search) &&
+      (!onlyFavorites || favorites.data?.includes(promotion.id)),
+  );
+  const retry = () => {
+    void cards.refetch();
+    void promotions.refetch();
+    void activity.refetch();
+  };
+
   return (
     <>
       <div className="page-intro">
         <div>
-          <div className="eyebrow">TU BARRIO TIENE MUCHO QUE DAR</div>
+          <div className="eyebrow">BENEFICIOS DE TUS LUGARES FAVORITOS</div>
           <h1>
-            Un nuevo <span>favorito te espera.</span>
+            Promociones <span>para ti.</span>
           </h1>
-          <p>Descubre lugares con personalidad. Y recompensas que se antojan.</p>
+          <p>Ofertas de negocios donde ya registraste una compra.</p>
         </div>
         <span className="location-chip">
-          <MapPin size={15} /> Ciudad de México
+          <Gift size={15} /> Solo de tus negocios
         </span>
       </div>
       <div className="explore-toolbar">
-        <div className="category-filters">
-          {categories.map(({ name, icon: Icon }) => (
+        <div className="category-filters" aria-label="Filtrar promociones por categoría">
+          {categories.map((name) => (
             <button
               key={name}
+              type="button"
               className={category === name ? 'active' : ''}
               onClick={() => setCategory(name)}
             >
-              <Icon size={16} />
               {name}
             </button>
           ))}
         </div>
         <button
+          type="button"
           className={`save-filter ${onlyFavorites ? 'active' : ''}`}
-          onClick={() => setOnlyFavorites(!onlyFavorites)}
+          onClick={() => setOnlyFavorites((current) => !current)}
           aria-pressed={onlyFavorites}
         >
-          <Heart size={17} /> Guardados
+          <Heart size={17} /> Guardadas
         </button>
       </div>
       <section className="section">
         <div className="section-title">
-          <h2>Pequeños antojos, grandes planes</h2>
+          <h2>Promociones de tus negocios</h2>
           <span className="muted">{filtered.length} promociones</span>
         </div>
         <QueryState
-          loading={promotions.isPending}
-          error={promotions.isError}
-          retry={() => void promotions.refetch()}
+          loading={cards.isPending || promotions.isPending || activity.isPending}
+          error={cards.isError || promotions.isError || activity.isError}
+          retry={retry}
         />
         <div className="promotion-grid">
-          {filtered.map((p) => (
+          {filtered.map((promotion) => (
             <PromotionCard
-              key={p.id}
-              promotion={p}
-              favorite={favorites.data?.includes(p.id) || false}
+              key={promotion.id}
+              promotion={promotion}
+              favorite={favorites.data?.includes(promotion.id) || false}
               pending={favorite.isPending}
-              onFavorite={() => favorite.mutate(p.id)}
-              onClick={() => showPromotion(p)}
+              onFavorite={() => favorite.mutate(promotion.id)}
+              onClick={() => showPromotion(promotion)}
             />
           ))}
         </div>
-        {promotions.isSuccess && !filtered.length && (
+        {cards.isSuccess && promotions.isSuccess && activity.isSuccess && !filtered.length && (
           <EmptyState
-            title="Por aquí aún no hay promociones"
-            description="Prueba otra categoría o guarda tus promociones favoritas."
+            title={
+              eligiblePromotions.length
+                ? 'No hay promociones con este filtro'
+                : 'Aún no hay promociones para ti'
+            }
+            description={
+              eligiblePromotions.length
+                ? 'Prueba otra categoría o quita el filtro de guardadas.'
+                : 'Cuando registres una compra en un negocio, aquí verás sus promociones disponibles.'
+            }
           />
         )}
       </section>
-      <section className="section">
-        <div className="section-title">
-          <h2>Conoce a tus vecinos</h2>
-          <span className="little-label">
-            {isDemo ? 'NEGOCIOS DE DEMOSTRACIÓN' : 'NEGOCIOS PARTICIPANTES'}
-          </span>
+    </>
+  );
+}
+
+function distanceInKm(
+  origin: { latitude: number; longitude: number },
+  destination: { latitude?: number; longitude?: number },
+) {
+  if (destination.latitude === undefined || destination.longitude === undefined) return undefined;
+  const radians = (degrees: number) => (degrees * Math.PI) / 180;
+  const latitudeDelta = radians(destination.latitude - origin.latitude);
+  const longitudeDelta = radians(destination.longitude - origin.longitude);
+  const a =
+    Math.sin(latitudeDelta / 2) ** 2 +
+    Math.cos(radians(origin.latitude)) *
+      Math.cos(radians(destination.latitude)) *
+      Math.sin(longitudeDelta / 2) ** 2;
+  return 6371 * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
+
+export function NearbyPage() {
+  const { search } = useOutletContext<PageContext>();
+  const { cards } = useLoyalty();
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [position, setPosition] = useState<{ latitude: number; longitude: number } | null>(null);
+  const [locationStatus, setLocationStatus] = useState<
+    'idle' | 'loading' | 'ready' | 'denied' | 'unavailable'
+  >('idle');
+  const businesses = (cards.data || []).filter((card) =>
+    matches(`${card.name} ${card.category} ${card.location} ${card.address || ''}`, search),
+  );
+  const selected = businesses.find((business) => business.id === selectedId) ?? businesses[0];
+  const query = selected
+    ? selected.latitude !== undefined && selected.longitude !== undefined
+      ? `${selected.latitude},${selected.longitude}`
+      : `${selected.name}, ${selected.address || selected.location}, Ciudad de México`
+    : position
+      ? `${position.latitude},${position.longitude}`
+      : 'negocios Punto Plus en Ciudad de México';
+  const mapUrl = `https://maps.google.com/maps?q=${encodeURIComponent(query)}&output=embed&z=14`;
+  const externalMapUrl = selected
+    ? position
+      ? `https://www.google.com/maps/dir/?api=1&origin=${position.latitude},${position.longitude}&destination=${encodeURIComponent(`${selected.name}, ${selected.address || selected.location}`)}`
+      : `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${selected.name}, ${selected.address || selected.location}`)}`
+    : 'https://www.google.com/maps/search/?api=1&query=negocios+Punto+Plus';
+
+  function requestLocation() {
+    if (!navigator.geolocation) {
+      setLocationStatus('unavailable');
+      return;
+    }
+    setLocationStatus('loading');
+    navigator.geolocation.getCurrentPosition(
+      ({ coords }) => {
+        setPosition({ latitude: coords.latitude, longitude: coords.longitude });
+        setLocationStatus('ready');
+      },
+      (error) => {
+        setLocationStatus(error.code === error.PERMISSION_DENIED ? 'denied' : 'unavailable');
+      },
+      { enableHighAccuracy: true, timeout: 12000, maximumAge: 60000 },
+    );
+  }
+
+  return (
+    <>
+      <div className="page-intro">
+        <div>
+          <div className="eyebrow">NEGOCIOS QUE FORMAN PARTE DE PUNTO PLUS</div>
+          <h1>
+            Cerca <span>de ti.</span>
+          </h1>
+          <p>Encuentra los negocios participantes y consulta su ubicación en Google Maps.</p>
         </div>
-        <QueryState
-          loading={cards.isPending}
-          error={cards.isError}
-          retry={() => void cards.refetch()}
-        />
-        <div className="business-grid">
-          {(cards.data || [])
-            .filter(
-              (c) => (category === 'Todos' || category === c.category) && matches(c.name, search),
-            )
-            .map((c) => (
-              <button className="business-tile" key={c.id} onClick={() => showCard(c)}>
-                <span className={`business-avatar ${c.theme}`}>
-                  <BrandIcon icon={c.icon} size={28} />
-                </span>
-                <h3>{c.name}</h3>
-                <p>{c.tagline}</p>
-                <span className="business-location">
-                  <MapPin size={13} />
-                  {c.location}
-                </span>
-                <span className={`business-join ${c.joined ? 'joined' : ''}`}>
-                  {c.joined ? (
-                    <>
-                      <Check size={14} /> En mis tarjetas
-                    </>
-                  ) : (
-                    <>
-                      Conocer y unirme <ArrowRight size={14} />
-                    </>
-                  )}
-                </span>
-              </button>
-            ))}
+        <Button onClick={requestLocation} disabled={locationStatus === 'loading'}>
+          <MapPin size={17} />
+          {locationStatus === 'loading' ? 'Buscando ubicación…' : 'Usar mi ubicación'}
+        </Button>
+      </div>
+      {locationStatus !== 'idle' && (
+        <p className="location-permission-note" role="status">
+          {locationStatus === 'ready'
+            ? 'Ubicación activada. Puedes abrir la ruta al negocio seleccionado en Google Maps.'
+            : locationStatus === 'denied'
+              ? 'No tenemos permiso para usar tu ubicación. Puedes habilitarlo en los ajustes del navegador.'
+              : locationStatus === 'unavailable'
+                ? 'No fue posible obtener tu ubicación en este dispositivo. Aún puedes explorar los negocios.'
+                : 'Solicitando permiso de ubicación…'}
+        </p>
+      )}
+      <section className="customer-map-layout" aria-label="Mapa y negocios cercanos">
+        <div className="customer-map-panel">
+          <div className="customer-map-heading">
+            <div>
+              <h2>{selected ? selected.name : 'Mapa de negocios'}</h2>
+              <p>
+                {selected
+                  ? selected.address || selected.location
+                  : 'Selecciona un negocio del listado'}
+              </p>
+            </div>
+            {selected && (
+              <a href={externalMapUrl} target="_blank" rel="noreferrer">
+                Abrir ruta <ArrowUpRight size={14} />
+              </a>
+            )}
+          </div>
+          {cards.isPending ? (
+            <div className="customer-map-placeholder" role="status">
+              Cargando negocios…
+            </div>
+          ) : cards.isError ? (
+            <div className="customer-map-placeholder">
+              <QueryState loading={false} error retry={() => void cards.refetch()} />
+            </div>
+          ) : (
+            <iframe
+              className="customer-google-map"
+              title={
+                selected ? `Google Maps: ${selected.name}` : 'Google Maps de negocios Punto Plus'
+              }
+              src={mapUrl}
+              loading="lazy"
+              referrerPolicy="no-referrer-when-downgrade"
+              allowFullScreen
+            />
+          )}
+          <p className="map-data-note">
+            La ubicación se busca en Google Maps usando el domicilio disponible del negocio. Si
+            falta una dirección precisa, el marcador puede ser aproximado.
+          </p>
+        </div>
+        <div className="customer-map-businesses">
+          <div className="section-title">
+            <h2>Negocios participantes</h2>
+            <span className="count-badge">{businesses.length}</span>
+          </div>
+          <QueryState
+            loading={cards.isPending}
+            error={cards.isError}
+            retry={() => void cards.refetch()}
+          />
+          {cards.isSuccess && businesses.length > 0 ? (
+            <div className="customer-map-business-list">
+              {businesses.map((business) => {
+                const distance = position ? distanceInKm(position, business) : undefined;
+                const distanceLabel =
+                  distance === undefined
+                    ? position
+                      ? 'Distancia no disponible'
+                      : business.distance
+                    : distance < 1
+                      ? `${Math.round(distance * 1000)} m`
+                      : `${distance.toFixed(1)} km`;
+                return (
+                  <button
+                    type="button"
+                    key={business.id}
+                    className={`customer-map-business ${selected?.id === business.id ? 'selected' : ''}`}
+                    onClick={() => setSelectedId(business.id)}
+                  >
+                    <span className={`business-avatar ${business.theme}`}>
+                      <BrandIcon icon={business.icon} size={23} />
+                    </span>
+                    <span className="customer-map-business-copy">
+                      <strong>{business.name}</strong>
+                      <small>{business.address || business.location}</small>
+                    </span>
+                    <span className="customer-map-distance">{distanceLabel}</span>
+                  </button>
+                );
+              })}
+            </div>
+          ) : cards.isSuccess ? (
+            <EmptyState
+              title={search ? 'No encontramos negocios' : 'Aún no hay negocios disponibles'}
+              description={
+                search ? 'Prueba con otra búsqueda.' : 'Los negocios Punto Plus aparecerán aquí.'
+              }
+            />
+          ) : null}
         </div>
       </section>
     </>
   );
+}
+
+function normalizeText(value: string) {
+  return value
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .trim();
 }
 export function RewardsPage() {
   const { search, showCard } = useOutletContext<PageContext>();
