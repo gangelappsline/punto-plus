@@ -37,11 +37,13 @@ Requisitos: Node.js **22.12+** y npm 10+.
 
 ```bash
 npm ci
-cp .env.example .env
+cp .env.example .env.development
 npm run dev
 ```
 
 Abrir `http://localhost:5173`. El servidor escucha en `0.0.0.0` y permite el dominio de preview `.e2b.app`. No hacen falta cuentas, claves ni servicios para explorar la demostración.
+
+Vite carga variables por modo: `npm run dev` usa `.env.development` y `npm run build` usa `.env.production`. Copia `.env.example` a cada archivo que necesites (por ejemplo, `cp .env.example .env.production`) y define ahí los valores apropiados para cada entorno. Los archivos `.env*` locales están ignorados por Git; no agregues claves privadas. Si una variable también está definida en el entorno del proceso/shell, ese valor tiene precedencia sobre los archivos.
 
 ```bash
 npm run build         # TypeScript estricto + build y service worker
