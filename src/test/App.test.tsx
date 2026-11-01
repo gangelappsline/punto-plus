@@ -68,7 +68,8 @@ describe('Experiencia de cliente', () => {
     expect(screen.getByText('Tu ritual, un poquito más verde.')).toBeInTheDocument();
   });
 
-  it('muestra el mapa de Google y solicita permiso de ubicación', async () => {
+  it('carga Google Maps con la clave de entorno y solicita permiso de ubicación', async () => {
+    vi.stubEnv('VITE_GOOGLE_MAPS_API_KEY', 'test-google-maps-key');
     const position = {
       coords: { latitude: 19.4326, longitude: -99.1332 } as GeolocationCoordinates,
       timestamp: Date.now(),
@@ -83,11 +84,25 @@ describe('Experiencia de cliente', () => {
 
     expect(await screen.findByTitle('Google Maps: Café Avellaneda')).toHaveAttribute(
       'src',
-      expect.stringContaining('maps.google.com/maps'),
+      expect.stringContaining(
+        'https://www.google.com/maps/embed/v1/search?key=test-google-maps-key',
+      ),
     );
     await user.click(screen.getByRole('button', { name: 'Usar mi ubicación' }));
     expect(await screen.findByText(/Ubicación activada/)).toBeInTheDocument();
     expect(getCurrentPosition).toHaveBeenCalledOnce();
+    vi.unstubAllEnvs();
+  });
+
+  it('indica cómo configurar el mapa si falta la clave de Google Maps', async () => {
+    vi.stubEnv('VITE_GOOGLE_MAPS_API_KEY', '');
+    setup('/app/cerca-de-mi');
+
+    expect(
+      await screen.findByText(/Configura VITE_GOOGLE_MAPS_API_KEY para cargar el mapa de Google/),
+    ).toBeInTheDocument();
+    expect(screen.queryByTitle('Google Maps: Café Avellaneda')).not.toBeInTheDocument();
+    vi.unstubAllEnvs();
   });
 
   it('solo muestra tarjetas completas al filtrar recompensas', async () => {

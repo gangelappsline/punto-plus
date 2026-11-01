@@ -330,7 +330,10 @@ export function NearbyPage() {
     : position
       ? `${position.latitude},${position.longitude}`
       : 'negocios Punto Plus en Ciudad de México';
-  const mapUrl = `https://maps.google.com/maps?q=${encodeURIComponent(query)}&output=embed&z=14`;
+  const googleMapsApiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY?.trim();
+  const mapUrl = googleMapsApiKey
+    ? `https://www.google.com/maps/embed/v1/search?key=${encodeURIComponent(googleMapsApiKey)}&q=${encodeURIComponent(query)}&zoom=14`
+    : null;
   const externalMapUrl = selected
     ? position
       ? `https://www.google.com/maps/dir/?api=1&origin=${position.latitude},${position.longitude}&destination=${encodeURIComponent(`${selected.name}, ${selected.address || selected.location}`)}`
@@ -405,6 +408,13 @@ export function NearbyPage() {
           ) : cards.isError ? (
             <div className="customer-map-placeholder">
               <QueryState loading={false} error retry={() => void cards.refetch()} />
+            </div>
+          ) : !mapUrl ? (
+            <div className="customer-map-placeholder" role="status">
+              <div>
+                <MapPin size={22} />
+                <p>Configura VITE_GOOGLE_MAPS_API_KEY para cargar el mapa de Google.</p>
+              </div>
             </div>
           ) : (
             <iframe
