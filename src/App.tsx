@@ -1,7 +1,13 @@
 import { lazy, Suspense } from 'react';
 import { Navigate, Route, Routes } from 'react-router-dom';
 import { AppSplash } from './components/AppSplash';
-import { ActivityPage, CardsPage, ExplorePage, RewardsPage } from './features/CustomerPages';
+import {
+  ActivityPage,
+  CardsPage,
+  NearbyPage,
+  PromotionsPage,
+  RewardsPage,
+} from './features/CustomerPages';
 import { BusinessDashboard } from './features/BusinessDashboard';
 import { BusinessLayout } from './features/BusinessShell';
 import { AdminDashboard } from './features/AdminDashboard';
@@ -66,7 +72,9 @@ export default function App() {
         }
       >
         <Route index element={<CardsPage />} />
-        <Route path="explorar" element={<ExplorePage />} />
+        <Route path="promociones" element={<PromotionsPage />} />
+        <Route path="cerca-de-mi" element={<NearbyPage />} />
+        <Route path="explorar" element={<Navigate to="/app/promociones" replace />} />
         <Route path="recompensas" element={<RewardsPage />} />
         <Route path="actividad" element={<ActivityPage />} />
       </Route>

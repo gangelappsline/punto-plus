@@ -1007,7 +1007,10 @@ export const api = {
         },
       });
     }
-    const { data } = await http.get('/admin/business');
+    const { data } =
+      page > 1
+        ? await http.get('/api/admin/business', { params: { page } })
+        : await http.get('/api/admin/business');
     const response = unwrapAdminBusinessResponse(data);
     const meta = response.pagination;
     const pagination = {
@@ -1045,7 +1048,7 @@ export const api = {
         return created;
       });
     }
-    return http.post('/admin/business', payload);
+    return http.post('/api/admin/business', payload);
   },
   updateAdminBusiness: async (id: string, input: AdminBusinessInput) => {
     const business = adminBusinessInputSchema.parse(input);
@@ -1068,7 +1071,7 @@ export const api = {
         return businesses[index];
       });
     }
-    return http.put(`/admin/business/${encodeURIComponent(id)}`, payload);
+    return http.put(`/api/admin/business/${encodeURIComponent(id)}`, payload);
   },
   deleteAdminBusiness: async (id: string) => {
     if (isDemo) {
@@ -1078,7 +1081,7 @@ export const api = {
         businesses.splice(index, 1);
       });
     }
-    return http.delete(`/admin/business/${encodeURIComponent(id)}`);
+    return http.delete(`/api/admin/business/${encodeURIComponent(id)}`);
   },
   toggleFavorite: async (id: string) =>
     isDemo
