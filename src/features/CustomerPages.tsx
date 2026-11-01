@@ -103,11 +103,9 @@ export function CardsPage() {
 
   return (
     <>
-      <div className="page-intro customer-cards-intro">
+      <div className="page-intro customer-cards-intro mt-6">
         <div>
-          <div className="eyebrow">TU COMUNIDAD, TUS RECOMPENSAS</div>
-          <h1>
-            Tus tarjetas <span>de lealtad.</span>
+          <h1>Tus tarjetas <span>de lealtad.</span>
           </h1>
           <p>Consulta tus tarjetas disponibles y sigue sumando sellos en tus negocios favoritos.</p>
         </div>
@@ -432,56 +430,6 @@ export function NearbyPage() {
             La ubicación se busca en Google Maps usando el domicilio disponible del negocio. Si
             falta una dirección precisa, el marcador puede ser aproximado.
           </p>
-        </div>
-        <div className="customer-map-businesses">
-          <div className="section-title">
-            <h2>Negocios participantes</h2>
-            <span className="count-badge">{businesses.length}</span>
-          </div>
-          <QueryState
-            loading={cards.isPending}
-            error={cards.isError}
-            retry={() => void cards.refetch()}
-          />
-          {cards.isSuccess && businesses.length > 0 ? (
-            <div className="customer-map-business-list">
-              {businesses.map((business) => {
-                const distance = position ? distanceInKm(position, business) : undefined;
-                const distanceLabel =
-                  distance === undefined
-                    ? position
-                      ? 'Distancia no disponible'
-                      : business.distance
-                    : distance < 1
-                      ? `${Math.round(distance * 1000)} m`
-                      : `${distance.toFixed(1)} km`;
-                return (
-                  <button
-                    type="button"
-                    key={business.id}
-                    className={`customer-map-business ${selected?.id === business.id ? 'selected' : ''}`}
-                    onClick={() => setSelectedId(business.id)}
-                  >
-                    <span className={`business-avatar ${business.theme}`}>
-                      <BrandIcon icon={business.icon} size={23} />
-                    </span>
-                    <span className="customer-map-business-copy">
-                      <strong>{business.name}</strong>
-                      <small>{business.address || business.location}</small>
-                    </span>
-                    <span className="customer-map-distance">{distanceLabel}</span>
-                  </button>
-                );
-              })}
-            </div>
-          ) : cards.isSuccess ? (
-            <EmptyState
-              title={search ? 'No encontramos negocios' : 'Aún no hay negocios disponibles'}
-              description={
-                search ? 'Prueba con otra búsqueda.' : 'Los negocios Punto Plus aparecerán aquí.'
-              }
-            />
-          ) : null}
         </div>
       </section>
     </>
