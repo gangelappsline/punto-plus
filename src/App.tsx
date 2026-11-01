@@ -1,13 +1,7 @@
 import { lazy, Suspense } from 'react';
 import { Navigate, Route, Routes } from 'react-router-dom';
 import { AppSplash } from './components/AppSplash';
-import {
-  ActivityPage,
-  CardsPage,
-  NearbyPage,
-  PromotionsPage,
-  RewardsPage,
-} from './features/CustomerPages';
+import { CardsPage, NearbyPage, PromotionsPage } from './features/CustomerPages';
 import { BusinessDashboard } from './features/BusinessDashboard';
 import { BusinessLayout } from './features/BusinessShell';
 import { AdminDashboard } from './features/AdminDashboard';
@@ -75,8 +69,8 @@ export default function App() {
         <Route path="promociones" element={<PromotionsPage />} />
         <Route path="cerca-de-mi" element={<NearbyPage />} />
         <Route path="explorar" element={<Navigate to="/app/promociones" replace />} />
-        <Route path="recompensas" element={<RewardsPage />} />
-        <Route path="actividad" element={<ActivityPage />} />
+        <Route path="recompensas" element={<Navigate to="/app" replace />} />
+        <Route path="actividad" element={<Navigate to="/app" replace />} />
       </Route>
       <Route
         path="/business"

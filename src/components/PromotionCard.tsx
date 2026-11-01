@@ -2,14 +2,14 @@ import { ArrowUpRight, Heart, MapPin } from 'lucide-react';
 import type { Promotion } from '../lib/types';
 export function PromotionCard({
   promotion: p,
-  favorite,
+  favorite = false,
   onFavorite,
   onClick,
   pending,
 }: {
   promotion: Promotion;
-  favorite: boolean;
-  onFavorite: () => void;
+  favorite?: boolean;
+  onFavorite?: () => void;
   onClick: () => void;
   pending?: boolean;
 }) {
@@ -34,15 +34,17 @@ export function PromotionCard({
           />
         </button>
         <span className="promotion-badge">{p.badge}</span>
-        <button
-          className={`favorite-button ${favorite ? 'is-favorite' : ''}`}
-          onClick={onFavorite}
-          aria-label={`${favorite ? 'Quitar de' : 'Guardar en'} favoritos: ${p.business}`}
-          aria-pressed={favorite}
-          disabled={pending}
-        >
-          <Heart size={17} fill={favorite ? 'currentColor' : 'none'} />
-        </button>
+        {onFavorite && (
+          <button
+            className={`favorite-button ${favorite ? 'is-favorite' : ''}`}
+            onClick={onFavorite}
+            aria-label={`${favorite ? 'Quitar de' : 'Guardar en'} favoritos: ${p.business}`}
+            aria-pressed={favorite}
+            disabled={pending}
+          >
+            <Heart size={17} fill={favorite ? 'currentColor' : 'none'} />
+          </button>
+        )}
       </div>
       <button className="promotion-info" onClick={onClick}>
         <div className="promotion-business">

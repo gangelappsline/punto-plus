@@ -16,10 +16,9 @@ import { errorMessage, isDemo } from './utils';
  */
 export const queryKeys = {
   cards: ['cards'] as const,
+  nearMe: ['near-me'] as const,
   promotions: ['promotions'] as const,
   activity: ['activity'] as const,
-  favorites: ['favorites'] as const,
-  qr: ['qr'] as const,
   business: ['business'] as const,
   businessPromotions: ['business-promotions'] as const,
   publicCategories: ['public-categories'] as const,
@@ -29,16 +28,12 @@ export const queryKeys = {
 
 /* ---------------------------------- consultas --------------------------------- */
 
-export function useLoyalty() {
-  const cards = useQuery({ queryKey: queryKeys.cards, queryFn: api.cards });
-  const promotions = useQuery({ queryKey: queryKeys.promotions, queryFn: api.promotions });
-  const activity = useQuery({ queryKey: queryKeys.activity, queryFn: api.activity });
-  const favorites = useQuery({ queryKey: queryKeys.favorites, queryFn: api.favorites });
-  return { cards, promotions, activity, favorites };
+export function useCards(enabled = true) {
+  return useQuery({ queryKey: queryKeys.cards, queryFn: api.cards, enabled });
 }
 
-export function useCards() {
-  return useQuery({ queryKey: queryKeys.cards, queryFn: api.cards });
+export function useNearMe() {
+  return useQuery({ queryKey: queryKeys.nearMe, queryFn: api.nearMe });
 }
 
 export function usePromotions() {
@@ -47,22 +42,6 @@ export function usePromotions() {
 
 export function useActivity() {
   return useQuery({ queryKey: queryKeys.activity, queryFn: api.activity });
-}
-
-export function useFavorites() {
-  return useQuery({ queryKey: queryKeys.favorites, queryFn: api.favorites });
-}
-
-/** QR personal del cliente. Solo se pide cuando el diálogo está abierto. */
-export function useMyQR(enabled = true) {
-  return useQuery({
-    queryKey: queryKeys.qr,
-    queryFn: api.qr,
-    enabled,
-    staleTime: 0,
-    gcTime: 0,
-    refetchOnWindowFocus: true,
-  });
 }
 
 export function useAdminCategories() {
@@ -112,22 +91,6 @@ export function useAction<T>(
     },
     onError: (error) => toast.error(errorMessage(error)),
   });
-}
-
-export function useJoin(onSuccess?: () => void) {
-  return useAction(api.join, '¡Un nuevo favorito! La tarjeta ya está en tu colección.', onSuccess);
-}
-
-export function useRedeem(onSuccess?: () => void) {
-  return useAction(
-    api.redeem,
-    isDemo ? '¡Recompensa canjeada en la demostración!' : '¡Disfruta tu recompensa!',
-    onSuccess,
-  );
-}
-
-export function useToggleFavorite(onSuccess?: () => void) {
-  return useAction(api.toggleFavorite, 'Tus favoritos se actualizaron', onSuccess);
 }
 
 export function useSaveBusiness(onSuccess?: () => void) {

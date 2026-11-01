@@ -22,18 +22,6 @@ describe('Persistencia y reglas del modo demo', () => {
     expect(() => redeemDemo('cafe')).toThrow();
     expect(readDB()).toEqual(before);
   });
-  it('guarda favoritos entre lecturas', async () => {
-    await api.toggleFavorite('p1');
-    expect(await api.favorites()).toContain('p1');
-    await api.toggleFavorite('p1');
-    expect(await api.favorites()).not.toContain('p1');
-  });
-  it('agrega una tarjeta sin duplicar la afiliación', async () => {
-    await api.join('flor');
-    await api.join('flor');
-    expect(readDB().cards.filter((c) => c.joined)).toHaveLength(4);
-    expect(readDB().activity.filter((a) => a.business === 'Casa Botánica')).toHaveLength(1);
-  });
   it('valida el QR y el máximo de sellos antes de registrar una compra', async () => {
     await expect(api.stamp('invalido')).rejects.toThrow('QR no válido');
     await api.stamp('punto-plus:demo:sofia');

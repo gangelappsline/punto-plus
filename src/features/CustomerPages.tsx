@@ -1,28 +1,14 @@
 import { useState } from 'react';
 import { Link, useOutletContext } from 'react-router-dom';
-import {
-  ArrowUpRight,
-  ChevronDown,
-  Gift,
-  Heart,
-  MapPin,
-  QrCode,
-  Search,
-  ScanLine,
-  Stamp,
-} from 'lucide-react';
-import { format } from 'date-fns';
-import { es } from 'date-fns/locale';
-import { useLoyalty, useAction } from '../lib/queries';
+import { ArrowUpRight, ChevronDown, Gift, MapPin, Search, ScanLine } from 'lucide-react';
+import { useCards, useNearMe, usePromotions } from '../lib/queries';
 import type { LoyaltyCard as Card, Promotion } from '../lib/types';
-import { LoyaltyCard, BrandIcon } from '../components/LoyaltyCard';
+import { LoyaltyCard } from '../components/LoyaltyCard';
 import { PromotionCard } from '../components/PromotionCard';
 import { Button } from '../components/ui/button';
-import { api } from '../services/api';
 export interface PageContext {
   search: string;
   userName: string;
-  showQR: () => void;
   showCard: (card: Card) => void;
   showPromotion: (promotion: Promotion) => void;
   scan: () => void;
@@ -83,8 +69,8 @@ const matches = (value: string, search: string) =>
         .toLowerCase(),
     );
 export function CardsPage() {
-  const { search, showQR, showCard, scan } = useOutletContext<PageContext>();
-  const { cards } = useLoyalty();
+  const { search, showCard, scan } = useOutletContext<PageContext>();
+  const cards = useCards();
   const [filter, setFilter] = useState('all');
   const [sort, setSort] = useState('default');
   const joined = (cards.data || []).filter((card) => card.joined);
@@ -105,16 +91,18 @@ export function CardsPage() {
     <>
       <div className="page-intro customer-cards-intro mt-6">
         <div>
-          <h1>Tus tarjetas <span>de lealtad.</span>
+          <h1>
+            Tus tarjetas <span>de lealtad.</span>
           </h1>
           <p>Consulta tus tarjetas disponibles y sigue sumando sellos en tus negocios favoritos.</p>
         </div>
         <div className="customer-card-actions">
-          <Button onClick={scan} className="main-qr-button" aria-label="Escanear una nueva compra">
-            <ScanLine size={18} /> Escanear compra <ArrowUpRight size={17} />
-          </Button>
-          <Button onClick={showQR} variant="outline">
-            <QrCode size={17} /> Mi código QR
+          <Button
+            onClick={scan}
+            className="main-qr-button"
+            aria-label="Escanear un negocio participante"
+          >
+            <ScanLine size={18} /> Escanear negocio <ArrowUpRight size={17} />
           </Button>
         </div>
       </div>
@@ -173,48 +161,24 @@ export function CardsPage() {
             </EmptyState>
           ))}
       </section>
-      <div className="customer-secondary-links">
-        <Link to="/app/recompensas">Ver mis recompensas</Link>
-        <Link to="/app/actividad">Consultar mi actividad</Link>
-      </div>
     </>
   );
 }
 
 export function PromotionsPage() {
   const { search, showPromotion } = useOutletContext<PageContext>();
-  const { cards, promotions, favorites, activity } = useLoyalty();
+  const promotions = usePromotions();
   const [category, setCategory] = useState('Todas');
-  const [onlyFavorites, setOnlyFavorites] = useState(false);
-  const favorite = useAction(api.toggleFavorite, 'Tus favoritos se actualizaron');
-  const purchasedCards = (cards.data || []).filter((card) => card.joined && card.stamps > 0);
-  const purchasedIds = new Set(purchasedCards.map((card) => card.businessId));
-  const purchasedNames = new Set([
-    ...purchasedCards.map((card) => normalizeText(card.name)),
-    ...(activity.data || [])
-      .filter((entry) => entry.type === 'stamp')
-      .map((entry) => normalizeText(entry.business)),
-  ]);
-  const eligiblePromotions = (promotions.data || []).filter(
-    (promotion) =>
-      purchasedIds.has(promotion.businessId) ||
-      purchasedNames.has(normalizeText(promotion.business)),
-  );
+  const availablePromotions = promotions.data || [];
   const categories = [
     'Todas',
-    ...new Set(eligiblePromotions.map((promotion) => promotion.category)),
+    ...new Set(availablePromotions.map((promotion) => promotion.category)),
   ];
-  const filtered = eligiblePromotions.filter(
+  const filtered = availablePromotions.filter(
     (promotion) =>
       (category === 'Todas' || category === promotion.category) &&
-      matches(`${promotion.business} ${promotion.title} ${promotion.description}`, search) &&
-      (!onlyFavorites || favorites.data?.includes(promotion.id)),
+      matches(`${promotion.business} ${promotion.title} ${promotion.description}`, search),
   );
-  const retry = () => {
-    void cards.refetch();
-    void promotions.refetch();
-    void activity.refetch();
-  };
 
   return (
     <>
@@ -224,10 +188,10 @@ export function PromotionsPage() {
           <h1>
             Promociones <span>para ti.</span>
           </h1>
-          <p>Ofertas de negocios donde ya registraste una compra.</p>
+          <p>Ofertas de los negocios que forman parte de Punto Plus.</p>
         </div>
         <span className="location-chip">
-          <Gift size={15} /> Solo de tus negocios
+          <Gift size={15} /> Beneficios para ti
         </span>
       </div>
       <div className="explore-toolbar">
@@ -243,48 +207,33 @@ export function PromotionsPage() {
             </button>
           ))}
         </div>
-        <button
-          type="button"
-          className={`save-filter ${onlyFavorites ? 'active' : ''}`}
-          onClick={() => setOnlyFavorites((current) => !current)}
-          aria-pressed={onlyFavorites}
-        >
-          <Heart size={17} /> Guardadas
-        </button>
       </div>
       <section className="section">
         <div className="section-title">
-          <h2>Promociones de tus negocios</h2>
+          <h2>Promociones para ti</h2>
           <span className="muted">{filtered.length} promociones</span>
         </div>
         <QueryState
-          loading={cards.isPending || promotions.isPending || activity.isPending}
-          error={cards.isError || promotions.isError || activity.isError}
-          retry={retry}
+          loading={promotions.isPending}
+          error={promotions.isError}
+          retry={() => void promotions.refetch()}
         />
         <div className="promotion-grid">
           {filtered.map((promotion) => (
             <PromotionCard
               key={promotion.id}
               promotion={promotion}
-              favorite={favorites.data?.includes(promotion.id) || false}
-              pending={favorite.isPending}
-              onFavorite={() => favorite.mutate(promotion.id)}
               onClick={() => showPromotion(promotion)}
             />
           ))}
         </div>
-        {cards.isSuccess && promotions.isSuccess && activity.isSuccess && !filtered.length && (
+        {promotions.isSuccess && !filtered.length && (
           <EmptyState
-            title={
-              eligiblePromotions.length
-                ? 'No hay promociones con este filtro'
-                : 'Aún no hay promociones para ti'
-            }
+            title={search ? 'No encontramos promociones' : 'Aún no hay promociones para ti'}
             description={
-              eligiblePromotions.length
-                ? 'Prueba otra categoría o quita el filtro de guardadas.'
-                : 'Cuando registres una compra en un negocio, aquí verás sus promociones disponibles.'
+              search
+                ? 'Prueba con otro nombre o cambia la categoría.'
+                : 'Cuando haya promociones disponibles, aparecerán aquí.'
             }
           />
         )}
@@ -295,16 +244,15 @@ export function PromotionsPage() {
 
 export function NearbyPage() {
   const { search } = useOutletContext<PageContext>();
-  const { cards } = useLoyalty();
-  const [selectedId] = useState<string | null>(null);
+  const businessesQuery = useNearMe();
   const [position, setPosition] = useState<{ latitude: number; longitude: number } | null>(null);
   const [locationStatus, setLocationStatus] = useState<
     'idle' | 'loading' | 'ready' | 'denied' | 'unavailable'
   >('idle');
-  const businesses = (cards.data || []).filter((card) =>
+  const businesses = (businessesQuery.data || []).filter((card) =>
     matches(`${card.name} ${card.category} ${card.location} ${card.address || ''}`, search),
   );
-  const selected = businesses.find((business) => business.id === selectedId) ?? businesses[0];
+  const selected = businesses[0];
   const query = selected
     ? selected.latitude !== undefined && selected.longitude !== undefined
       ? `${selected.latitude},${selected.longitude}`
@@ -383,13 +331,13 @@ export function NearbyPage() {
               </a>
             )}
           </div>
-          {cards.isPending ? (
+          {businessesQuery.isPending ? (
             <div className="customer-map-placeholder" role="status">
               Cargando negocios…
             </div>
-          ) : cards.isError ? (
+          ) : businessesQuery.isError ? (
             <div className="customer-map-placeholder">
-              <QueryState loading={false} error retry={() => void cards.refetch()} />
+              <QueryState loading={false} error retry={() => void businessesQuery.refetch()} />
             </div>
           ) : !mapUrl ? (
             <div className="customer-map-placeholder" role="status">
@@ -416,196 +364,6 @@ export function NearbyPage() {
           </p>
         </div>
       </section>
-    </>
-  );
-}
-
-function normalizeText(value: string) {
-  return value
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .toLowerCase()
-    .trim();
-}
-export function RewardsPage() {
-  const { search, showCard } = useOutletContext<PageContext>();
-  const { cards, activity } = useLoyalty();
-  const ready = (cards.data || []).filter(
-    (c) => c.joined && c.stamps >= c.goal && matches(c.name, search),
-  );
-  const near = (cards.data || [])
-    .filter((c) => c.joined && c.stamps < c.goal && matches(c.name, search))
-    .sort((a, b) => a.goal - a.stamps - (b.goal - b.stamps));
-  return (
-    <>
-      <div className="page-intro">
-        <div>
-          <div className="eyebrow">TE LO GANASTE, VISITA A VISITA</div>
-          <h1>
-            Lo bueno <span>es para ti.</span>
-          </h1>
-          <p>Transforma tus sellos en esos pequeños gustos que alegran el día.</p>
-        </div>
-        <div className="large-page-icon">
-          <Gift size={30} />
-        </div>
-      </div>
-      <section className="section">
-        <div className="section-title">
-          <h2>
-            Listas para disfrutar <span className="count-badge">{ready.length}</span>
-          </h2>
-        </div>
-        <QueryState
-          loading={cards.isPending}
-          error={cards.isError}
-          retry={() => void cards.refetch()}
-        />
-        <div className="loyalty-grid">
-          {ready.map((c) => (
-            <LoyaltyCard card={c} key={c.id} onClick={() => showCard(c)} />
-          ))}
-        </div>
-        {cards.isSuccess && !ready.length && (
-          <EmptyState
-            title="Lo mejor está por llegar"
-            description="Sigue visitando tus negocios favoritos para completar una tarjeta."
-          />
-        )}
-      </section>
-      <section className="section">
-        <div className="section-title">
-          <h2>Ya casi son tuyas</h2>
-          <span className="muted">Un paso más cerca</span>
-        </div>
-        <div className="near-rewards">
-          {near.map((c) => (
-            <button key={c.id} className="near-card" onClick={() => showCard(c)}>
-              <span className={`business-avatar ${c.theme}`}>
-                <BrandIcon icon={c.icon} />
-              </span>
-              <div>
-                <h3>{c.reward}</h3>
-                <p>{c.name}</p>
-                <div className="progress-track">
-                  <div style={{ width: `${(c.stamps / c.goal) * 100}%` }} />
-                </div>
-              </div>
-              <span>
-                Faltan {c.goal - c.stamps} sellos <ArrowUpRight size={15} />
-              </span>
-            </button>
-          ))}
-        </div>
-      </section>
-      <section className="section">
-        <h2>Tus recompensas canjeadas</h2>
-        <QueryState
-          loading={activity.isPending}
-          error={activity.isError}
-          retry={() => void activity.refetch()}
-        />
-        {activity.isSuccess && !activity.data.some((a) => a.type === 'reward') ? (
-          <p className="muted history-placeholder">
-            Aquí guardaremos los pequeños gustos que ya disfrutaste.
-          </p>
-        ) : (
-          <div className="activity-list">
-            {activity.data
-              ?.filter((a) => a.type === 'reward')
-              .map((a) => (
-                <div className="activity-item" key={a.id}>
-                  <span className="stat-icon purple">
-                    <Gift size={20} />
-                  </span>
-                  <div>
-                    <h3>{a.title}</h3>
-                    <p>{a.business}</p>
-                  </div>
-                  <time>{format(new Date(a.date), 'd MMM yyyy', { locale: es })}</time>
-                </div>
-              ))}
-          </div>
-        )}
-      </section>
-    </>
-  );
-}
-export function ActivityPage() {
-  const { search } = useOutletContext<PageContext>();
-  const { activity } = useLoyalty();
-  const [filter, setFilter] = useState('all');
-  const entries = (activity.data || []).filter(
-    (a) => (filter === 'all' || filter === a.type) && matches(a.business + a.title, search),
-  );
-  return (
-    <>
-      <div className="page-intro">
-        <div>
-          <div className="eyebrow">CADA VISITA CUENTA UNA HISTORIA</div>
-          <h1>
-            Tu camino, <span>punto a punto.</span>
-          </h1>
-          <p>Tus visitas, tus sellos y todos esos buenos momentos.</p>
-        </div>
-      </div>
-      <div className="filter-tabs activity-tabs">
-        {[
-          { id: 'all', name: 'Toda la actividad' },
-          { id: 'stamp', name: 'Sellos' },
-          { id: 'reward', name: 'Recompensas' },
-        ].map((f) => (
-          <button
-            key={f.id}
-            className={filter === f.id ? 'active' : ''}
-            onClick={() => setFilter(f.id)}
-          >
-            {f.name}
-          </button>
-        ))}
-      </div>
-      <QueryState
-        loading={activity.isPending}
-        error={activity.isError}
-        retry={() => void activity.refetch()}
-      />
-      <div className="activity-list">
-        {entries.map((a) => (
-          <div className="activity-item" key={a.id}>
-            <span
-              className={`stat-icon ${a.type === 'reward' ? 'purple' : a.type === 'stamp' ? 'green' : 'orange'}`}
-            >
-              {a.type === 'reward' ? (
-                <Gift size={20} />
-              ) : a.type === 'stamp' ? (
-                <Stamp size={20} />
-              ) : (
-                <Heart size={20} />
-              )}
-            </span>
-            <div>
-              <h3>{a.title}</h3>
-              <p>
-                {a.business}{' '}
-                <span>· {format(new Date(a.date), 'd MMM, HH:mm', { locale: es })}</span>
-              </p>
-            </div>
-            <span className={`activity-amount ${a.type === 'stamp' ? 'positive' : ''}`}>
-              {a.type === 'stamp'
-                ? `+${a.amount} sello`
-                : a.type === 'reward'
-                  ? 'Canjeada'
-                  : 'Nueva tarjeta'}
-            </span>
-          </div>
-        ))}
-      </div>
-      {activity.isSuccess && !entries.length && (
-        <EmptyState
-          title="Una historia por comenzar"
-          description="Tus próximas visitas y recompensas aparecerán aquí."
-        />
-      )}
     </>
   );
 }

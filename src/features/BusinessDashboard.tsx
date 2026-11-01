@@ -12,7 +12,7 @@ import {
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { useBusiness, useLoyalty, usePromotions } from '../lib/queries';
+import { useActivity, useBusiness, useCards, usePromotions } from '../lib/queries';
 import { isDemo } from '../lib/utils';
 import { Button } from '../components/ui/button';
 import { useNavigate } from 'react-router-dom';
@@ -20,7 +20,8 @@ import { useNavigate } from 'react-router-dom';
 /** Resumen del panel de negocio: indicadores, actividad reciente y accesos. */
 export function BusinessDashboard() {
   const navigate = useNavigate();
-  const { cards, activity } = useLoyalty();
+  const cards = useCards();
+  const activity = useActivity();
   const promotions = usePromotions();
   const business = useBusiness();
   const cardsList = cards.data || [];
