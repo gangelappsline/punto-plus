@@ -148,15 +148,17 @@ export function CustomerLayout() {
       </a>
       {mobileNav && (
         <button
-          aria-label="Cerrar menú"
+          type="button"
+          aria-label="Ocultar opciones del menú"
           className="sidebar-backdrop"
           onClick={() => setMobileNav(false)}
         />
       )}
       <aside className={`sidebar ${mobileNav ? 'mobile-open' : ''}`}>
         <button
+          type="button"
           className="mobile-sidebar-close icon-button"
-          aria-label="Cerrar navegación"
+          aria-label="Ocultar opciones del menú"
           onClick={() => setMobileNav(false)}
         >
           <X size={17} />
@@ -166,7 +168,7 @@ export function CustomerLayout() {
         </Link>
         <div className="community-label">TU COMUNIDAD, TUS RECOMPENSAS</div>
         <div className="sidebar-section-label">MI ESPACIO</div>
-        <nav aria-label="Navegación principal">
+        <nav id="customer-navigation" aria-label="Navegación principal">
           {customerNavigation.map(({ path, icon: Icon, title: label }) => (
             <NavLink
               key={path}
@@ -228,8 +230,11 @@ export function CustomerLayout() {
         <header className="topbar">
           <div className="topbar-left">
             <button
+              type="button"
               className="icon-button mobile-menu"
-              aria-label="Abrir menú"
+              aria-label="Mostrar opciones del menú"
+              aria-controls="customer-navigation"
+              aria-expanded={mobileNav}
               onClick={() => setMobileNav(true)}
             >
               <Menu size={22} />
@@ -308,24 +313,6 @@ export function CustomerLayout() {
           </footer>
         </main>
       </div>
-      <nav className="bottom-nav" aria-label="Navegación móvil">
-        {customerNavigation.map(({ path, icon: Icon, title: label }) => (
-          <NavLink key={path} end to={path}>
-            <Icon size={21} />
-            <span>
-              {label === 'Mis tarjetas'
-                ? 'Tarjetas'
-                : label === 'Mi actividad'
-                  ? 'Actividad'
-                  : label}
-            </span>
-          </NavLink>
-        ))}
-        <button onClick={() => setQROpen(true)}>
-          <QrCode size={21} />
-          <span>Mi QR</span>
-        </button>
-      </nav>
       <QRDialog open={qrOpen} onOpenChange={setQROpen} name={user.name} />
       <CardDialog
         selected={card}

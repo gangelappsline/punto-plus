@@ -6807,3 +6807,48 @@ main#main-content {
     border-width: 4px;
   }
 }
+@media (max-width: 768px) {
+  .sidebar.admin-sidebar {
+    display: flex;
+    position: fixed;
+    top: 0;
+    bottom: 0;
+    left: -280px;
+    width: min(258px, calc(100vw - 48px));
+    height: 100dvh;
+    padding: 30px 22px 18px;
+    visibility: hidden;
+    z-index: 51;
+    box-shadow: none;
+    transition: left 0.23s ease;
+  }
+
+  .sidebar.admin-sidebar.mobile-open {
+    left: 0;
+    visibility: visible;
+    box-shadow: 10px 0 40px #022f5333;
+  }
+
+  .sidebar.admin-sidebar .mobile-sidebar-close {
+    display: flex;
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    z-index: 1;
+  }
+
+  .sidebar-backdrop {
+    left: 0;
+    width: 100vw;
+    border: 0;
+    cursor: pointer;
+  }
+
+  .bottom-nav {
+    display: none;
+  }
+
+  .workspace {
+    padding-bottom: 24px;
+  }
+}
