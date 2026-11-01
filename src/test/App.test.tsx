@@ -95,17 +95,33 @@ describe('Experiencia de cliente', () => {
     ).toHaveTextContent('Promociones');
   });
 
-  it('Cerca de mí consulta /customer/near-me sin cargar las otras pestañas', async () => {
+  it('Cerca de mí envía las coordenadas del cliente y no consulta otras pestañas', async () => {
     const cards = vi.spyOn(api, 'cards');
     const promotions = vi.spyOn(api, 'promotions');
     const nearMe = vi.spyOn(api, 'nearMe');
     const activity = vi.spyOn(api, 'activity');
-    setup('/app/cerca-de-mi');
+    const position = {
+      coords: { latitude: 19.4326, longitude: -99.1332 } as GeolocationCoordinates,
+      timestamp: Date.now(),
+      toJSON: () => ({}),
+    } as GeolocationPosition;
+    const getCurrentPosition = vi.fn((success: PositionCallback) => success(position));
+    Object.defineProperty(navigator, 'geolocation', {
+      configurable: true,
+      value: { getCurrentPosition },
+    });
+    const user = setup('/app/cerca-de-mi');
 
+    expect(
+      await screen.findByText(/Usa tu ubicación para buscar negocios cercanos/),
+    ).toBeInTheDocument();
+    expect(nearMe).not.toHaveBeenCalled();
+    await user.click(screen.getByRole('button', { name: 'Usar mi ubicación' }));
     expect(
       await screen.findByText(/Configura VITE_GOOGLE_MAPS_API_KEY para cargar el mapa de Google/),
     ).toBeInTheDocument();
-    expect(nearMe).toHaveBeenCalledOnce();
+    expect(getCurrentPosition).toHaveBeenCalledOnce();
+    expect(nearMe).toHaveBeenCalledWith({ latitude: 19.4326, longitude: -99.1332 });
     expect(cards).not.toHaveBeenCalled();
     expect(promotions).not.toHaveBeenCalled();
     expect(activity).not.toHaveBeenCalled();
@@ -123,18 +139,22 @@ describe('Experiencia de cliente', () => {
       configurable: true,
       value: { getCurrentPosition },
     });
+    const nearMe = vi.spyOn(api, 'nearMe');
     const user = setup('/app/cerca-de-mi');
 
+    expect(screen.queryByTitle('Google Maps: Café Avellaneda')).not.toBeInTheDocument();
+    expect(getCurrentPosition).not.toHaveBeenCalled();
+    expect(nearMe).not.toHaveBeenCalled();
+    await user.click(screen.getByRole('button', { name: 'Usar mi ubicación' }));
+    expect(await screen.findByText(/Ubicación activada/)).toBeInTheDocument();
     expect(await screen.findByTitle('Google Maps: Café Avellaneda')).toHaveAttribute(
       'src',
       expect.stringContaining(
         'https://www.google.com/maps/embed/v1/search?key=test-google-maps-key',
       ),
     );
-    expect(getCurrentPosition).not.toHaveBeenCalled();
-    await user.click(screen.getByRole('button', { name: 'Usar mi ubicación' }));
-    expect(await screen.findByText(/Ubicación activada/)).toBeInTheDocument();
     expect(getCurrentPosition).toHaveBeenCalledOnce();
+    expect(nearMe).toHaveBeenCalledWith({ latitude: 19.4326, longitude: -99.1332 });
   });
 
   it('filtra tarjetas completas sin consultar otras secciones', async () => {
