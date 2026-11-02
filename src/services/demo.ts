@@ -111,6 +111,7 @@ const seed = () => ({
       expires: '2026-12-31',
     },
   ],
+  saleToken: null as { token: string; expiresAt: string } | null,
   activity: [
     {
       id: 'a1',
@@ -212,6 +213,7 @@ const seed = () => ({
   favorites: [] as string[],
 });
 const dbSchema = z.object({
+  saleToken: z.object({ token: z.string(), expiresAt: z.string() }).nullable().optional(),
   cards: z.array(cardSchema),
   promotions: z.array(promotionSchema),
   activity: z.array(activitySchema),

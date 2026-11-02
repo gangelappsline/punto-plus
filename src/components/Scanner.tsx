@@ -5,9 +5,19 @@ import { isDemo } from '../lib/utils';
 export function Scanner({
   onResult,
   business = false,
+  scanPrompt,
+  codePlaceholder,
+  codeLabel = 'Código QR manual',
+  maxLength = 2048,
+  demoCode = business ? 'punto-plus:demo:sofia' : 'punto-plus:business:b4',
 }: {
   onResult: (token: string) => void;
   business?: boolean;
+  scanPrompt?: string;
+  codePlaceholder?: string;
+  codeLabel?: string;
+  maxLength?: number;
+  demoCode?: string;
 }) {
   const id = `scanner-${useId().replace(/:/g, '')}`;
   const [running, setRunning] = useState(false);
@@ -65,7 +75,10 @@ export function Scanner({
         {!running && (
           <div className="scanner-placeholder">
             <ScanLine size={64} strokeWidth={1} />
-            <p>{business ? 'Escanea el QR de tu cliente' : 'Escanea el QR de un negocio'}</p>
+            <p>
+              {scanPrompt ??
+                (business ? 'Escanea el QR de tu cliente' : 'Escanea el QR de un negocio')}
+            </p>
             <small>Coloca el código dentro del recuadro</small>
           </div>
         )}
@@ -94,27 +107,24 @@ export function Scanner({
         }}
       >
         <label className="sr-only" htmlFor={`${id}-code`}>
-          Código QR manual
+          {codeLabel}
         </label>
         <div className="input-button">
           <input
             id={`${id}-code`}
-            placeholder="Código del cliente o negocio"
+            placeholder={codePlaceholder ?? 'Código del cliente o negocio'}
             value={manual}
             onChange={(e) => setManual(e.target.value)}
             required
-            maxLength={2048}
+            maxLength={maxLength}
           />
           <Button variant="secondary" type="submit">
             Validar
           </Button>
         </div>
       </form>
-      {isDemo && (
-        <button
-          className="text-link demo-scan"
-          onClick={() => onResult(business ? 'punto-plus:demo:sofia' : 'punto-plus:business:b4')}
-        >
+      {isDemo && demoCode && (
+        <button className="text-link demo-scan" onClick={() => onResult(demoCode)}>
           Probar con un QR de demostración <ScanLine size={15} />
         </button>
       )}

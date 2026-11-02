@@ -23,7 +23,7 @@ import { CardDialog, PromotionDialog } from './Dialogs';
 import { Button } from '../components/ui/button';
 import { Dialog } from '../components/ui/dialog';
 import { Scanner } from '../components/Scanner';
-import { useCards } from '../lib/queries';
+import { useCards, useConfirmSaleToken } from '../lib/queries';
 import { useLogout } from '../lib/session';
 import { isDemo } from '../lib/utils';
 import { demoUser, useAuth } from '../stores/auth';
@@ -57,6 +57,9 @@ export function CustomerLayout() {
   const logout = useLogout();
   const [search, setSearch] = useState('');
   const [scanOpen, setScanOpen] = useState(false);
+  const [purchaseOpen, setPurchaseOpen] = useState(false);
+  const [purchaseToken, setPurchaseToken] = useState<string | null>(null);
+  const [purchaseComplete, setPurchaseComplete] = useState(false);
   const [card, setCard] = useState<LoyaltyCard | null>(null);
   const [promotion, setPromotion] = useState<Promotion | null>(null);
   const [help, setHelp] = useState(false);
@@ -65,9 +68,13 @@ export function CustomerLayout() {
   const [installEvent, setInstallEvent] = useState<InstallEvent | null>(null);
   const [installHelp, setInstallHelp] = useState(false);
   const [online, setOnline] = useState(navigator.onLine);
+  const confirmSale = useConfirmSaleToken(() => {
+    setPurchaseComplete(true);
+    setPurchaseToken(null);
+  });
   useEffect(() => {
-    if (scanOpen || help || profile) setMobileNav(false);
-  }, [scanOpen, help, profile]);
+    if (scanOpen || purchaseOpen || help || profile) setMobileNav(false);
+  }, [scanOpen, purchaseOpen, help, profile]);
   useEffect(() => {
     if (!mobileNav) return;
     const escape = (e: KeyboardEvent) => {
@@ -114,6 +121,19 @@ export function CustomerLayout() {
     },
     [cards.data],
   );
+  const scannedPurchaseToken = useCallback((rawToken: string) => {
+    const token = rawToken.trim().toUpperCase();
+    if (!/^[A-Z0-9]{8}$/.test(token)) {
+      toast.error('El código de venta debe tener 8 caracteres alfanuméricos.');
+      return;
+    }
+    setPurchaseToken(token);
+  }, []);
+  function openPurchaseConfirmation() {
+    setPurchaseToken(null);
+    setPurchaseComplete(false);
+    setPurchaseOpen(true);
+  }
   async function install() {
     if (!installEvent) {
       setInstallHelp(true);
@@ -130,6 +150,7 @@ export function CustomerLayout() {
     showCard: setCard,
     showPromotion: setPromotion,
     scan: () => setScanOpen(true),
+    confirmPurchase: openPurchaseConfirmation,
   };
   return (
     <div className="app-shell">
@@ -278,6 +299,75 @@ export function CustomerLayout() {
         <Scanner onResult={scanned} />
       </Dialog>
       <Dialog
+        open={purchaseOpen}
+        onOpenChange={(open) => {
+          if (!confirmSale.isPending) {
+            setPurchaseOpen(open);
+            if (!open) {
+              setPurchaseToken(null);
+              setPurchaseComplete(false);
+            }
+          }
+        }}
+        title={purchaseComplete ? 'Compra verificada' : 'Confirma tu compra'}
+        description={
+          purchaseComplete
+            ? 'El token se consumió y tu tarjeta ya se actualizó.'
+            : 'Escanea el QR que muestra el negocio o ingresa el código de venta de 8 caracteres.'
+        }
+      >
+        {purchaseComplete ? (
+          <div className="confirm-panel sale-confirm-success">
+            <span className="confirm-icon">
+              <ShieldCheck size={34} />
+            </span>
+            <h3>¡Compra confirmada!</h3>
+            <p>
+              El token se eliminó para que no pueda reutilizarse y se agregó un sello a tu tarjeta.
+            </p>
+            <Button className="full-width" onClick={() => setPurchaseOpen(false)}>
+              Ver mis tarjetas
+            </Button>
+          </div>
+        ) : purchaseToken ? (
+          <div className="confirm-panel">
+            <span className="confirm-icon">
+              <QrCode size={34} />
+            </span>
+            <h3>Verifica el código</h3>
+            <p>Confirma solo si acabas de realizar una compra en el negocio.</p>
+            <strong className="sale-token-code" aria-label="Código ingresado">
+              {purchaseToken}
+            </strong>
+            {isDemo && <div className="notice">Demostración: la compra es ficticia.</div>}
+            <Button
+              className="full-width"
+              disabled={confirmSale.isPending}
+              onClick={() => confirmSale.mutate(purchaseToken)}
+            >
+              {confirmSale.isPending ? 'Validando compra…' : 'Confirmar compra'}
+            </Button>
+            <Button
+              className="full-width"
+              variant="ghost"
+              disabled={confirmSale.isPending}
+              onClick={() => setPurchaseToken(null)}
+            >
+              Ingresar otro código
+            </Button>
+          </div>
+        ) : (
+          <Scanner
+            onResult={scannedPurchaseToken}
+            scanPrompt="Escanea el QR de venta que muestra el negocio"
+            codeLabel="Código de venta de 8 caracteres"
+            codePlaceholder="Ej. A7BC29XZ"
+            maxLength={8}
+            demoCode=""
+          />
+        )}
+      </Dialog>
+      <Dialog
         open={profile}
         onOpenChange={setProfile}
         title="Qué bueno que eres parte"
@@ -351,7 +441,7 @@ export function CustomerLayout() {
             {
               icon: QrCode,
               title: '2. Visita y suma',
-              text: 'Visita el negocio y consulta con su personal cómo registrar tu compra para sumar sellos.',
+              text: 'El negocio genera un código de un solo uso. Escanea su QR o ingrésalo para confirmar la compra y sumar un sello.',
             },
             {
               icon: Gift,

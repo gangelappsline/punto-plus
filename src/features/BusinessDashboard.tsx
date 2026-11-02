@@ -6,7 +6,7 @@ import {
   LayoutDashboard,
   Megaphone,
   Palette,
-  ScanLine,
+  QrCode,
   Stamp,
   Store,
 } from 'lucide-react';
@@ -55,9 +55,9 @@ export function BusinessDashboard() {
   ];
   const actions = [
     {
-      icon: ScanLine,
-      title: 'Registrar una compra',
-      text: 'Escanea el QR de un cliente y agrégale un sello en segundos.',
+      icon: QrCode,
+      title: 'Verificar una compra',
+      text: 'Genera un token temporal y muéstralo al cliente para que confirme su compra.',
     },
     {
       icon: Megaphone,

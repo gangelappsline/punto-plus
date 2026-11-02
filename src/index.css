@@ -7046,6 +7046,62 @@ main#main-content {
   line-height: 1.6;
   margin: -2px 0 14px;
 }
+.sale-token-panel,
+.sale-token-empty {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  text-align: center;
+}
+.sale-token-empty {
+  align-items: stretch;
+  text-align: left;
+}
+.sale-token-qr {
+  display: grid;
+  place-items: center;
+  max-width: 100%;
+  padding: 12px;
+  border: 1px solid #e3e8ed;
+  border-radius: 14px;
+  background: #ffffff;
+}
+.sale-token-qr svg {
+  display: block;
+  width: min(240px, 65vw);
+  height: auto;
+}
+.sale-token-code {
+  display: block;
+  max-width: 100%;
+  margin: 0;
+  color: #022f53;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: clamp(25px, 8vw, 36px);
+  font-weight: 800;
+  letter-spacing: 0.16em;
+  line-height: 1.2;
+  overflow-wrap: anywhere;
+}
+.sale-token-hint {
+  line-height: 1.55;
+  margin: 0;
+}
+.sale-token-countdown {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  margin: 0;
+  color: #926216;
+  font-size: 13px;
+  font-weight: 700;
+}
+.sale-confirm-success > p {
+  overflow-wrap: anywhere;
+}
 .promotion-banner-upload {
   min-width: 0;
   margin: 2px 0 0;

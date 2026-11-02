@@ -22,12 +22,27 @@ describe('Persistencia y reglas del modo demo', () => {
     expect(() => redeemDemo('cafe')).toThrow();
     expect(readDB()).toEqual(before);
   });
-  it('valida el QR y el máximo de sellos antes de registrar una compra', async () => {
-    await expect(api.stamp('invalido')).rejects.toThrow('QR no válido');
-    await api.stamp('punto-plus:demo:sofia');
-    expect(readDB().cards.find((c) => c.id === 'cafe')?.stamps).toBe(7);
-    await api.stamp('punto-plus:demo:sofia');
-    await expect(api.stamp('punto-plus:demo:sofia')).rejects.toThrow('tarjeta está completa');
+  it('genera un token de venta de un solo uso y confirma la compra del cliente', async () => {
+    const saleToken = await api.newSaleToken();
+    expect(saleToken.token).toMatch(/^[A-Z0-9]{8}$/);
+    expect(Date.parse(saleToken.expiresAt)).toBeGreaterThan(Date.now());
+    expect(readDB().saleToken?.token).toBe(saleToken.token);
+
+    await api.confirmSaleToken(saleToken.token.toLowerCase());
+    expect(readDB().saleToken).toBeNull();
+    expect(readDB().cards.find((card) => card.id === 'cafe')?.stamps).toBe(7);
+    expect(readDB().activity[0].title).toContain('Compra verificada');
+    await expect(api.confirmSaleToken(saleToken.token)).rejects.toThrow('ya fue utilizado');
+  });
+  it('rechaza tokens de venta vencidos sin registrar la compra', async () => {
+    const saleToken = await api.newSaleToken();
+    updateDB((db) => {
+      db.saleToken!.expiresAt = new Date(Date.now() - 1000).toISOString();
+    });
+
+    await expect(api.confirmSaleToken(saleToken.token)).rejects.toThrow('venció');
+    expect(readDB().saleToken).toBeNull();
+    expect(readDB().cards.find((card) => card.id === 'cafe')?.stamps).toBe(6);
   });
   it('se recupera de almacenamiento inválido', () => {
     localStorage.setItem('punto-plus-demo-v1', '{bad');

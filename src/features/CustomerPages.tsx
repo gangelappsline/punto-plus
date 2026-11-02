@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link, useOutletContext } from 'react-router-dom';
-import { ArrowUpRight, ChevronDown, Gift, MapPin, Search, ScanLine } from 'lucide-react';
+import { ArrowUpRight, ChevronDown, Gift, MapPin, QrCode, Search, ScanLine } from 'lucide-react';
 import { useCards, useNearMe, usePromotions } from '../lib/queries';
 import type { LoyaltyCard as Card, Promotion } from '../lib/types';
 import { LoyaltyCard } from '../components/LoyaltyCard';
@@ -12,6 +12,7 @@ export interface PageContext {
   showCard: (card: Card) => void;
   showPromotion: (promotion: Promotion) => void;
   scan: () => void;
+  confirmPurchase: () => void;
 }
 export function EmptyState({
   title,
@@ -69,7 +70,7 @@ const matches = (value: string, search: string) =>
         .toLowerCase(),
     );
 export function CardsPage() {
-  const { search, showCard, scan } = useOutletContext<PageContext>();
+  const { search, showCard, scan, confirmPurchase } = useOutletContext<PageContext>();
   const cards = useCards();
   const [filter, setFilter] = useState('all');
   const [sort, setSort] = useState('default');
@@ -103,6 +104,13 @@ export function CardsPage() {
             aria-label="Escanear un negocio participante"
           >
             <ScanLine size={18} /> Escanear negocio <ArrowUpRight size={17} />
+          </Button>
+          <Button
+            variant="outline"
+            className="main-qr-button purchase-confirm-button"
+            onClick={confirmPurchase}
+          >
+            <QrCode size={18} /> Confirmar compra
           </Button>
         </div>
       </div>

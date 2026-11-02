@@ -5,6 +5,7 @@ import { MemoryRouter } from 'react-router-dom';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import App from '../App';
 import { api } from '../services/api';
+import { readDB } from '../services/demo';
 
 function setup(path = '/app') {
   const client = new QueryClient({
@@ -76,6 +77,23 @@ describe('Experiencia de cliente', () => {
       'aria-current',
       'page',
     );
+  });
+
+  it('permite al cliente confirmar una compra con el token de venta del negocio', async () => {
+    const token = await api.newSaleToken();
+    const user = setup();
+
+    await screen.findByRole('button', { name: /Ver tarjeta de Café Avellaneda/ });
+    await user.click(screen.getByRole('button', { name: 'Confirmar compra' }));
+    await user.type(screen.getByLabelText('Código de venta de 8 caracteres'), token.token);
+    await user.click(screen.getByRole('button', { name: 'Validar' }));
+
+    expect(await screen.findByRole('heading', { name: 'Verifica el código' })).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Confirmar compra' }));
+
+    expect(await screen.findByRole('heading', { name: '¡Compra confirmada!' })).toBeInTheDocument();
+    expect(readDB().saleToken).toBeNull();
+    expect(readDB().cards.find((card) => card.id === 'cafe')?.stamps).toBe(7);
   });
 
   it('Promociones solo consulta /customer/promotions y resalta la pestaña activa', async () => {
