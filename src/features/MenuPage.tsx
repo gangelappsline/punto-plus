@@ -8,6 +8,7 @@ import {
   Clock3,
   MapPin,
   Minus,
+  Phone,
   Plus,
   Search,
   ShoppingBag,
@@ -30,10 +31,16 @@ import { AppSplash } from '../components/AppSplash';
 import { useSessionStatus } from '../lib/session';
 import { panelPathFor } from '../lib/utils';
 import type { MenuItem } from '../lib/types';
+import { builderWhatsAppLink } from '../lib/menuBuilder';
 import { api, PublicMenuNotFoundError } from '../services/api';
 import { useAuth } from '../stores/auth';
 
 const currency = new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' });
+const orderModeLabels: Record<string, string> = {
+  pickup: 'Para llevar',
+  delivery: 'A domicilio',
+  dinein: 'En el local',
+};
 
 function itemImage(item: MenuItem) {
   if (item.image || item.imageUrl) return item.image || item.imageUrl!;
@@ -484,6 +491,36 @@ export function MenuPage() {
           )}
         </div>
 
+        {data.menuPromo?.text && (
+          <section
+            className="mb-6 flex flex-wrap items-center gap-3 rounded-2xl border px-4 py-3"
+            aria-label="Promoción del menú"
+            style={{ backgroundColor: secondary, borderColor: theme.border, color: theme.ink }}
+          >
+            <span
+              className="grid size-9 shrink-0 place-items-center rounded-xl"
+              style={{ backgroundColor: theme.card, color: primary }}
+            >
+              <Sparkles size={17} />
+            </span>
+            <div className="min-w-0 flex-1">
+              {data.menuPromo.note && (
+                <p className="text-[10px] font-extrabold tracking-[0.14em] uppercase opacity-70">
+                  {data.menuPromo.note}
+                </p>
+              )}
+              <p className="text-sm font-bold">{data.menuPromo.text}</p>
+            </div>
+            {data.menuPromo.price && (
+              <strong className="text-lg font-extrabold" style={{ color: primary }}>
+                {data.menuPromo.price.startsWith('$')
+                  ? data.menuPromo.price
+                  : `$${data.menuPromo.price}`}
+              </strong>
+            )}
+          </section>
+        )}
+
         <nav
           className="sticky top-0 z-20 -mx-4 mb-8 flex gap-2 overflow-x-auto px-4 py-3 backdrop-blur-md sm:-mx-6 sm:px-6 lg:-mx-8 lg:px-8"
           style={{ backgroundColor: theme.surfaceVeil }}
@@ -675,23 +712,59 @@ export function MenuPage() {
 
         {!isClient && (
           <aside
-            className="my-8 flex flex-wrap items-center gap-4 rounded-2xl border p-4 shadow-sm sm:p-5"
+            className="my-8 flex flex-col gap-4 rounded-2xl border p-4 shadow-sm sm:p-5"
             style={{ backgroundColor: theme.card, borderColor: theme.border }}
           >
-            <span
-              className="grid size-11 shrink-0 place-items-center rounded-xl"
-              style={{ backgroundColor: secondary, color: primary }}
-            >
-              <ShoppingBag size={20} />
-            </span>
-            <div className="min-w-0 flex-1">
-              <strong className="text-sm font-bold" style={{ color: theme.ink }}>
-                ¿Te gustaría pedir?
-              </strong>
-              <p className="mt-1 text-xs leading-5" style={{ color: theme.muted }}>
-                Inicia sesión como cliente para agregar platillos a tu orden.
-              </p>
+            <div className="flex flex-wrap items-center gap-4">
+              <span
+                className="grid size-11 shrink-0 place-items-center rounded-xl"
+                style={{ backgroundColor: secondary, color: primary }}
+              >
+                <ShoppingBag size={20} />
+              </span>
+              <div className="min-w-0 flex-1">
+                <strong className="text-sm font-bold" style={{ color: theme.ink }}>
+                  ¿Te gustaría pedir?
+                </strong>
+                <p className="mt-1 text-xs leading-5" style={{ color: theme.muted }}>
+                  Inicia sesión como cliente para agregar platillos a tu orden.
+                </p>
+              </div>
+              {data.phone && data.allowOrders !== false && (
+                <a
+                  className="inline-flex items-center gap-2 rounded-xl px-4 py-2.5 text-xs font-bold transition hover:brightness-110"
+                  style={{ backgroundColor: primary, color: theme.onPrimary }}
+                  href={builderWhatsAppLink(data.phone, data.name)}
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  <Phone size={15} /> Pedir por WhatsApp
+                </a>
+              )}
             </div>
+            {(data.orderModes?.length || data.paymentMethods?.length || data.deliveryFee) && (
+              <div className="flex flex-wrap gap-1.5" aria-label="Entrega y formas de pago">
+                {data.orderModes?.map((mode) => (
+                  <span
+                    key={mode}
+                    className="rounded-lg px-2 py-1 text-[11px] font-semibold"
+                    style={{ backgroundColor: theme.surfaceSoft, color: theme.ink }}
+                  >
+                    {orderModeLabels[mode]}
+                    {mode === 'delivery' && data.deliveryFee ? ` · $${data.deliveryFee}` : ''}
+                  </span>
+                ))}
+                {data.paymentMethods?.map((method) => (
+                  <span
+                    key={method}
+                    className="rounded-lg px-2 py-1 text-[11px] font-semibold"
+                    style={{ backgroundColor: theme.surfaceSoft, color: theme.ink }}
+                  >
+                    {method}
+                  </span>
+                ))}
+              </div>
+            )}
             {user ? (
               <Link
                 className="inline-flex items-center gap-2 rounded-xl px-4 py-2.5 text-xs font-bold transition hover:brightness-110"
@@ -939,11 +1012,29 @@ function DishCard({
         <span
           className={`flex min-w-0 flex-1 flex-col items-start ${popular ? 'gap-1.5 p-3 pb-4' : 'self-stretch py-1'}`}
         >
-          <span
-            className="text-[9px] font-extrabold uppercase tracking-[0.1em]"
-            style={{ color: primary }}
-          >
-            {item.category || 'De la casa'}
+          <span className="flex flex-wrap items-center gap-1">
+            <span
+              className="text-[9px] font-extrabold uppercase tracking-[0.1em]"
+              style={{ color: primary }}
+            >
+              {item.category || 'De la casa'}
+            </span>
+            {item.isNew && (
+              <span
+                className="rounded px-1.5 py-0.5 text-[8px] font-extrabold tracking-[0.06em]"
+                style={{ backgroundColor: theme.surfaceSoft, color: primary }}
+              >
+                NUEVO
+              </span>
+            )}
+            {typeof item.stock === 'number' && item.stock <= 10 && (
+              <span
+                className="rounded px-1.5 py-0.5 text-[8px] font-bold"
+                style={{ backgroundColor: theme.surfaceSoft, color: theme.muted }}
+              >
+                {item.stock === 0 ? 'Agotado' : `Quedan ${item.stock}`}
+              </span>
+            )}
           </span>
           <strong
             className="line-clamp-2 text-sm font-extrabold leading-5"

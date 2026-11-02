@@ -12,6 +12,9 @@ import { GuestOnly, PanelGate } from './features/Guards';
 import { LandingPage } from './features/LandingPage';
 import { Login } from './features/Login';
 import { NotFoundPage } from './features/NotFoundPage';
+const MenuBuilder = lazy(() =>
+  import('./features/MenuBuilder').then((m) => ({ default: m.MenuBuilder })),
+);
 const BusinessPage = lazy(() =>
   import('./features/BusinessPage').then((m) => ({ default: m.BusinessPage })),
 );
@@ -86,6 +89,14 @@ export default function App() {
           element={
             <Suspense fallback={<AppSplash message="Preparando tu menú…" />}>
               <BusinessMenuWizard />
+            </Suspense>
+          }
+        />
+        <Route
+          path="crear"
+          element={
+            <Suspense fallback={<AppSplash message="Armando tu menú…" />}>
+              <MenuBuilder />
             </Suspense>
           }
         />

@@ -14,6 +14,19 @@ export function getAppBaseUrl() {
   return (import.meta.env.VITE_BASE_APP_URL || window.location.origin).replace(/\/+$/, '');
 }
 
+/** Enlace legible del negocio: minúsculas, sin acentos y con guiones. */
+export function businessSlug(name: string) {
+  return (
+    name
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .toLowerCase()
+      .trim()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '') || 'mi-menu'
+  );
+}
+
 export function publicMenuUrl(slug: string) {
   return `${getAppBaseUrl()}/${encodeURIComponent(slug)}`;
 }
