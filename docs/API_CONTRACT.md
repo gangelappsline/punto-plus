@@ -222,8 +222,11 @@ Los valores fuera de catálogo se ignoran (`src/services/api.ts` valida contra l
 `light`, `pills`, `cozy`). Las plantillas de `src/lib/menuStyles.ts` son solo combinaciones de
 estas claves: no hay estado adicional que sincronizar.
 
-**Creador de menús (`/business/crear`).** Pantalla de armado rápido: el negocio elige su giro, se
-precarga un catálogo de ejemplo y ajusta productos, datos, diseño y entrega. Al publicar se envían
+**Creador de menús (`/crear-menu?codigo=<invitación>`).** Pantalla pública de armado rápido, pensada
+para el celular (en pantallas grandes se centra en un marco de 500 px). Cualquiera puede recorrer
+los pasos —diseño, logo y banner, categorías, productos y configuración— con un menú de arranque por
+giro; publicar requiere sesión de negocio y el `codigo` de la URL se conserva hasta el registro. Al
+publicar se envían
 **cinco `PUT /business/card`** con `{ step, data }` (mismos pasos que el configurador:
 `information`, `categories`, `products`, `design`, `service`) y el frontend deja la configuración
 lista en caché. Claves nuevas, todas **opcionales**:

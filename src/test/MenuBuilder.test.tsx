@@ -3,6 +3,7 @@ import userEvent from '@testing-library/user-event';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { beforeEach, describe, expect, it } from 'vitest';
+import App from '../App';
 import { MenuBuilder } from '../features/MenuBuilder';
 import { MenuPage } from '../features/MenuPage';
 import {
@@ -19,22 +20,37 @@ import {
 import { businessSchema, publicMenuSchema } from '../lib/types';
 import { readDB, updateDB } from '../services/demo';
 
-function setupBuilder() {
+function setupBuilder(path = '/crear-menu?codigo=INV-2026') {
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
   });
   const user = userEvent.setup();
   render(
     <QueryClientProvider client={queryClient}>
-      <MemoryRouter initialEntries={['/business/crear']}>
+      <MemoryRouter initialEntries={[path]}>
         <Routes>
-          <Route path="/business/crear" element={<MenuBuilder />} />
+          <Route path="/crear-menu" element={<MenuBuilder publicRoute />} />
           <Route path="/business/mi-menu" element={<h1>Mi menú</h1>} />
+          <Route path="/login" element={<h1>Entrar</h1>} />
         </Routes>
       </MemoryRouter>
     </QueryClientProvider>,
   );
   return user;
+}
+
+/** Toca un paso del carrusel superior por su título. */
+async function goToStep(user: ReturnType<typeof userEvent.setup>, title: string) {
+  // Espera a que el borrador esté cargado antes de tocar el carrusel.
+  await screen.findByRole('list', { name: 'Pasos del creador de menús' });
+  await user.click(screen.getByRole('button', { name: new RegExp(title) }));
+}
+
+/** Siembra un giro desde el paso de categorías y vuelve a la lista de productos. */
+async function seedType(user: ReturnType<typeof userEvent.setup>, label: string) {
+  await goToStep(user, 'Categorías');
+  const group = await screen.findByRole('group', { name: 'Menú de arranque por giro' });
+  await user.click(within(group).getByRole('button', { name: label }));
 }
 
 const slugify = (name: string) =>
@@ -132,29 +148,35 @@ describe('Creador de menús: catálogo y conversión', () => {
 
   it('marca los errores de cada paso antes de publicar', () => {
     const empty = emptyBuilderState();
-    expect(builderStepError(empty, 0)).toMatch(/Elige qué vendes/);
-    expect(
-      builderStepError({ ...empty, typeId: 'tacos', items: seedCatalog('tacos').items }, 1),
-    ).toMatch(/categoría/);
+    // Diseño y logo son libres: se puede seguir sin tocar nada.
+    expect(builderStepError(empty, 0)).toBe('');
+    expect(builderStepError(empty, 1)).toBe('');
+    expect(builderStepError(empty, 2)).toMatch(/al menos una sección/);
 
     const state = applyBusinessType(emptyBuilderState(), 'tacos');
-    expect(builderStepError({ ...state, items: [{ ...state.items[0], price: '' }] }, 1)).toMatch(
+    expect(builderStepError(state, 2)).toBe('');
+    expect(builderStepError({ ...state, items: [{ ...state.items[0], price: '' }] }, 3)).toMatch(
       /nombre y precio/,
     );
-    expect(builderStepError({ ...state, items: [] }, 1)).toMatch(/al menos un producto/);
+    expect(builderStepError({ ...state, items: [] }, 3)).toMatch(/al menos un producto/);
+    // Un producto en una sección que ya no existe se detecta en categorías.
+    expect(
+      builderStepError({ ...state, categories: [], items: seedCatalog('tacos').items }, 2),
+    ).toMatch(/al menos una sección/);
 
-    expect(builderStepError({ ...state, name: 'Taquería', serviceDays: [] }, 2)).toMatch(
+    expect(builderStepError({ ...state, name: 'Taquería', serviceDays: [] }, 4)).toMatch(
       /día de servicio/,
     );
     expect(
       builderStepError(
         { ...state, name: 'Taquería', openingTime: '22:00', closingTime: '09:00' },
-        2,
+        4,
       ),
     ).toMatch(/horario/);
-    expect(builderStepError({ ...state, name: 'Taquería' }, 2)).toBe('');
-    // El diseño no exige nada: cualquier plantilla es válida.
-    expect(builderStepError({ ...state, name: 'Taquería' }, 3)).toBe('');
+    expect(builderStepError({ ...state, name: 'Taquería', whatsapp: '123' }, 4)).toMatch(
+      /WhatsApp/,
+    );
+    expect(builderStepError({ ...state, name: 'Taquería' }, 4)).toBe('');
     expect(builderStepError({ ...state, name: 'Taquería', orderModes: [] }, 4)).toMatch(
       /forma de entrega/,
     );
@@ -192,25 +214,56 @@ describe('Creador de menús: catálogo y conversión', () => {
 });
 
 describe('Creador de menús: pantalla', () => {
-  it('muestra los cinco pasos y el giro arma el menú al primer toque', async () => {
-    const user = setupBuilder();
+  it('respeta el orden de los cinco pasos y se ve como un celular', async () => {
+    setupBuilder();
     const steps = await screen.findByRole('list', { name: 'Pasos del creador de menús' });
-    expect(within(steps).getAllByRole('listitem')).toHaveLength(5);
-    expect(screen.getByRole('group', { name: 'Giro del negocio' })).toBeInTheDocument();
+    const items = within(steps).getAllByRole('listitem');
+    expect(items).toHaveLength(5);
+    ['Diseño', 'Logo y banner', 'Categorías', 'Productos', 'Configuración'].forEach(
+      (title, index) => expect(items[index]).toHaveTextContent(title),
+    );
 
-    await user.click(screen.getByRole('button', { name: 'Pizzería' }));
+    // El marco simula un móvil: nunca pasa de 500 px de ancho.
+    const phone = screen.getByTestId('builder-phone');
+    expect(phone.className).toContain('max-w-[500px]');
 
-    // Pasa a productos y la vista previa ya tiene secciones y platillos.
-    const preview = await screen.findByTestId('builder-preview');
-    expect(within(preview).getAllByText('Pizzas').length).toBeGreaterThan(0);
-    expect(within(preview).getAllByText('Margarita').length).toBeGreaterThan(0);
+    // El código de invitación de la URL queda a la vista.
+    expect(screen.getByTestId('builder-invite-code')).toHaveTextContent('INV-2026');
+    // Sin sesión se ofrece entrar, no el panel del negocio.
+    expect(screen.getByRole('link', { name: 'Entrar' })).toHaveAttribute(
+      'href',
+      '/login?codigo=INV-2026',
+    );
+    expect(screen.getByRole('heading', { level: 2, name: 'Diseño' })).toBeInTheDocument();
+  });
+
+  it('arma el menú desde las secciones y el giro de arranque', async () => {
+    const user = setupBuilder();
+    await goToStep(user, 'Categorías');
+
+    const group = await screen.findByRole('group', { name: 'Menú de arranque por giro' });
+    await user.click(within(group).getByRole('button', { name: 'Pizzería' }));
+
+    // La sección sembrada queda seleccionada y las secciones se administran aquí.
+    const pizzas = screen
+      .getAllByRole('button', { name: 'Pizzas' })
+      .some((button) => button.getAttribute('aria-pressed') === 'true');
+    expect(pizzas).toBe(true);
+
+    await user.type(screen.getByLabelText('Nombre de la nueva sección'), 'Bebidas');
+    await user.click(screen.getByRole('button', { name: 'Agregar sección' }));
+    expect(screen.getByRole('button', { name: 'Quitar la sección Bebidas' })).toBeInTheDocument();
+
+    await goToStep(user, 'Productos');
     expect(screen.getByLabelText('Nombre de Margarita')).toHaveValue('Margarita');
+    const preview = screen.getByTestId('builder-preview');
+    expect(within(preview).getAllByText('Margarita').length).toBeGreaterThan(0);
   });
 
   it('permite editar precios, marcar destacados y agregar productos', async () => {
     const user = setupBuilder();
-    await screen.findByRole('group', { name: 'Giro del negocio' });
-    await user.click(screen.getByRole('button', { name: 'Taquería' }));
+    await seedType(user, 'Taquería');
+    await goToStep(user, 'Productos');
 
     const price = screen.getByLabelText('Precio de Pastor');
     await user.clear(price);
@@ -223,12 +276,6 @@ describe('Creador de menús: pantalla', () => {
       screen.getByRole('button', { name: 'Marcar Bistec como lo más pedido' }),
     ).toHaveAttribute('aria-pressed', 'true');
 
-    // Se puede crear una sección nueva sin salir del paso.
-    await user.type(screen.getByLabelText('Nombre de la nueva sección'), 'Salsas');
-    await user.click(screen.getByRole('button', { name: 'Agregar sección' }));
-    expect(screen.getByRole('button', { name: /^Salsas/ })).toHaveAttribute('aria-pressed', 'true');
-    await user.click(screen.getAllByRole('button', { name: 'Tacos' }).at(-1)!);
-
     await user.click(screen.getByRole('button', { name: 'Agregar producto a Tacos' }));
     const name = screen.getByLabelText('Nombre de el producto');
     await user.type(name, 'Taco dorado');
@@ -240,10 +287,30 @@ describe('Creador de menús: pantalla', () => {
 
   it('recorre los pasos, publica y muestra el enlace con su QR', async () => {
     const user = setupBuilder();
-    await screen.findByRole('group', { name: 'Giro del negocio' });
-    await user.click(screen.getByRole('button', { name: 'Taquería' }));
 
+    // 1. Diseño: elige un estilo de plantilla.
+    await user.click(await screen.findByRole('button', { name: 'Estilo Zen' }));
     await user.click(screen.getByRole('button', { name: /Continuar/ }));
+
+    // 2. Logo y banner: ambos son opcionales.
+    expect(screen.getByRole('heading', { level: 2, name: 'Logo y banner' })).toBeInTheDocument();
+    expect(screen.getByLabelText('Subir logo')).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: /Continuar/ }));
+
+    // 3. Categorías: siembra el giro.
+    await user.click(
+      within(await screen.findByRole('group', { name: 'Menú de arranque por giro' })).getByRole(
+        'button',
+        { name: 'Taquería' },
+      ),
+    );
+    await user.click(screen.getByRole('button', { name: /Continuar/ }));
+
+    // 4. Productos: el menú de ejemplo ya trae nombres y precios.
+    expect(screen.getByLabelText('Precio de Pastor')).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: /Continuar/ }));
+
+    // 5. Configuración: datos del negocio, entrega y pago.
     const name = await screen.findByPlaceholderText('Tacos El Güero');
     await user.clear(name);
     await user.type(name, 'Tacos El Güero');
@@ -254,10 +321,6 @@ describe('Creador de menús: pantalla', () => {
     await user.clear(address);
     await user.type(address, 'Av. Morelos 214');
 
-    await user.click(screen.getByRole('button', { name: /Continuar/ }));
-    await user.click(screen.getByRole('button', { name: 'Estilo Zen' }));
-
-    await user.click(screen.getByRole('button', { name: /Continuar/ }));
     // El demo ya trae «para llevar» y «a domicilio»: se suma «en el local».
     expect(screen.getByLabelText('A domicilio')).toBeChecked();
     await user.click(screen.getByLabelText('En el local'));
@@ -285,24 +348,40 @@ describe('Creador de menús: pantalla', () => {
     );
   });
 
-  it('no deja avanzar sin nombre de negocio y avisa del paso que falta', async () => {
+  it('no publica sin nombre de negocio y avisa del paso que falta', async () => {
     const user = setupBuilder();
-    await screen.findByRole('group', { name: 'Giro del negocio' });
-    await user.click(screen.getByRole('button', { name: 'Otro' }));
+    await goToStep(user, 'Configuración');
 
-    await user.click(screen.getByRole('button', { name: /Continuar/ }));
     const name = await screen.findByPlaceholderText('Tacos El Güero');
     // El negocio del demo ya tiene nombre: se borra para probar la validación.
     await user.clear(name);
-    await user.click(screen.getByRole('button', { name: /Continuar/ }));
-    // Sin nombre no se avanza: el paso sigue abierto en «Tu negocio».
-    // El paso sigue abierto: el campo de nombre permanece y no hay estilos que elegir.
-    expect(screen.getByPlaceholderText('Tacos El Güero')).toBeInTheDocument();
-    expect(screen.queryByRole('group', { name: 'Estilos de menú' })).not.toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: /Publicar mi menú/ }));
 
-    await user.type(name, 'Antojitos');
-    await user.click(screen.getByRole('button', { name: /Continuar/ }));
-    expect(screen.getByRole('group', { name: 'Estilos de menú' })).toBeInTheDocument();
+    // Sin nombre no hay publicación: sigue en configuración, sin QR.
+    expect(screen.getByPlaceholderText('Tacos El Güero')).toBeInTheDocument();
+    expect(screen.queryByLabelText('Código QR de tu menú')).not.toBeInTheDocument();
+    expect(screen.getByRole('heading', { level: 2, name: 'Configuración' })).toBeInTheDocument();
+  });
+});
+
+describe('Creador de menús: ruta pública', () => {
+  it('se abre sin sesión en /crear-menu?codigo=…', async () => {
+    const queryClient = new QueryClient({
+      defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
+    });
+    render(
+      <QueryClientProvider client={queryClient}>
+        <MemoryRouter initialEntries={['/crear-menu?codigo=INV-777']}>
+          <App />
+        </MemoryRouter>
+      </QueryClientProvider>,
+    );
+
+    expect(
+      await screen.findByRole('heading', { name: 'Arma tu menú digital' }),
+    ).toBeInTheDocument();
+    expect(screen.getByTestId('builder-invite-code')).toHaveTextContent('INV-777');
+    expect(screen.getByTestId('builder-phone').className).toContain('max-w-[500px]');
   });
 });
 

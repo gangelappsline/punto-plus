@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { QRCodeSVG } from 'qrcode.react';
 import {
   ArrowLeft,
@@ -11,16 +11,16 @@ import {
   Copy,
   ExternalLink,
   ImagePlus,
+  Layers,
   MapPin,
   Palette,
   Phone,
   Plus,
   Rocket,
+  Settings,
   Sparkles,
   Star,
-  Store,
   Trash2,
-  Truck,
   Utensils,
   X,
 } from 'lucide-react';
@@ -28,8 +28,9 @@ import { toast } from 'sonner';
 import { fontStack } from '../components/LoyaltyCard';
 import { Button } from '../components/ui/button';
 import { useBusiness, usePublishBusinessMenu } from '../lib/queries';
+import { useAuth } from '../stores/auth';
 import { readImage } from '../lib/image';
-import { businessSlug, publicMenuUrl } from '../lib/utils';
+import { businessSlug, isDemo, publicMenuUrl } from '../lib/utils';
 import {
   cardStyleClass,
   logoShapeClass,
@@ -73,13 +74,13 @@ import {
   type OrderMode,
 } from '../lib/menuBuilder';
 
-/** Pasos del creador: el menú se arma con cada respuesta. */
+/** Pasos del creador, en el orden en que se arma el menú. */
 const builderSteps = [
-  { title: '¿Qué vendes?', hint: 'Elige tu giro y armamos el menú base', icon: Utensils },
-  { title: 'Tus productos', hint: 'Precios, fotos y lo que se acabó', icon: Star },
-  { title: 'Tu negocio', hint: 'Nombre, WhatsApp y horario', icon: Store },
-  { title: 'Diseño', hint: 'Colores, portada y logo', icon: Palette },
-  { title: 'Entrega y pago', hint: 'Cómo te piden y cómo cobras', icon: Truck },
+  { title: 'Diseño', hint: 'Plantillas, colores y tipografía', icon: Palette },
+  { title: 'Logo y banner', hint: 'Tu marca en la portada del menú', icon: ImagePlus },
+  { title: 'Categorías', hint: 'Las secciones de tu carta', icon: Layers },
+  { title: 'Productos', hint: 'Precios, fotos y existencias', icon: Utensils },
+  { title: 'Configuración', hint: 'Datos, horario, entrega y pago', icon: Settings },
 ] as const;
 
 const fieldClass =
@@ -90,13 +91,22 @@ const dayShort = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
 /**
  * «Crea tu menú en un minuto».
  *
- * Pantalla de armado rápido: cada respuesta del negocio construye el menú a la
- * derecha y, al final, se publica con el mismo contrato por pasos de
- * `PUT /business/card`. El enlace y el QR quedan listos para compartir.
+ * Pantalla de armado rápido pensada para el celular: el formulario ocupa todo
+ * el ancho del teléfono y, en pantallas grandes, se dibuja dentro de un marco
+ * de 500 px que simula un móvil. Cualquiera puede armarlo (`/crear-menu`);
+ * publicarlo requiere una cuenta con negocio, y el código de invitación
+ * (`?codigo=…`) viaja con el enlace hasta el registro.
  */
-export function MenuBuilder() {
-  const business = useBusiness();
+export function MenuBuilder({ publicRoute = false }: { publicRoute?: boolean }) {
   const publish = usePublishBusinessMenu();
+  const [searchParams] = useSearchParams();
+  const inviteCode = (searchParams.get('codigo') ?? '').trim();
+  const location = useLocation();
+  const navigate = useNavigate();
+  const authenticated = useAuth((s) => Boolean(s.accessToken));
+  // En la ruta pública y sin sesión no hay negocio que pedir: se arranca en blanco.
+  const needsBusiness = !publicRoute || authenticated || isDemo;
+  const business = useBusiness({ enabled: needsBusiness });
   const [state, setState] = useState<BuilderState>(() => emptyBuilderState());
   const [loaded, setLoaded] = useState(false);
   const [step, setStep] = useState(0);
@@ -105,12 +115,26 @@ export function MenuBuilder() {
   const [importedImage, setImportedImage] = useState('');
   const fileInput = useRef<HTMLInputElement>(null);
 
+  // La pantalla es pública: si no hay sesión (o la API falla) se arranca en
+  // blanco en vez de bloquear el creador con un error.
   useEffect(() => {
-    if (!business.data || loaded) return;
-    const next = builderStateFromConfig(business.data);
-    setState(next);
-    setLoaded(true);
-  }, [business.data, loaded]);
+    if (loaded) return;
+    if (!needsBusiness) {
+      setLoaded(true);
+      return;
+    }
+    if (business.isSuccess) {
+      if (business.data) setState(builderStateFromConfig(business.data));
+      setLoaded(true);
+      return;
+    }
+    if (business.isError) setLoaded(true);
+  }, [needsBusiness, business.isSuccess, business.isError, business.data, loaded]);
+
+  useEffect(() => {
+    if (!publicRoute) return;
+    document.title = 'Crea el menú de tu negocio · Punto Plus';
+  }, [publicRoute]);
 
   useEffect(() => {
     // Solo se corrige la sección activa si desapareció de la lista: así una
@@ -127,6 +151,9 @@ export function MenuBuilder() {
   const design = state.design;
   const theme = useMemo(() => menuTheme(design), [design]);
   const previewSlug = publicMenuUrl(state.name.trim() ? businessSlug(state.name) : 'mi-menu');
+  const guest = publicRoute && !business.data;
+  const loginHref = `/login${inviteCode ? `?codigo=${encodeURIComponent(inviteCode)}` : ''}`;
+  const registerHref = `/registro${inviteCode ? `?codigo=${encodeURIComponent(inviteCode)}` : ''}`;
 
   const update = <K extends keyof BuilderState>(key: K, value: BuilderState[K]) =>
     setState((current) => ({ ...current, [key]: value }));
@@ -188,6 +215,14 @@ export function MenuBuilder() {
     }));
   }
 
+  function seedType(typeId: string) {
+    const seeded = seedCatalog(typeId);
+    setState((current) => applyBusinessType(current, typeId));
+    setActiveCategory(seeded.categories[0] ?? '');
+    setImportedImage('');
+    toast.success('Armamos un menú de ejemplo: ajústalo a tu gusto.');
+  }
+
   async function chooseBrandImage(key: 'logo' | 'banner', file?: File) {
     if (!file) return;
     try {
@@ -202,9 +237,7 @@ export function MenuBuilder() {
     try {
       const image = await readImage(file);
       setImportedImage(image);
-      toast.success(
-        'Foto cargada. Copia los productos de tu carta sobre la lista de la izquierda.',
-      );
+      toast.success('Foto cargada. Copia los productos de tu carta en la lista.');
     } catch (error) {
       toast.error((error as Error).message);
     }
@@ -228,7 +261,13 @@ export function MenuBuilder() {
         return;
       }
     }
-    if (!business.data) return;
+    if (!business.data) {
+      toast.error('Crea tu cuenta para publicar el menú que armaste.');
+      navigate(registerHref, {
+        state: { from: `${location.pathname}${location.search}` },
+      });
+      return;
+    }
     const config = builderToConfig(business.data, state);
     try {
       await publish.mutateAsync({ saves: builderSaves(config), config });
@@ -239,16 +278,19 @@ export function MenuBuilder() {
     }
   }
 
-  if (business.isPending || !loaded)
+  if (!loaded)
     return (
-      <div
-        className="grid min-h-56 place-content-center gap-3 text-center text-sm text-slate-500"
-        role="status"
-      >
-        Preparando tu menú…
-      </div>
+      <PhoneShell>
+        <div
+          className="grid min-h-56 place-content-center gap-3 text-center text-sm text-slate-500"
+          role="status"
+        >
+          Preparando tu menú…
+        </div>
+      </PhoneShell>
     );
-  if (business.isError || !business.data)
+
+  if (!publicRoute && (business.isError || !business.data)) {
     return (
       <section className="mx-auto grid min-h-56 max-w-lg content-center justify-items-center gap-3 px-6 text-center text-slate-600">
         <h2 className="text-xl font-bold text-slate-900">No pudimos cargar tu negocio</h2>
@@ -258,74 +300,100 @@ export function MenuBuilder() {
         </Button>
       </section>
     );
+  }
 
   if (published)
     return (
-      <PublishedPanel
-        name={state.name}
-        link={previewSlug}
-        itemCount={state.items.length}
-        categoryCount={categories.length}
-        onKeepEditing={() => setPublished(false)}
-      />
+      <PhoneShell>
+        <PublishedPanel
+          name={state.name}
+          link={previewSlug}
+          itemCount={state.items.length}
+          categoryCount={categories.length}
+          onKeepEditing={() => setPublished(false)}
+        />
+      </PhoneShell>
     );
 
   const ActiveIcon = builderSteps[step].icon;
+  const lastStep = step === builderSteps.length - 1;
   return (
-    <div className="flex flex-col gap-4">
-      <header className="flex flex-wrap items-end justify-between gap-3">
-        <div>
+    <PhoneShell>
+      <header className="flex items-start justify-between gap-3 px-1 pt-1">
+        <div className="min-w-0">
           <p className="text-[10px] font-extrabold tracking-[0.18em] text-emerald-700 uppercase">
-            CREADOR DE MENÚS
+            Creador de menús
           </p>
-          <h1 className="text-2xl font-extrabold tracking-tight text-slate-900">
+          <h1 className="mt-0.5 text-xl leading-6 font-extrabold tracking-tight text-slate-900">
             Arma tu menú digital
           </h1>
-          <p className="mt-1 max-w-2xl text-sm text-slate-500">
-            Tu menú se va armando aquí mismo con cada respuesta. Al final compartes tu enlace y tu
-            QR.
-          </p>
         </div>
-        <Link
-          to="/business/mi-menu"
-          className="inline-flex items-center gap-2 rounded-xl border border-slate-200 px-3 py-2 text-xs font-bold text-slate-600 transition hover:bg-slate-50"
-        >
-          <ArrowLeft size={15} /> Editor completo
-        </Link>
+        {publicRoute ? (
+          authenticated ? (
+            <Link
+              to="/business/mi-menu"
+              className="shrink-0 rounded-xl border border-slate-200 px-2.5 py-1.5 text-[11px] font-bold text-slate-600 transition hover:bg-slate-50"
+            >
+              Mi menú
+            </Link>
+          ) : (
+            <Link
+              to={loginHref}
+              className="shrink-0 rounded-xl border border-slate-200 px-2.5 py-1.5 text-[11px] font-bold text-slate-600 transition hover:bg-slate-50"
+            >
+              Entrar
+            </Link>
+          )
+        ) : (
+          <Link
+            to="/business/mi-menu"
+            className="inline-flex shrink-0 items-center gap-1 rounded-xl border border-slate-200 px-2.5 py-1.5 text-[11px] font-bold text-slate-600 transition hover:bg-slate-50"
+          >
+            <ArrowLeft size={13} /> Editor
+          </Link>
+        )}
       </header>
 
-      <ol className="flex gap-1.5 overflow-x-auto pb-1" aria-label="Pasos del creador de menús">
+      {inviteCode && (
+        <p
+          data-testid="builder-invite-code"
+          className="mx-1 flex items-center gap-1.5 rounded-xl bg-emerald-50 px-3 py-2 text-[11px] font-semibold text-emerald-800"
+        >
+          <Sparkles size={12} className="shrink-0" />
+          Invitación <span className="font-mono">{inviteCode}</span>
+        </p>
+      )}
+
+      <ol
+        className="flex items-stretch gap-1 overflow-x-auto px-0.5 pb-1"
+        aria-label="Pasos del creador de menús"
+      >
         {builderSteps.map((item, index) => {
           const active = index === step;
           const done = index < step;
           return (
-            <li key={item.title} className="min-w-0 shrink-0">
+            <li key={item.title} className="min-w-0 flex-1">
               <button
                 type="button"
-                className={`flex items-center gap-2 rounded-xl border px-3 py-2 text-left transition ${
+                className={`flex h-full w-full flex-col items-center gap-1 rounded-xl border px-1 py-2 transition ${
                   active
                     ? 'border-emerald-500 bg-emerald-50 text-emerald-900'
                     : done
                       ? 'border-emerald-200 bg-white text-emerald-700'
-                      : 'border-slate-200 bg-white text-slate-500 hover:bg-slate-50'
+                      : 'border-slate-200 bg-white text-slate-400 hover:bg-slate-50'
                 }`}
                 aria-current={active ? 'step' : undefined}
                 onClick={() => setStep(index)}
               >
                 <span
-                  className={`grid size-6 shrink-0 place-items-center rounded-full text-[11px] font-extrabold ${
-                    done
-                      ? 'bg-emerald-600 text-white'
-                      : active
-                        ? 'bg-emerald-600 text-white'
-                        : 'bg-slate-100 text-slate-500'
+                  className={`grid size-6 place-items-center rounded-full text-[11px] font-extrabold ${
+                    done || active ? 'bg-emerald-600 text-white' : 'bg-slate-100 text-slate-500'
                   }`}
                 >
                   {done ? <Check size={13} /> : index + 1}
                 </span>
-                <span className="min-w-0">
-                  <span className="block text-xs font-bold">{item.title}</span>
-                  <span className="block text-[10px] text-slate-500">{item.hint}</span>
+                <span className="w-full truncate text-center text-[10px] leading-3 font-bold">
+                  {item.title}
                 </span>
               </button>
             </li>
@@ -333,127 +401,129 @@ export function MenuBuilder() {
         })}
       </ol>
 
-      <div className="grid grid-cols-1 gap-4 xl:grid-cols-[minmax(0,1fr)_400px]">
-        <section className="min-w-0 rounded-2xl border border-slate-200 bg-white shadow-sm">
-          <div className="flex items-center gap-3 border-b border-slate-100 px-4 py-3 sm:px-5">
-            <span className="grid size-9 shrink-0 place-items-center rounded-xl bg-emerald-50 text-emerald-700">
-              <ActiveIcon size={18} />
-            </span>
-            <div className="min-w-0">
-              <h2 className="truncate text-sm font-extrabold text-slate-900">
-                {builderSteps[step].title}
-              </h2>
-              <p className="truncate text-xs text-slate-500">{builderSteps[step].hint}</p>
-            </div>
-            <span className="ml-auto shrink-0 text-[10px] font-bold tracking-[0.12em] text-slate-400 uppercase">
-              Paso {step + 1} de {builderSteps.length}
-            </span>
+      <section className="min-w-0 rounded-2xl border border-slate-200 bg-white shadow-sm">
+        <div className="flex items-center gap-2.5 border-b border-slate-100 px-3 py-2.5">
+          <span className="grid size-8 shrink-0 place-items-center rounded-xl bg-emerald-50 text-emerald-700">
+            <ActiveIcon size={16} />
+          </span>
+          <div className="min-w-0 flex-1">
+            <h2 className="truncate text-sm font-extrabold text-slate-900">
+              {builderSteps[step].title}
+            </h2>
+            <p className="truncate text-[11px] text-slate-500">{builderSteps[step].hint}</p>
           </div>
+          <span className="shrink-0 text-[10px] font-bold tracking-[0.1em] text-slate-400 uppercase">
+            {step + 1}/{builderSteps.length}
+          </span>
+        </div>
 
-          <div className="flex flex-col gap-5 p-4 sm:p-5">
-            {step === 0 && (
-              <TypeStep
-                state={state}
-                onSelect={(typeId) => {
-                  const seeded = seedCatalog(typeId);
-                  setState((current) => applyBusinessType(current, typeId));
-                  setActiveCategory(seeded.categories[0] ?? '');
-                  setImportedImage('');
-                  setStep(1);
-                }}
-                onImport={() => fileInput.current?.click()}
-                importedImage={importedImage}
-                onClearImage={() => setImportedImage('')}
-              />
-            )}
+        <div className="flex flex-col gap-5 p-3.5">
+          {step === 0 && (
+            <DesignStep
+              design={design}
+              onChange={(key, value) => update('design', { ...design, [key]: value })}
+              onTemplate={(template) => update('design', menuTemplateValues(template))}
+            />
+          )}
 
-            {step === 1 && (
-              <ProductsStep
-                state={state}
-                // Las secciones recién creadas se muestran aunque estén vacías.
-                categories={state.categories}
-                activeCategory={activeCategory}
-                setActiveCategory={setActiveCategory}
-                onAddItem={addItem}
-                onAddCategory={addCategory}
-                onRemoveCategory={removeCategory}
-                onUpdateItem={updateItem}
-                onRemoveItem={removeItem}
-              />
-            )}
+          {step === 1 && (
+            <BrandStep
+              state={state}
+              onLogo={(file) => void chooseBrandImage('logo', file)}
+              onBanner={(file) => void chooseBrandImage('banner', file)}
+              onClear={(key) => update(key, '')}
+            />
+          )}
 
-            {step === 2 && (
-              <BusinessStep
-                state={state}
-                onChange={update}
-                onLogo={(file) => void chooseBrandImage('logo', file)}
-                onBanner={(file) => void chooseBrandImage('banner', file)}
-              />
-            )}
+          {step === 2 && (
+            <CategoriesStep
+              state={state}
+              categories={state.categories}
+              activeCategory={activeCategory}
+              onSelectCategory={setActiveCategory}
+              onAddCategory={addCategory}
+              onRemoveCategory={removeCategory}
+              onSeedType={seedType}
+            />
+          )}
 
-            {step === 3 && (
-              <DesignStep
-                design={design}
-                onChange={(key, value) => update('design', { ...design, [key]: value })}
-                onTemplate={(template) => update('design', menuTemplateValues(template))}
-              />
-            )}
+          {step === 3 && (
+            <ProductsStep
+              state={state}
+              // Las secciones recién creadas se muestran aunque estén vacías.
+              categories={state.categories}
+              activeCategory={activeCategory}
+              setActiveCategory={setActiveCategory}
+              onAddItem={addItem}
+              onUpdateItem={updateItem}
+              onRemoveItem={removeItem}
+              onImport={() => fileInput.current?.click()}
+              importedImage={importedImage}
+              onClearImage={() => setImportedImage('')}
+            />
+          )}
 
-            {step === 4 && <ServiceStep state={state} onChange={update} categories={categories} />}
-          </div>
+          {step === 4 && (
+            <SettingsStep state={state} onChange={update} categories={categories} guest={guest} />
+          )}
+        </div>
 
-          <footer className="flex flex-wrap items-center justify-between gap-3 border-t border-slate-200 bg-slate-50 px-4 py-3 sm:px-5">
+        <footer className="sticky bottom-0 z-10 flex items-center gap-2 rounded-b-2xl border-t border-slate-200 bg-white/95 px-3 py-2.5 backdrop-blur">
+          <Button
+            variant="outline"
+            type="button"
+            className="shrink-0"
+            disabled={step === 0}
+            onClick={() => setStep((current) => Math.max(current - 1, 0))}
+          >
+            <ArrowLeft size={15} /> Atrás
+          </Button>
+          <span className="min-w-0 flex-1 truncate text-[10px] text-slate-500">
+            {state.items.length} productos · {categories.length} secciones
+          </span>
+          {lastStep ? (
             <Button
-              variant="outline"
               type="button"
-              disabled={step === 0}
-              onClick={() => setStep((current) => Math.max(current - 1, 0))}
+              className="shrink-0"
+              disabled={publish.isPending}
+              onClick={() => void publishMenu()}
             >
-              <ArrowLeft size={15} /> Atrás
+              <Rocket size={15} />{' '}
+              {publish.isPending
+                ? 'Publicando…'
+                : guest
+                  ? 'Crear cuenta y publicar'
+                  : 'Publicar mi menú'}
             </Button>
-            <div className="flex items-center gap-2">
-              <span className="hidden text-[11px] text-slate-500 sm:block">
-                {state.items.length} productos · {categories.length} secciones
-              </span>
-              {step < builderSteps.length - 1 ? (
-                <Button type="button" onClick={next}>
-                  Continuar <ArrowRight size={16} />
-                </Button>
-              ) : (
-                <Button
-                  type="button"
-                  disabled={publish.isPending}
-                  onClick={() => void publishMenu()}
-                >
-                  <Rocket size={16} /> {publish.isPending ? 'Publicando…' : 'Publicar mi menú'}
-                </Button>
-              )}
-            </div>
-          </footer>
-        </section>
+          ) : (
+            <Button type="button" className="shrink-0" onClick={next}>
+              Continuar <ArrowRight size={15} />
+            </Button>
+          )}
+        </footer>
+      </section>
 
-        <aside className="min-w-0 rounded-2xl border border-slate-200 bg-slate-50 p-3 shadow-sm xl:sticky xl:top-5 xl:self-start">
-          <div className="mb-2 flex items-center justify-between gap-2 px-1">
-            <span className="inline-flex items-center gap-2 text-[10px] font-extrabold tracking-[0.1em] text-slate-700">
-              <span className="size-2 rounded-full bg-emerald-500 ring-4 ring-emerald-500/15" />
-              ASÍ LO VERÁN TUS CLIENTES
-            </span>
-            <small className="text-[10px] text-slate-500">En vivo</small>
-          </div>
-          <MenuPreview
-            state={state}
-            categories={categories}
-            popular={popular}
-            theme={theme}
-            onCategory={setActiveCategory}
-            activeCategory={activeCategory}
-          />
-          <p className="flex items-center justify-center gap-2 px-1 pt-3 text-center text-[10px] text-slate-500">
-            <Check size={14} className="shrink-0 text-emerald-700" />
-            Cada respuesta se refleja aquí y se guarda al publicar.
-          </p>
-        </aside>
-      </div>
+      <section className="flex min-w-0 flex-col gap-2 rounded-2xl border border-slate-200 bg-slate-50 p-2.5">
+        <div className="flex items-center justify-between gap-2 px-1">
+          <span className="inline-flex items-center gap-1.5 text-[10px] font-extrabold tracking-[0.1em] text-slate-700">
+            <span className="size-2 rounded-full bg-emerald-500 ring-4 ring-emerald-500/15" />
+            ASÍ LO VERÁN TUS CLIENTES
+          </span>
+          <small className="text-[10px] text-slate-500">En vivo</small>
+        </div>
+        <MenuPreview
+          state={state}
+          categories={categories}
+          popular={popular}
+          theme={theme}
+          onCategory={setActiveCategory}
+          activeCategory={activeCategory}
+        />
+        <p className="flex items-center justify-center gap-1.5 px-1 pb-1 text-center text-[10px] text-slate-500">
+          <Check size={13} className="shrink-0 text-emerald-700" />
+          Cada respuesta se refleja aquí y se guarda al publicar.
+        </p>
+      </section>
 
       <input
         ref={fileInput}
@@ -466,36 +536,241 @@ export function MenuBuilder() {
           event.target.value = '';
         }}
       />
+    </PhoneShell>
+  );
+}
+
+/**
+ * Marco de teléfono: en el celular ocupa toda la pantalla; en pantallas
+ * grandes se centra en un contenedor de 500 px con biseles de móvil.
+ */
+function PhoneShell({ children }: { children: ReactNode }) {
+  return (
+    <div data-testid="builder-shell" className="w-full bg-slate-100 sm:py-8">
+      <div
+        data-testid="builder-phone"
+        className="mx-auto flex w-full max-w-[500px] flex-col bg-slate-100 sm:h-[min(92vh,900px)] sm:rounded-[38px] sm:border-[7px] sm:border-slate-900 sm:p-2 sm:shadow-2xl"
+      >
+        <span
+          aria-hidden="true"
+          className="mx-auto mt-1.5 hidden h-1.5 w-20 shrink-0 rounded-full bg-slate-300 sm:block"
+        />
+        <div className="flex min-w-0 flex-1 flex-col gap-3 px-3 pt-4 pb-2 sm:overflow-y-auto sm:rounded-[28px] sm:bg-white sm:p-3">
+          {children}
+        </div>
+      </div>
     </div>
   );
 }
 
-/** Paso 1: giro del negocio + importación opcional de la carta. */
-function TypeStep({
+/** Paso 2: logo y banner del negocio. */
+function BrandStep({
   state,
-  onSelect,
-  onImport,
-  importedImage,
-  onClearImage,
+  onLogo,
+  onBanner,
+  onClear,
 }: {
   state: BuilderState;
-  onSelect: (typeId: string) => void;
-  onImport: () => void;
-  importedImage: string;
-  onClearImage: () => void;
+  onLogo: (file?: File) => void;
+  onBanner: (file?: File) => void;
+  onClear: (key: 'logo' | 'banner') => void;
 }) {
   return (
     <>
       <div>
-        <h3 className="text-sm font-extrabold text-slate-900">¿Qué vendes?</h3>
+        <h3 className="text-sm font-extrabold text-slate-900">Logo y banner</h3>
         <p className="mt-1 text-xs leading-5 text-slate-500">
-          Elegimos un menú de arranque con secciones, platillos y precios de ejemplo. Después
-          ajustas lo que quieras; si ya tenías productos, se conservan en sus secciones.
+          El logo encabeza tu menú y el banner es la foto de portada. Si los dejas vacíos usamos el
+          emoji de tu giro con tus colores.
+        </p>
+      </div>
+      <BrandUpload
+        label="Logo"
+        hint="Cuadrado · 512 × 512 px"
+        previewClass="size-24 rounded-2xl"
+        value={state.logo}
+        onPick={onLogo}
+        onClear={() => onClear('logo')}
+      />
+      <BrandUpload
+        label="Banner"
+        hint="Horizontal · 1200 × 600 px"
+        previewClass="h-28 w-full rounded-2xl"
+        value={state.banner}
+        onPick={onBanner}
+        onClear={() => onClear('banner')}
+      />
+      <p className="rounded-xl bg-slate-50 px-3 py-2 text-[11px] leading-4 text-slate-500">
+        Las fotos se recortan solas para que se vean bien en el celular de tus clientes.
+      </p>
+    </>
+  );
+}
+
+function BrandUpload({
+  label,
+  hint,
+  previewClass,
+  value,
+  onPick,
+  onClear,
+}: {
+  label: string;
+  hint: string;
+  previewClass: string;
+  value: string;
+  onPick: (file?: File) => void;
+  onClear: () => void;
+}) {
+  return (
+    <div className="flex flex-col gap-2.5 rounded-2xl border border-slate-200 p-3">
+      <div className="flex flex-wrap items-baseline justify-between gap-1">
+        <span className="text-sm font-bold text-slate-800">{label}</span>
+        <span className="text-[10px] font-semibold tracking-wide text-slate-400 uppercase">
+          {hint}
+        </span>
+      </div>
+      <div
+        className={`grid place-items-center overflow-hidden bg-slate-100 text-slate-400 ${previewClass}`}
+      >
+        {value ? (
+          <img src={value} alt="" className="size-full object-cover" />
+        ) : (
+          <ImagePlus size={20} />
+        )}
+      </div>
+      <div className="flex flex-wrap gap-2">
+        <label className="cursor-pointer rounded-xl border border-slate-200 px-3 py-2 text-xs font-bold text-slate-600 transition hover:bg-slate-50">
+          {value ? 'Cambiar imagen' : 'Subir imagen'}
+          <input
+            type="file"
+            accept="image/jpeg,image/png,image/webp"
+            className="hidden"
+            aria-label={`Subir ${label.toLowerCase()}`}
+            onChange={(event) => {
+              onPick(event.target.files?.[0]);
+              event.target.value = '';
+            }}
+          />
+        </label>
+        {value && (
+          <button
+            type="button"
+            aria-label={`Quitar ${label.toLowerCase()}`}
+            className="inline-flex items-center gap-1 rounded-xl border border-slate-200 px-3 py-2 text-xs font-bold text-slate-500 transition hover:bg-slate-50"
+            onClick={onClear}
+          >
+            <Trash2 size={13} /> Quitar
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}
+
+/** Paso 3: secciones de la carta, con un menú de arranque por giro. */
+function CategoriesStep({
+  state,
+  categories,
+  activeCategory,
+  onSelectCategory,
+  onAddCategory,
+  onRemoveCategory,
+  onSeedType,
+}: {
+  state: BuilderState;
+  categories: string[];
+  activeCategory: string;
+  onSelectCategory: (category: string) => void;
+  onAddCategory: (name: string) => void;
+  onRemoveCategory: (category: string) => void;
+  onSeedType: (typeId: string) => void;
+}) {
+  const [newCategory, setNewCategory] = useState('');
+  return (
+    <>
+      <div>
+        <h3 className="text-sm font-extrabold text-slate-900">Secciones de tu carta</h3>
+        <p className="mt-1 text-xs leading-5 text-slate-500">
+          Agrupa tus productos como en tu carta: tacos, bebidas, postres… Los productos se agregan
+          en el siguiente paso.
+        </p>
+        <ul className="mt-3 flex flex-col gap-2">
+          {categories.map((category) => {
+            const count = itemsOfCategory(state, category).length;
+            const active = category === activeCategory;
+            return (
+              <li
+                key={category}
+                className={`flex items-center gap-2 rounded-xl border px-2.5 py-2 ${
+                  active ? 'border-emerald-300 bg-emerald-50/60' : 'border-slate-200 bg-white'
+                }`}
+              >
+                <button
+                  type="button"
+                  aria-pressed={active}
+                  className={`min-w-0 flex-1 truncate text-left text-xs font-bold ${
+                    active ? 'text-emerald-800' : 'text-slate-700'
+                  }`}
+                  onClick={() => onSelectCategory(category)}
+                >
+                  {category}
+                </button>
+                <span className="shrink-0 text-[10px] text-slate-400">
+                  {count === 1 ? '1 producto' : `${count} productos`}
+                </span>
+                <button
+                  type="button"
+                  aria-label={`Quitar la sección ${category}`}
+                  className="grid size-7 shrink-0 place-items-center rounded-lg border border-slate-200 text-slate-400 transition hover:border-rose-300 hover:bg-rose-50 hover:text-rose-600"
+                  onClick={() => onRemoveCategory(category)}
+                >
+                  <Trash2 size={13} />
+                </button>
+              </li>
+            );
+          })}
+          {!categories.length && (
+            <li className="rounded-xl border border-dashed border-slate-300 bg-slate-50 p-3 text-center text-xs text-slate-500">
+              Aún no hay secciones: escribe el nombre y crea la primera.
+            </li>
+          )}
+        </ul>
+        <form
+          className="mt-2 flex items-center gap-2"
+          onSubmit={(event) => {
+            event.preventDefault();
+            onAddCategory(newCategory);
+            setNewCategory('');
+          }}
+        >
+          <input
+            className={fieldClass}
+            value={newCategory}
+            placeholder="Nueva sección"
+            aria-label="Nombre de la nueva sección"
+            onChange={(event) => setNewCategory(event.target.value)}
+          />
+          <button
+            type="submit"
+            className="inline-flex shrink-0 items-center gap-1 rounded-xl border border-slate-200 px-3 py-2.5 text-xs font-bold text-slate-600 transition hover:border-emerald-400 hover:text-emerald-700"
+            aria-label="Agregar sección"
+          >
+            <Plus size={14} />
+          </button>
+        </form>
+      </div>
+
+      <div>
+        <h3 className="text-sm font-extrabold text-slate-900">Menú de arranque</h3>
+        <p className="mt-1 text-xs leading-5 text-slate-500">
+          Elige tu giro y llenamos las secciones con productos y precios de ejemplo; luego ajustas
+          lo que quieras.
         </p>
         <div
-          className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-3"
+          className="mt-3 grid grid-cols-3 gap-2"
           role="group"
-          aria-label="Giro del negocio"
+          aria-label="Menú de arranque por giro"
         >
           {businessTypes.map((type) => {
             const selected = state.typeId === type.id;
@@ -505,51 +780,207 @@ function TypeStep({
                 type="button"
                 aria-pressed={selected}
                 aria-label={type.label}
-                className={`flex min-w-0 flex-col items-start gap-1 rounded-xl border p-3 text-left transition ${
+                className={`flex min-w-0 flex-col items-center gap-1 rounded-xl border p-2 text-center transition ${
                   selected
                     ? 'border-emerald-500 bg-emerald-50 ring-2 ring-emerald-500/20'
                     : 'border-slate-200 hover:border-emerald-300 hover:bg-slate-50'
                 }`}
-                onClick={() => onSelect(type.id)}
+                onClick={() => onSeedType(type.id)}
               >
-                <span className="text-xl leading-none" aria-hidden="true">
+                <span className="text-lg leading-none" aria-hidden="true">
                   {type.emoji}
                 </span>
-                <span className="flex items-center gap-1 text-xs font-bold text-slate-800">
+                <span className="w-full truncate text-[10px] font-bold text-slate-700">
                   {type.label}
-                  {selected && <Check size={13} className="text-emerald-600" />}
-                </span>
-                <span className="line-clamp-2 text-[10px] leading-4 text-slate-500">
-                  {type.tagline}
                 </span>
               </button>
             );
           })}
         </div>
       </div>
+    </>
+  );
+}
 
-      <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50/70 p-4">
-        <div className="flex flex-wrap items-center gap-3">
-          <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-white text-slate-500 shadow-sm">
-            <ImagePlus size={18} />
+/** Paso 4: productos de la sección activa, con precio, stock y destacados. */
+function ProductsStep({
+  state,
+  categories,
+  activeCategory,
+  setActiveCategory,
+  onAddItem,
+  onUpdateItem,
+  onRemoveItem,
+  onImport,
+  importedImage,
+  onClearImage,
+}: {
+  state: BuilderState;
+  categories: string[];
+  activeCategory: string;
+  setActiveCategory: (category: string) => void;
+  onAddItem: (category?: string) => void;
+  onUpdateItem: (id: string, patch: Partial<BuilderItem>) => void;
+  onRemoveItem: (id: string) => void;
+  onImport: () => void;
+  importedImage: string;
+  onClearImage: () => void;
+}) {
+  const items = activeCategory ? itemsOfCategory(state, activeCategory) : [];
+  return (
+    <>
+      {categories.length > 0 ? (
+        <div className="flex flex-col gap-1.5">
+          <span className="text-xs font-bold text-slate-700">Sección</span>
+          <div
+            className="flex gap-1.5 overflow-x-auto pb-1"
+            role="group"
+            aria-label="Secciones con productos"
+          >
+            {categories.map((category) => (
+              <button
+                key={category}
+                type="button"
+                aria-pressed={category === activeCategory}
+                className={`shrink-0 rounded-full border px-3 py-1.5 text-xs font-bold transition ${
+                  category === activeCategory
+                    ? 'border-emerald-600 bg-emerald-600 text-white'
+                    : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'
+                }`}
+                onClick={() => setActiveCategory(category)}
+              >
+                {category}
+              </button>
+            ))}
+          </div>
+        </div>
+      ) : (
+        <p className="rounded-xl border border-dashed border-slate-300 bg-slate-50 p-3 text-center text-xs text-slate-500">
+          Primero crea una sección en el paso de categorías.
+        </p>
+      )}
+
+      <div className="flex flex-col gap-2">
+        {items.map((item) => (
+          <article key={item.id} className="rounded-xl border border-slate-200 p-2.5">
+            <div className="flex items-center gap-1.5">
+              <input
+                className={`${fieldClass} min-w-0 flex-1 font-semibold`}
+                value={item.name}
+                placeholder="Nombre del producto"
+                aria-label={`Nombre de ${item.name || 'el producto'}`}
+                onChange={(event) => onUpdateItem(item.id, { name: event.target.value })}
+              />
+              <div className="flex shrink-0 items-center gap-1 rounded-xl border border-slate-200 px-1.5">
+                <span className="text-xs font-bold text-slate-400">$</span>
+                <input
+                  className="w-14 border-0 bg-transparent py-2 text-sm font-bold text-slate-800 outline-none"
+                  value={item.price}
+                  inputMode="decimal"
+                  placeholder="0"
+                  aria-label={`Precio de ${item.name || 'el producto'}`}
+                  onChange={(event) => onUpdateItem(item.id, { price: event.target.value })}
+                />
+              </div>
+            </div>
+            <input
+              className={`${fieldClass} mt-1.5`}
+              value={item.description}
+              placeholder="Descripción breve (opcional)"
+              aria-label={`Descripción de ${item.name || 'el producto'}`}
+              onChange={(event) => onUpdateItem(item.id, { description: event.target.value })}
+            />
+            <div className="mt-1.5 flex items-center gap-1.5">
+              <label className="flex min-w-0 flex-1 items-center gap-1.5 rounded-xl border border-slate-200 px-2 py-1.5 text-[11px] font-semibold text-slate-500">
+                Quedan
+                <input
+                  className="w-12 border-0 bg-transparent text-sm font-bold text-slate-800 outline-none"
+                  value={item.stock ?? ''}
+                  inputMode="numeric"
+                  placeholder="∞"
+                  aria-label={`Existencias de ${item.name || 'el producto'}`}
+                  onChange={(event) => {
+                    const digits = event.target.value.replace(/\D/g, '');
+                    onUpdateItem(item.id, { stock: digits ? Number(digits) : null });
+                  }}
+                />
+              </label>
+              <button
+                type="button"
+                aria-pressed={item.popular}
+                aria-label={`Marcar ${item.name || 'el producto'} como lo más pedido`}
+                className={`grid size-8 shrink-0 place-items-center rounded-xl border transition ${
+                  item.popular
+                    ? 'border-amber-300 bg-amber-50 text-amber-600'
+                    : 'border-slate-200 text-slate-400 hover:bg-slate-50'
+                }`}
+                onClick={() => onUpdateItem(item.id, { popular: !item.popular })}
+              >
+                <Star size={15} />
+              </button>
+              <button
+                type="button"
+                aria-pressed={item.isNew}
+                aria-label={`Marcar ${item.name || 'el producto'} como nuevo`}
+                className={`shrink-0 rounded-xl border px-1.5 py-1.5 text-[10px] font-extrabold transition ${
+                  item.isNew
+                    ? 'border-emerald-300 bg-emerald-50 text-emerald-700'
+                    : 'border-slate-200 text-slate-400 hover:bg-slate-50'
+                }`}
+                onClick={() => onUpdateItem(item.id, { isNew: !item.isNew })}
+              >
+                NUEVO
+              </button>
+              <button
+                type="button"
+                className="grid size-8 shrink-0 place-items-center rounded-xl border border-slate-200 text-slate-400 transition hover:border-rose-300 hover:bg-rose-50 hover:text-rose-600"
+                aria-label={`Eliminar ${item.name || 'el producto'}`}
+                onClick={() => onRemoveItem(item.id)}
+              >
+                <Trash2 size={14} />
+              </button>
+            </div>
+          </article>
+        ))}
+        {!items.length && categories.length > 0 && (
+          <p className="rounded-xl border border-dashed border-slate-300 bg-slate-50 p-3 text-center text-xs text-slate-500">
+            {activeCategory
+              ? `Aún no hay productos en ${activeCategory}.`
+              : 'Elige una sección para ver sus productos.'}
+          </p>
+        )}
+      </div>
+
+      <Button
+        type="button"
+        variant="outline"
+        className="w-full"
+        onClick={() => onAddItem(activeCategory)}
+      >
+        <Plus size={15} /> Agregar producto{activeCategory ? ` a ${activeCategory}` : ''}
+      </Button>
+
+      <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50/70 p-3">
+        <div className="flex items-center gap-2.5">
+          <span className="grid size-9 shrink-0 place-items-center rounded-xl bg-white text-slate-500 shadow-sm">
+            <ImagePlus size={17} />
           </span>
           <div className="min-w-0 flex-1">
-            <strong className="block text-sm font-bold text-slate-800">¿Ya tienes tu carta?</strong>
-            <p className="text-xs leading-5 text-slate-500">
-              Súbela como referencia y copia los productos a la izquierda. Sirve una foto o el PDF
-              impreso.
+            <strong className="block text-xs font-bold text-slate-800">¿Ya tienes tu carta?</strong>
+            <p className="text-[11px] leading-4 text-slate-500">
+              Súbela como referencia y copia los productos aquí arriba.
             </p>
           </div>
-          <Button type="button" variant="outline" onClick={onImport}>
-            <ImagePlus size={15} /> Subir carta
-          </Button>
         </div>
+        <Button type="button" variant="outline" className="mt-2 w-full" onClick={onImport}>
+          <ImagePlus size={15} /> Subir foto de mi carta
+        </Button>
         {importedImage && (
-          <div className="mt-3 flex items-start gap-3">
+          <div className="mt-2 flex items-start gap-2">
             <img
               src={importedImage}
               alt="Carta subida"
-              className="max-h-52 w-full max-w-56 rounded-xl border border-slate-200 object-contain"
+              className="max-h-44 w-full max-w-40 rounded-xl border border-slate-200 object-contain"
             />
             <button
               type="button"
@@ -565,215 +996,23 @@ function TypeStep({
   );
 }
 
-/** Paso 2: secciones y productos con precio, foto, stock y destacados. */
-function ProductsStep({
-  state,
-  categories,
-  activeCategory,
-  setActiveCategory,
-  onAddItem,
-  onAddCategory,
-  onRemoveCategory,
-  onUpdateItem,
-  onRemoveItem,
-}: {
-  state: BuilderState;
-  categories: string[];
-  activeCategory: string;
-  setActiveCategory: (category: string) => void;
-  onAddItem: (category?: string) => void;
-  onAddCategory: (name: string) => void;
-  onRemoveCategory: (category: string) => void;
-  onUpdateItem: (id: string, patch: Partial<BuilderItem>) => void;
-  onRemoveItem: (id: string) => void;
-}) {
-  const items = activeCategory ? itemsOfCategory(state, activeCategory) : [];
-  const [newCategory, setNewCategory] = useState('');
-  return (
-    <>
-      <div className="flex flex-wrap items-center gap-2">
-        <span className="text-xs font-bold text-slate-700">Secciones:</span>
-        {categories.map((category) => (
-          <button
-            key={category}
-            type="button"
-            aria-pressed={category === activeCategory}
-            className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-bold transition ${
-              category === activeCategory
-                ? 'border-emerald-600 bg-emerald-600 text-white'
-                : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'
-            }`}
-            onClick={() => setActiveCategory(category)}
-          >
-            {category}
-            {category === activeCategory && categories.length > 1 && (
-              <span
-                role="button"
-                tabIndex={0}
-                aria-label={`Quitar la sección ${category}`}
-                className="ml-0.5 rounded-full p-0.5 hover:bg-white/20"
-                onClick={(event) => {
-                  event.stopPropagation();
-                  onRemoveCategory(category);
-                }}
-                onKeyDown={(event) => {
-                  if (event.key !== 'Enter' && event.key !== ' ') return;
-                  event.preventDefault();
-                  event.stopPropagation();
-                  onRemoveCategory(category);
-                }}
-              >
-                <X size={11} />
-              </span>
-            )}
-          </button>
-        ))}
-        <form
-          className="inline-flex items-center gap-1"
-          onSubmit={(event) => {
-            event.preventDefault();
-            onAddCategory(newCategory);
-            setNewCategory('');
-          }}
-        >
-          <input
-            className="w-28 rounded-full border border-dashed border-slate-300 px-3 py-1.5 text-xs text-slate-700 outline-none placeholder:text-slate-400 focus:border-emerald-500"
-            value={newCategory}
-            placeholder="Nueva sección"
-            aria-label="Nombre de la nueva sección"
-            onChange={(event) => setNewCategory(event.target.value)}
-          />
-          <button
-            type="submit"
-            className="inline-flex items-center gap-1 rounded-full border border-slate-200 px-2.5 py-1.5 text-xs font-bold text-slate-600 transition hover:border-emerald-400 hover:text-emerald-700"
-            aria-label="Agregar sección"
-          >
-            <Plus size={12} />
-          </button>
-        </form>
-      </div>
-
-      <div className="flex flex-col gap-2">
-        {items.map((item) => (
-          <article key={item.id} className="rounded-xl border border-slate-200 p-3">
-            <div className="flex flex-wrap items-center gap-2">
-              <input
-                className={`${fieldClass} min-w-40 flex-1 font-semibold`}
-                value={item.name}
-                placeholder="Nombre del producto"
-                aria-label={`Nombre de ${item.name || 'el producto'}`}
-                onChange={(event) => onUpdateItem(item.id, { name: event.target.value })}
-              />
-              <div className="flex items-center gap-1 rounded-xl border border-slate-200 px-2">
-                <span className="text-xs font-bold text-slate-400">$</span>
-                <input
-                  className="w-16 border-0 bg-transparent py-2 text-sm font-bold text-slate-800 outline-none"
-                  value={item.price}
-                  inputMode="decimal"
-                  placeholder="0"
-                  aria-label={`Precio de ${item.name || 'el producto'}`}
-                  onChange={(event) => onUpdateItem(item.id, { price: event.target.value })}
-                />
-              </div>
-              <button
-                type="button"
-                aria-pressed={item.popular}
-                aria-label={`Marcar ${item.name || 'el producto'} como lo más pedido`}
-                className={`grid size-9 place-items-center rounded-xl border transition ${
-                  item.popular
-                    ? 'border-amber-300 bg-amber-50 text-amber-600'
-                    : 'border-slate-200 text-slate-400 hover:bg-slate-50'
-                }`}
-                onClick={() => onUpdateItem(item.id, { popular: !item.popular })}
-              >
-                <Star size={16} />
-              </button>
-              <button
-                type="button"
-                className="grid size-9 place-items-center rounded-xl border border-slate-200 text-slate-400 transition hover:border-rose-300 hover:bg-rose-50 hover:text-rose-600"
-                aria-label={`Eliminar ${item.name || 'el producto'}`}
-                onClick={() => onRemoveItem(item.id)}
-              >
-                <Trash2 size={15} />
-              </button>
-            </div>
-            <div className="mt-2 grid grid-cols-1 gap-2 sm:grid-cols-[minmax(0,1fr)_150px]">
-              <input
-                className={fieldClass}
-                value={item.description}
-                placeholder="Descripción breve (opcional)"
-                aria-label={`Descripción de ${item.name || 'el producto'}`}
-                onChange={(event) => onUpdateItem(item.id, { description: event.target.value })}
-              />
-              <div className="flex items-center gap-2">
-                <label className="flex min-w-0 flex-1 items-center gap-2 rounded-xl border border-slate-200 px-2 py-1.5 text-[11px] font-semibold text-slate-500">
-                  Quedan
-                  <input
-                    className="w-14 border-0 bg-transparent text-sm font-bold text-slate-800 outline-none"
-                    value={item.stock ?? ''}
-                    inputMode="numeric"
-                    placeholder="∞"
-                    aria-label={`Existencias de ${item.name || 'el producto'}`}
-                    onChange={(event) => {
-                      const digits = event.target.value.replace(/\D/g, '');
-                      onUpdateItem(item.id, { stock: digits ? Number(digits) : null });
-                    }}
-                  />
-                </label>
-                <button
-                  type="button"
-                  aria-pressed={item.isNew}
-                  aria-label={`Marcar ${item.name || 'el producto'} como nuevo`}
-                  className={`rounded-xl border px-2 py-2 text-[10px] font-extrabold transition ${
-                    item.isNew
-                      ? 'border-emerald-300 bg-emerald-50 text-emerald-700'
-                      : 'border-slate-200 text-slate-400 hover:bg-slate-50'
-                  }`}
-                  onClick={() => onUpdateItem(item.id, { isNew: !item.isNew })}
-                >
-                  NUEVO
-                </button>
-              </div>
-            </div>
-          </article>
-        ))}
-        {!items.length && (
-          <p className="rounded-xl border border-dashed border-slate-300 bg-slate-50 p-4 text-center text-sm text-slate-500">
-            {activeCategory
-              ? `Aún no hay productos en ${activeCategory}.`
-              : 'Crea una sección para empezar a agregar productos.'}
-          </p>
-        )}
-      </div>
-
-      <Button
-        type="button"
-        variant="outline"
-        className="self-start"
-        onClick={() => onAddItem(activeCategory)}
-      >
-        <Plus size={16} /> Agregar producto{activeCategory ? ` a ${activeCategory}` : ''}
-      </Button>
-    </>
-  );
-}
-
-/** Paso 3: datos del negocio que encabezan el menú. */
-function BusinessStep({
+/** Paso 5: datos del negocio, horario, pedidos y promoción. */
+function SettingsStep({
   state,
   onChange,
-  onLogo,
-  onBanner,
+  categories,
+  guest,
 }: {
   state: BuilderState;
   onChange: <K extends keyof BuilderState>(key: K, value: BuilderState[K]) => void;
-  onLogo: (file?: File) => void;
-  onBanner: (file?: File) => void;
+  categories: string[];
+  guest: boolean;
 }) {
   return (
     <>
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-        <label className="flex min-w-0 flex-col gap-2 text-xs font-semibold text-slate-700">
+      <section className="flex flex-col gap-2.5">
+        <h3 className="text-sm font-extrabold text-slate-900">Datos del negocio</h3>
+        <label className="flex min-w-0 flex-col gap-1.5 text-xs font-semibold text-slate-700">
           Nombre del negocio
           <input
             className={fieldClass}
@@ -782,7 +1021,7 @@ function BusinessStep({
             onChange={(event) => onChange('name', event.target.value)}
           />
         </label>
-        <label className="flex min-w-0 flex-col gap-2 text-xs font-semibold text-slate-700">
+        <label className="flex min-w-0 flex-col gap-1.5 text-xs font-semibold text-slate-700">
           WhatsApp para pedidos
           <input
             className={fieldClass}
@@ -792,44 +1031,28 @@ function BusinessStep({
             onChange={(event) => onChange('whatsapp', event.target.value)}
           />
         </label>
-      </div>
-      <label className="flex min-w-0 flex-col gap-2 text-xs font-semibold text-slate-700">
-        Dirección
-        <input
-          className={fieldClass}
-          value={state.address}
-          placeholder="Av. Morelos 214, Centro"
-          onChange={(event) => onChange('address', event.target.value)}
-        />
-      </label>
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-        <label className="flex min-w-0 flex-col gap-2 text-xs font-semibold text-slate-700">
-          Apertura
+        <label className="flex min-w-0 flex-col gap-1.5 text-xs font-semibold text-slate-700">
+          Dirección
           <input
             className={fieldClass}
-            type="time"
-            value={state.openingTime}
-            onChange={(event) => onChange('openingTime', event.target.value)}
+            value={state.address}
+            placeholder="Av. Morelos 214, Centro"
+            onChange={(event) => onChange('address', event.target.value)}
           />
         </label>
-        <label className="flex min-w-0 flex-col gap-2 text-xs font-semibold text-slate-700">
-          Cierre
-          <input
-            className={fieldClass}
-            type="time"
-            value={state.closingTime}
-            onChange={(event) => onChange('closingTime', event.target.value)}
-          />
-        </label>
-        <fieldset className="flex min-w-0 flex-col gap-2 rounded-xl border border-slate-200 p-2">
-          <legend className="px-1 text-[11px] font-bold text-slate-700">Días</legend>
-          <div className="flex flex-wrap gap-1">
+      </section>
+
+      <section className="flex flex-col gap-2.5">
+        <h3 className="text-sm font-extrabold text-slate-900">Horario</h3>
+        <fieldset className="flex flex-col gap-1.5">
+          <legend className="text-xs font-semibold text-slate-700">Días de servicio</legend>
+          <div className="grid grid-cols-7 gap-1">
             {dayShort.map((day, index) => (
               <button
                 key={day}
                 type="button"
                 aria-pressed={state.serviceDays.includes(index)}
-                className={`min-w-9 rounded-lg border px-1.5 py-1 text-[11px] font-bold transition ${
+                className={`min-w-0 rounded-lg border py-2 text-[11px] font-bold transition ${
                   state.serviceDays.includes(index)
                     ? 'border-emerald-700 bg-emerald-700 text-white'
                     : 'border-slate-200 text-slate-600 hover:bg-slate-50'
@@ -848,77 +1071,178 @@ function BusinessStep({
             ))}
           </div>
         </fieldset>
-      </div>
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-        <BrandImageField
-          label="Logo"
-          value={state.logo}
-          onPick={onLogo}
-          onClear={() => onChange('logo', '')}
-        />
-        <BrandImageField
-          label="Portada"
-          value={state.banner}
-          onPick={onBanner}
-          onClear={() => onChange('banner', '')}
-        />
-      </div>
+        <div className="grid grid-cols-2 gap-2">
+          <label className="flex min-w-0 flex-col gap-1.5 text-xs font-semibold text-slate-700">
+            Apertura
+            <input
+              className={fieldClass}
+              type="time"
+              value={state.openingTime}
+              onChange={(event) => onChange('openingTime', event.target.value)}
+            />
+          </label>
+          <label className="flex min-w-0 flex-col gap-1.5 text-xs font-semibold text-slate-700">
+            Cierre
+            <input
+              className={fieldClass}
+              type="time"
+              value={state.closingTime}
+              onChange={(event) => onChange('closingTime', event.target.value)}
+            />
+          </label>
+        </div>
+      </section>
+
+      <section className="flex flex-col gap-2.5">
+        <h3 className="text-sm font-extrabold text-slate-900">Pedidos y pagos</h3>
+        <fieldset className="flex flex-col gap-1.5">
+          <legend className="text-xs font-semibold text-slate-700">¿Cómo te piden?</legend>
+          <div className="flex flex-col gap-2">
+            {orderModeOptions.map((mode) => {
+              const selected = state.orderModes.includes(mode.value);
+              return (
+                <label
+                  key={mode.value}
+                  className={`flex cursor-pointer items-start gap-2 rounded-xl border p-2.5 transition ${
+                    selected
+                      ? 'border-emerald-300 bg-emerald-50'
+                      : 'border-slate-200 hover:bg-slate-50'
+                  }`}
+                >
+                  <input
+                    type="checkbox"
+                    className="mt-0.5 accent-emerald-700"
+                    checked={selected}
+                    aria-label={mode.label}
+                    onChange={() =>
+                      onChange(
+                        'orderModes',
+                        selected
+                          ? state.orderModes.filter((item) => item !== mode.value)
+                          : [...state.orderModes, mode.value as OrderMode],
+                      )
+                    }
+                  />
+                  <span className="min-w-0">
+                    <strong className="block text-xs font-bold text-slate-800">{mode.label}</strong>
+                    <small className="text-[11px] leading-4 text-slate-500">
+                      {mode.description}
+                    </small>
+                  </span>
+                </label>
+              );
+            })}
+          </div>
+        </fieldset>
+
+        {state.orderModes.includes('delivery') && (
+          <label className="flex min-w-0 flex-col gap-1.5 text-xs font-semibold text-slate-700">
+            Costo de envío
+            <input
+              className={fieldClass}
+              value={state.deliveryFee}
+              inputMode="decimal"
+              placeholder="35"
+              onChange={(event) => onChange('deliveryFee', event.target.value)}
+            />
+          </label>
+        )}
+
+        <fieldset className="flex flex-col gap-1.5">
+          <legend className="text-xs font-semibold text-slate-700">Formas de pago</legend>
+          <div className="flex flex-wrap gap-1.5">
+            {paymentMethodOptions.map((method) => {
+              const selected = state.paymentMethods.includes(method);
+              return (
+                <button
+                  key={method}
+                  type="button"
+                  aria-pressed={selected}
+                  className={`rounded-full border px-3 py-1.5 text-xs font-bold transition ${
+                    selected
+                      ? 'border-emerald-600 bg-emerald-600 text-white'
+                      : 'border-slate-200 text-slate-600 hover:bg-slate-50'
+                  }`}
+                  onClick={() =>
+                    onChange(
+                      'paymentMethods',
+                      selected
+                        ? state.paymentMethods.filter((item) => item !== method)
+                        : [...state.paymentMethods, method],
+                    )
+                  }
+                >
+                  {method}
+                </button>
+              );
+            })}
+          </div>
+        </fieldset>
+      </section>
+
+      <section className="rounded-2xl border border-slate-200 bg-slate-50/60 p-3">
+        <label className="flex items-center justify-between gap-3">
+          <span className="min-w-0">
+            <strong className="block text-sm font-bold text-slate-800">Promoción destacada</strong>
+            <small className="text-[11px] leading-4 text-slate-500">
+              Aparece arriba de tu menú: 3×2, descuento o combo del día.
+            </small>
+          </span>
+          <input
+            type="checkbox"
+            className="size-5 shrink-0 accent-emerald-700"
+            checked={state.promo.enabled}
+            aria-label="Mostrar promoción en el menú"
+            onChange={(event) =>
+              onChange('promo', { ...state.promo, enabled: event.target.checked })
+            }
+          />
+        </label>
+        {state.promo.enabled && (
+          <div className="mt-2.5 flex flex-col gap-2">
+            <input
+              className={fieldClass}
+              value={state.promo.text}
+              placeholder="Solo los martes 3 tacos de pastor"
+              aria-label="Texto de la promoción"
+              onChange={(event) => onChange('promo', { ...state.promo, text: event.target.value })}
+            />
+            <input
+              className={fieldClass}
+              value={state.promo.price}
+              inputMode="decimal"
+              placeholder="$36"
+              aria-label="Precio de la promoción"
+              onChange={(event) => onChange('promo', { ...state.promo, price: event.target.value })}
+            />
+            <input
+              className={fieldClass}
+              value={state.promo.note}
+              placeholder="Paga 2, llévate 3 (opcional)"
+              aria-label="Nota de la promoción"
+              onChange={(event) => onChange('promo', { ...state.promo, note: event.target.value })}
+            />
+          </div>
+        )}
+      </section>
+
+      <p className="text-[11px] leading-4 text-slate-500">
+        {categories.length
+          ? `Tu menú se publica con ${categories.length} secciones. Podrás editar precios y fotos cuando quieras.`
+          : 'Tu menú aún no tiene secciones: vuelve al paso de categorías.'}
+      </p>
+
+      {guest && (
+        <p className="rounded-xl bg-emerald-50 px-3 py-2 text-[11px] leading-4 font-semibold text-emerald-800">
+          Estás armando tu menú como invitado. Al publicar te pediremos crear tu cuenta para
+          guardarlo.
+        </p>
+      )}
     </>
   );
 }
 
-function BrandImageField({
-  label,
-  value,
-  onPick,
-  onClear,
-}: {
-  label: string;
-  value: string;
-  onPick: (file?: File) => void;
-  onClear: () => void;
-}) {
-  return (
-    <div className="flex flex-col gap-2 rounded-xl border border-slate-200 p-3">
-      <span className="text-xs font-semibold text-slate-700">{label}</span>
-      <div className="flex items-center gap-3">
-        <span className="grid size-14 shrink-0 place-items-center overflow-hidden rounded-xl bg-slate-100 text-slate-400">
-          {value ? (
-            <img src={value} alt="" className="size-full object-cover" />
-          ) : (
-            <ImagePlus size={18} />
-          )}
-        </span>
-        <div className="flex flex-wrap gap-2">
-          <label className="cursor-pointer rounded-lg border border-slate-200 px-2.5 py-1.5 text-[11px] font-bold text-slate-600 hover:bg-slate-50">
-            {value ? 'Cambiar' : 'Subir imagen'}
-            <input
-              type="file"
-              accept="image/jpeg,image/png,image/webp"
-              className="hidden"
-              aria-label={`Subir ${label.toLowerCase()}`}
-              onChange={(event) => {
-                onPick(event.target.files?.[0]);
-                event.target.value = '';
-              }}
-            />
-          </label>
-          {value && (
-            <button
-              type="button"
-              className="rounded-lg border border-slate-200 px-2.5 py-1.5 text-[11px] font-bold text-slate-500 hover:bg-slate-50"
-              onClick={onClear}
-            >
-              Quitar
-            </button>
-          )}
-        </div>
-      </div>
-    </div>
-  );
-}
-
-/** Paso 4: plantillas con un toque y ajustes finos. */
+/** Paso 1: plantillas con un toque y ajustes finos. */
 function DesignStep({
   design,
   onChange,
@@ -940,7 +1264,7 @@ function DesignStep({
             <h3 className="text-[11px] font-bold tracking-[0.14em] text-slate-500 uppercase">
               {group}
             </h3>
-            <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+            <div className="grid grid-cols-2 gap-2">
               {menuTemplates
                 .filter((template) => template.group === group)
                 .map((template) => {
@@ -1018,7 +1342,7 @@ function DesignStep({
           {open ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
         </button>
         {open && (
-          <div className="grid grid-cols-1 gap-3 border-t border-slate-200 p-4 sm:grid-cols-2">
+          <div className="grid grid-cols-1 gap-3 border-t border-slate-200 p-3">
             <DesignSelect
               label="Portada"
               value={design.layout}
@@ -1065,7 +1389,7 @@ function DesignStep({
                 <option value="nunito">Nunito</option>
               </select>
             </label>
-            <div className="grid grid-cols-1 gap-3 sm:col-span-2 sm:grid-cols-2">
+            <div className="grid grid-cols-1 gap-3">
               <ColorInput
                 label="Color principal"
                 value={design.primaryColor}
@@ -1077,7 +1401,7 @@ function DesignStep({
                 onChange={(value) => onChange('secondaryColor', value)}
               />
             </div>
-            <div className="flex gap-2 sm:col-span-2">
+            <div className="flex flex-col gap-2">
               <Button
                 type="button"
                 variant="outline"
@@ -1172,155 +1496,6 @@ function ColorInput({
   );
 }
 
-/** Paso 5: entrega, pago, costo de envío y promoción. */
-function ServiceStep({
-  state,
-  onChange,
-  categories,
-}: {
-  state: BuilderState;
-  onChange: <K extends keyof BuilderState>(key: K, value: BuilderState[K]) => void;
-  categories: string[];
-}) {
-  return (
-    <>
-      <fieldset className="flex flex-col gap-2">
-        <legend className="text-xs font-bold text-slate-800">¿Cómo te piden?</legend>
-        <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
-          {orderModeOptions.map((mode) => {
-            const selected = state.orderModes.includes(mode.value);
-            return (
-              <label
-                key={mode.value}
-                className={`flex cursor-pointer items-start gap-2 rounded-xl border p-3 transition ${
-                  selected
-                    ? 'border-emerald-300 bg-emerald-50'
-                    : 'border-slate-200 hover:bg-slate-50'
-                }`}
-              >
-                <input
-                  type="checkbox"
-                  className="mt-1 accent-emerald-700"
-                  checked={selected}
-                  aria-label={mode.label}
-                  onChange={() =>
-                    onChange(
-                      'orderModes',
-                      selected
-                        ? state.orderModes.filter((item) => item !== mode.value)
-                        : [...state.orderModes, mode.value as OrderMode],
-                    )
-                  }
-                />
-                <span>
-                  <strong className="block text-xs font-bold text-slate-800">{mode.label}</strong>
-                  <small className="text-[11px] leading-4 text-slate-500">{mode.description}</small>
-                </span>
-              </label>
-            );
-          })}
-        </div>
-      </fieldset>
-
-      {state.orderModes.includes('delivery') && (
-        <label className="flex min-w-0 flex-col gap-2 text-xs font-semibold text-slate-700 sm:max-w-52">
-          Costo de envío
-          <input
-            className={fieldClass}
-            value={state.deliveryFee}
-            inputMode="decimal"
-            placeholder="35"
-            onChange={(event) => onChange('deliveryFee', event.target.value)}
-          />
-        </label>
-      )}
-
-      <fieldset className="flex flex-col gap-2">
-        <legend className="text-xs font-bold text-slate-800">Formas de pago</legend>
-        <div className="flex flex-wrap gap-2">
-          {paymentMethodOptions.map((method) => {
-            const selected = state.paymentMethods.includes(method);
-            return (
-              <button
-                key={method}
-                type="button"
-                aria-pressed={selected}
-                className={`rounded-full border px-3 py-1.5 text-xs font-bold transition ${
-                  selected
-                    ? 'border-emerald-600 bg-emerald-600 text-white'
-                    : 'border-slate-200 text-slate-600 hover:bg-slate-50'
-                }`}
-                onClick={() =>
-                  onChange(
-                    'paymentMethods',
-                    selected
-                      ? state.paymentMethods.filter((item) => item !== method)
-                      : [...state.paymentMethods, method],
-                  )
-                }
-              >
-                {method}
-              </button>
-            );
-          })}
-        </div>
-      </fieldset>
-
-      <div className="rounded-2xl border border-slate-200 bg-slate-50/60 p-4">
-        <label className="flex items-center justify-between gap-3">
-          <span>
-            <strong className="block text-sm font-bold text-slate-800">Promoción destacada</strong>
-            <small className="text-xs leading-5 text-slate-500">
-              Aparece arriba de tu menú: 3×2, descuento o combo del día.
-            </small>
-          </span>
-          <input
-            type="checkbox"
-            className="size-5 shrink-0 accent-emerald-700"
-            checked={state.promo.enabled}
-            aria-label="Mostrar promoción en el menú"
-            onChange={(event) =>
-              onChange('promo', { ...state.promo, enabled: event.target.checked })
-            }
-          />
-        </label>
-        {state.promo.enabled && (
-          <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-[minmax(0,1fr)_110px]">
-            <input
-              className={fieldClass}
-              value={state.promo.text}
-              placeholder="Solo los martes 3 tacos de pastor"
-              aria-label="Texto de la promoción"
-              onChange={(event) => onChange('promo', { ...state.promo, text: event.target.value })}
-            />
-            <input
-              className={fieldClass}
-              value={state.promo.price}
-              inputMode="decimal"
-              placeholder="$36"
-              aria-label="Precio de la promoción"
-              onChange={(event) => onChange('promo', { ...state.promo, price: event.target.value })}
-            />
-            <input
-              className={`${fieldClass} sm:col-span-2`}
-              value={state.promo.note}
-              placeholder="Paga 2, llévate 3 (opcional)"
-              aria-label="Nota de la promoción"
-              onChange={(event) => onChange('promo', { ...state.promo, note: event.target.value })}
-            />
-          </div>
-        )}
-      </div>
-
-      <p className="text-xs leading-5 text-slate-500">
-        {categories.length
-          ? `Tu menú se publica con ${categories.length} secciones. Podrás editar precios y fotos cuando quieras.`
-          : 'Tu menú aún no tiene secciones: vuelve al paso de productos.'}
-      </p>
-    </>
-  );
-}
-
 /** Confirmación con enlace y QR listos para compartir. */
 function PublishedPanel({
   name,
@@ -1350,7 +1525,7 @@ function PublishedPanel({
           o imprime el QR para tus mesas.
         </p>
       </div>
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-[minmax(0,1fr)_180px]">
+      <div className="grid grid-cols-1 gap-4">
         <div className="flex flex-col gap-3 rounded-2xl border border-slate-200 bg-white p-4">
           <span className="text-[10px] font-extrabold tracking-[0.14em] text-slate-500 uppercase">
             Tu enlace
@@ -1619,7 +1794,7 @@ function MenuPreview({
             className="rounded-xl border border-dashed py-6 text-center text-[10px]"
             style={{ borderColor: theme.border, color: theme.muted }}
           >
-            Elige tu giro y tus productos aparecerán aquí.
+            Elige un menú de arranque en categorías y tus productos aparecerán aquí.
           </p>
         )}
 

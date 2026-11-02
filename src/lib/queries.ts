@@ -64,8 +64,12 @@ export function useAdminBusinesses(page = 1) {
   });
 }
 
-export function useBusiness() {
-  return useQuery({ queryKey: queryKeys.business, queryFn: api.business });
+/**
+ * Configuración del negocio. `enabled: false` deja la consulta en pausa: lo usa
+ * el creador público cuando no hay sesión y no hay nada que cargar.
+ */
+export function useBusiness({ enabled = true }: { enabled?: boolean } = {}) {
+  return useQuery({ queryKey: queryKeys.business, queryFn: api.business, enabled });
 }
 
 export function usePublicCategories() {
@@ -146,7 +150,7 @@ export function useSaveBusinessDraft() {
 }
 
 /**
- * Publica el menú armado con el creador (`/business/crear`): guarda todos los
+ * Publica el menú armado con el creador (`/crear-menu`): guarda todos los
  * pasos y deja la configuración en la caché para que el panel la vea al instante.
  */
 export function usePublishBusinessMenu() {
