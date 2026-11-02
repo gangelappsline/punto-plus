@@ -601,610 +601,6 @@ main#main-content {
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 19px;
 }
-.loyalty-card {
-  display: block;
-  width: 100%;
-  border: 1px solid #e2e9ef;
-  border-radius: 13px;
-  background: #ffffff;
-  overflow: hidden;
-  box-shadow: 0 3px 5px #022f5302;
-  text-align: left;
-  position: relative;
-  min-width: 0;
-}
-.loyalty-card:hover {
-  box-shadow: 0 8px 23px #022f5310;
-}
-.card-colored {
-  position: relative;
-  overflow: hidden;
-  isolation: isolate;
-  padding: 21px 22px 13px;
-}
-.forest {
-  --card-bg: #254865;
-  --card-ink: #f1f5f8;
-  --stamp-fill: #d9e5ef;
-  --stamp-border: color-mix(in srgb, var(--stamp-fill) 60%, transparent);
-  --stamp-color: #2e5578;
-  background: var(--card-bg);
-  --card-muted: color-mix(in srgb, var(--card-ink) 72%, var(--card-bg));
-  color: var(--card-ink);
-}
-.terracotta {
-  --card-bg: #f5be8b;
-  --card-ink: #022f53;
-  --stamp-fill: #fcebd7;
-  --stamp-border: color-mix(in srgb, var(--stamp-fill) 60%, transparent);
-  --stamp-color: #b5772f;
-  background: var(--card-bg);
-  --card-muted: color-mix(in srgb, var(--card-ink) 72%, var(--card-bg));
-  color: var(--card-ink);
-}
-.lavender {
-  --card-bg: #d9e6f2;
-  --card-ink: #1d4160;
-  --stamp-fill: #2399a0;
-  --stamp-border: color-mix(in srgb, var(--stamp-fill) 60%, transparent);
-  --stamp-color: #ffffff;
-  background: var(--card-bg);
-  --card-muted: color-mix(in srgb, var(--card-ink) 72%, var(--card-bg));
-  color: var(--card-ink);
-}
-.ocean {
-  --card-bg: #187f87;
-  --card-ink: #f2ffff;
-  --stamp-fill: #e4f6f5;
-  --stamp-border: color-mix(in srgb, var(--stamp-fill) 60%, transparent);
-  --stamp-color: #17666b;
-  background: var(--card-bg);
-  --card-muted: color-mix(in srgb, var(--card-ink) 72%, var(--card-bg));
-  color: var(--card-ink);
-}
-.matcha {
-  --card-bg: #67845b;
-  --card-ink: #fbfff5;
-  --stamp-fill: #ecf2df;
-  --stamp-border: color-mix(in srgb, var(--stamp-fill) 60%, transparent);
-  --stamp-color: #59744c;
-  background: var(--card-bg);
-  --card-muted: color-mix(in srgb, var(--card-ink) 72%, var(--card-bg));
-  color: var(--card-ink);
-}
-.citrus {
-  --card-bg: #e9c85d;
-  --card-ink: #453a1e;
-  --stamp-fill: #fff9df;
-  --stamp-border: color-mix(in srgb, var(--stamp-fill) 60%, transparent);
-  --stamp-color: #6b5717;
-  background: var(--card-bg);
-  --card-muted: color-mix(in srgb, var(--card-ink) 72%, var(--card-bg));
-  color: var(--card-ink);
-}
-.berry {
-  --card-bg: #80536f;
-  --card-ink: #fff7fd;
-  --stamp-fill: #f4e6ef;
-  --stamp-border: color-mix(in srgb, var(--stamp-fill) 60%, transparent);
-  --stamp-color: #754461;
-  background: var(--card-bg);
-  --card-muted: color-mix(in srgb, var(--card-ink) 72%, var(--card-bg));
-  color: var(--card-ink);
-}
-.rose {
-  --card-bg: #e7a6b3;
-  --card-ink: #4d2c3b;
-  --stamp-fill: #fff5f5;
-  --stamp-border: color-mix(in srgb, var(--stamp-fill) 60%, transparent);
-  --stamp-color: #934d65;
-  background: var(--card-bg);
-  --card-muted: color-mix(in srgb, var(--card-ink) 72%, var(--card-bg));
-  color: var(--card-ink);
-}
-.chocolate {
-  --card-bg: #76533f;
-  --card-ink: #fff9f0;
-  --stamp-fill: #f4e8d9;
-  --stamp-border: color-mix(in srgb, var(--stamp-fill) 60%, transparent);
-  --stamp-color: #6a4937;
-  background: var(--card-bg);
-  --card-muted: color-mix(in srgb, var(--card-ink) 72%, var(--card-bg));
-  color: var(--card-ink);
-}
-.sunset {
-  --card-bg: #e78c62;
-  --card-ink: #452d28;
-  --stamp-fill: #fff2e9;
-  --stamp-border: color-mix(in srgb, var(--stamp-fill) 60%, transparent);
-  --stamp-color: #a95537;
-  background: var(--card-bg);
-  --card-muted: color-mix(in srgb, var(--card-ink) 72%, var(--card-bg));
-  color: var(--card-ink);
-}
-.sky {
-  --card-bg: #82b8d0;
-  --card-ink: #153c52;
-  --stamp-fill: #eef9fc;
-  --stamp-border: color-mix(in srgb, var(--stamp-fill) 60%, transparent);
-  --stamp-color: #24728b;
-  background: var(--card-bg);
-  --card-muted: color-mix(in srgb, var(--card-ink) 72%, var(--card-bg));
-  color: var(--card-ink);
-}
-.midnight {
-  --card-bg: #39416c;
-  --card-ink: #f4f5ff;
-  --stamp-fill: #e8e8f5;
-  --stamp-border: color-mix(in srgb, var(--stamp-fill) 60%, transparent);
-  --stamp-color: #404874;
-  background: var(--card-bg);
-  --card-muted: color-mix(in srgb, var(--card-ink) 72%, var(--card-bg));
-  color: var(--card-ink);
-}
-.marine {
-  --card-bg: #1c4f7c;
-  --card-ink: #f2f8ff;
-  --stamp-fill: #e2eef8;
-  --stamp-border: color-mix(in srgb, var(--stamp-fill) 60%, transparent);
-  --stamp-color: #2a6597;
-  background: var(--card-bg);
-  --card-muted: color-mix(in srgb, var(--card-ink) 72%, var(--card-bg));
-  color: var(--card-ink);
-}
-.denim {
-  --card-bg: #3a6ea5;
-  --card-ink: #f7fbff;
-  --stamp-fill: #ebf3fb;
-  --stamp-border: color-mix(in srgb, var(--stamp-fill) 60%, transparent);
-  --stamp-color: #4a83bd;
-  background: var(--card-bg);
-  --card-muted: color-mix(in srgb, var(--card-ink) 72%, var(--card-bg));
-  color: var(--card-ink);
-}
-.steel {
-  --card-bg: #5b7186;
-  --card-ink: #f7fafc;
-  --stamp-fill: #eef2f6;
-  --stamp-border: color-mix(in srgb, var(--stamp-fill) 60%, transparent);
-  --stamp-color: #6f879c;
-  background: var(--card-bg);
-  --card-muted: color-mix(in srgb, var(--card-ink) 72%, var(--card-bg));
-  color: var(--card-ink);
-}
-.teal {
-  --card-bg: #146c72;
-  --card-ink: #f0fdfb;
-  --stamp-fill: #e0f5f3;
-  --stamp-border: color-mix(in srgb, var(--stamp-fill) 60%, transparent);
-  --stamp-color: #2399a0;
-  background: var(--card-bg);
-  --card-muted: color-mix(in srgb, var(--card-ink) 72%, var(--card-bg));
-  color: var(--card-ink);
-}
-.aqua {
-  --card-bg: #7fc6c9;
-  --card-ink: #0d3b45;
-  --stamp-fill: #f0fbfb;
-  --stamp-border: color-mix(in srgb, var(--stamp-fill) 60%, transparent);
-  --stamp-color: #3f8f93;
-  background: var(--card-bg);
-  --card-muted: color-mix(in srgb, var(--card-ink) 72%, var(--card-bg));
-  color: var(--card-ink);
-}
-.sapphire {
-  --card-bg: #28418f;
-  --card-ink: #f4f6ff;
-  --stamp-fill: #e9edfb;
-  --stamp-border: color-mix(in srgb, var(--stamp-fill) 60%, transparent);
-  --stamp-color: #3f5cad;
-  background: var(--card-bg);
-  --card-muted: color-mix(in srgb, var(--card-ink) 72%, var(--card-bg));
-  color: var(--card-ink);
-}
-.sage {
-  --card-bg: #93a98c;
-  --card-ink: #1f3326;
-  --stamp-fill: #f1f6ee;
-  --stamp-border: color-mix(in srgb, var(--stamp-fill) 60%, transparent);
-  --stamp-color: #5f7a5b;
-  background: var(--card-bg);
-  --card-muted: color-mix(in srgb, var(--card-ink) 72%, var(--card-bg));
-  color: var(--card-ink);
-}
-.moss {
-  --card-bg: #4f6b47;
-  --card-ink: #f6fbf2;
-  --stamp-fill: #eaf1e4;
-  --stamp-border: color-mix(in srgb, var(--stamp-fill) 60%, transparent);
-  --stamp-color: #65845c;
-  background: var(--card-bg);
-  --card-muted: color-mix(in srgb, var(--card-ink) 72%, var(--card-bg));
-  color: var(--card-ink);
-}
-.olive {
-  --card-bg: #7c8446;
-  --card-ink: #2e3315;
-  --stamp-fill: #f4f6e4;
-  --stamp-border: color-mix(in srgb, var(--stamp-fill) 60%, transparent);
-  --stamp-color: #949c5c;
-  background: var(--card-bg);
-  --card-muted: color-mix(in srgb, var(--card-ink) 72%, var(--card-bg));
-  color: var(--card-ink);
-}
-.pine {
-  --card-bg: #1f4d3d;
-  --card-ink: #f1fbf6;
-  --stamp-fill: #e1efe8;
-  --stamp-border: color-mix(in srgb, var(--stamp-fill) 60%, transparent);
-  --stamp-color: #2f6a53;
-  background: var(--card-bg);
-  --card-muted: color-mix(in srgb, var(--card-ink) 72%, var(--card-bg));
-  color: var(--card-ink);
-}
-.emerald {
-  --card-bg: #1c7a5c;
-  --card-ink: #f0fdf8;
-  --stamp-fill: #e3f7ef;
-  --stamp-border: color-mix(in srgb, var(--stamp-fill) 60%, transparent);
-  --stamp-color: #2ea07a;
-  background: var(--card-bg);
-  --card-muted: color-mix(in srgb, var(--card-ink) 72%, var(--card-bg));
-  color: var(--card-ink);
-}
-.mint {
-  --card-bg: #b9e3d2;
-  --card-ink: #16463a;
-  --stamp-fill: #f5fffb;
-  --stamp-border: color-mix(in srgb, var(--stamp-fill) 60%, transparent);
-  --stamp-color: #4f9d82;
-  background: var(--card-bg);
-  --card-muted: color-mix(in srgb, var(--card-ink) 72%, var(--card-bg));
-  color: var(--card-ink);
-}
-.caramel {
-  --card-bg: #b57d45;
-  --card-ink: #fffaf3;
-  --stamp-fill: #fbf1e4;
-  --stamp-border: color-mix(in srgb, var(--stamp-fill) 60%, transparent);
-  --stamp-color: #cf9a63;
-  background: var(--card-bg);
-  --card-muted: color-mix(in srgb, var(--card-ink) 72%, var(--card-bg));
-  color: var(--card-ink);
-}
-.peach {
-  --card-bg: #f6c6a8;
-  --card-ink: #5a3323;
-  --stamp-fill: #fff6ef;
-  --stamp-border: color-mix(in srgb, var(--stamp-fill) 60%, transparent);
-  --stamp-color: #c9805a;
-  background: var(--card-bg);
-  --card-muted: color-mix(in srgb, var(--card-ink) 72%, var(--card-bg));
-  color: var(--card-ink);
-}
-.coral {
-  --card-bg: #e2735f;
-  --card-ink: #4d1f18;
-  --stamp-fill: #fff0ec;
-  --stamp-border: color-mix(in srgb, var(--stamp-fill) 60%, transparent);
-  --stamp-color: #b8503c;
-  background: var(--card-bg);
-  --card-muted: color-mix(in srgb, var(--card-ink) 72%, var(--card-bg));
-  color: var(--card-ink);
-}
-.wine {
-  --card-bg: #7a2c3f;
-  --card-ink: #fff5f7;
-  --stamp-fill: #f7e6ea;
-  --stamp-border: color-mix(in srgb, var(--stamp-fill) 60%, transparent);
-  --stamp-color: #a04a5e;
-  background: var(--card-bg);
-  --card-muted: color-mix(in srgb, var(--card-ink) 72%, var(--card-bg));
-  color: var(--card-ink);
-}
-.mustard {
-  --card-bg: #d6a02c;
-  --card-ink: #40300a;
-  --stamp-fill: #fdf5df;
-  --stamp-border: color-mix(in srgb, var(--stamp-fill) 60%, transparent);
-  --stamp-color: #a87a14;
-  background: var(--card-bg);
-  --card-muted: color-mix(in srgb, var(--card-ink) 72%, var(--card-bg));
-  color: var(--card-ink);
-}
-.clay {
-  --card-bg: #b4674a;
-  --card-ink: #421f13;
-  --stamp-fill: #fbeee8;
-  --stamp-border: color-mix(in srgb, var(--stamp-fill) 60%, transparent);
-  --stamp-color: #8d4a32;
-  background: var(--card-bg);
-  --card-muted: color-mix(in srgb, var(--card-ink) 72%, var(--card-bg));
-  color: var(--card-ink);
-}
-.graphite {
-  --card-bg: #3c434b;
-  --card-ink: #f7f8f9;
-  --stamp-fill: #eef0f2;
-  --stamp-border: color-mix(in srgb, var(--stamp-fill) 60%, transparent);
-  --stamp-color: #59626c;
-  background: var(--card-bg);
-  --card-muted: color-mix(in srgb, var(--card-ink) 72%, var(--card-bg));
-  color: var(--card-ink);
-}
-.espresso {
-  --card-bg: #4a3529;
-  --card-ink: #fdf8f3;
-  --stamp-fill: #f5ece5;
-  --stamp-border: color-mix(in srgb, var(--stamp-fill) 60%, transparent);
-  --stamp-color: #6b4f3f;
-  background: var(--card-bg);
-  --card-muted: color-mix(in srgb, var(--card-ink) 72%, var(--card-bg));
-  color: var(--card-ink);
-}
-.plum {
-  --card-bg: #5b3a63;
-  --card-ink: #fdf7ff;
-  --stamp-fill: #f3eaf5;
-  --stamp-border: color-mix(in srgb, var(--stamp-fill) 60%, transparent);
-  --stamp-color: #7b5385;
-  background: var(--card-bg);
-  --card-muted: color-mix(in srgb, var(--card-ink) 72%, var(--card-bg));
-  color: var(--card-ink);
-}
-.navy {
-  --card-bg: #0d2a4a;
-  --card-ink: #f6faff;
-  --stamp-fill: #e4ecf5;
-  --stamp-border: color-mix(in srgb, var(--stamp-fill) 60%, transparent);
-  --stamp-color: #1f4771;
-  background: var(--card-bg);
-  --card-muted: color-mix(in srgb, var(--card-ink) 72%, var(--card-bg));
-  color: var(--card-ink);
-}
-.sand {
-  --card-bg: #efe2cd;
-  --card-ink: #4b3a23;
-  --stamp-fill: #fffaf1;
-  --stamp-border: color-mix(in srgb, var(--stamp-fill) 60%, transparent);
-  --stamp-color: #a78a5d;
-  background: var(--card-bg);
-  --card-muted: color-mix(in srgb, var(--card-ink) 72%, var(--card-bg));
-  color: var(--card-ink);
-}
-.paper {
-  --card-bg: #f6f4ef;
-  --card-ink: #26323c;
-  --stamp-fill: #ffffff;
-  --stamp-border: color-mix(in srgb, var(--stamp-fill) 60%, transparent);
-  --stamp-color: #8b8377;
-  background: var(--card-bg);
-  --card-muted: color-mix(in srgb, var(--card-ink) 72%, var(--card-bg));
-  color: var(--card-ink);
-}
-.linen {
-  --card-bg: #e8ded2;
-  --card-ink: #443a2f;
-  --stamp-fill: #fdf9f4;
-  --stamp-border: color-mix(in srgb, var(--stamp-fill) 60%, transparent);
-  --stamp-color: #9c8873;
-  background: var(--card-bg);
-  --card-muted: color-mix(in srgb, var(--card-ink) 72%, var(--card-bg));
-  color: var(--card-ink);
-}
-.blush {
-  --card-bg: #f7dfe2;
-  --card-ink: #5a333c;
-  --stamp-fill: #fff8f9;
-  --stamp-border: color-mix(in srgb, var(--stamp-fill) 60%, transparent);
-  --stamp-color: #b97e8b;
-  background: var(--card-bg);
-  --card-muted: color-mix(in srgb, var(--card-ink) 72%, var(--card-bg));
-  color: var(--card-ink);
-}
-.stone {
-  --card-bg: #dcdfe3;
-  --card-ink: #333c45;
-  --stamp-fill: #f7f8f9;
-  --stamp-border: color-mix(in srgb, var(--stamp-fill) 60%, transparent);
-  --stamp-color: #8a929b;
-  background: var(--card-bg);
-  --card-muted: color-mix(in srgb, var(--card-ink) 72%, var(--card-bg));
-  color: var(--card-ink);
-}
-.ice {
-  --card-bg: #ddeef3;
-  --card-ink: #1f3f4a;
-  --stamp-fill: #f8fdff;
-  --stamp-border: color-mix(in srgb, var(--stamp-fill) 60%, transparent);
-  --stamp-color: #6f9aa5;
-  background: var(--card-bg);
-  --card-muted: color-mix(in srgb, var(--card-ink) 72%, var(--card-bg));
-  color: var(--card-ink);
-}
-.card-watermark {
-  position: absolute;
-  right: -28px;
-  top: 0;
-  color: var(--card-ink);
-  opacity: 0.035;
-  transform: rotate(-25deg);
-  z-index: -1;
-}
-.card-watermark svg {
-  width: 160px;
-  height: 160px;
-  stroke-width: 0.7;
-}
-.card-brand {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-.brand-emblem {
-  width: 36px;
-  height: 39px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 50%;
-  flex-shrink: 0;
-}
-.card-brand h3 {
-  font-family: inherit;
-  font-size: 15px;
-  letter-spacing: -0.5px;
-  line-height: 1.4;
-  font-weight: 650;
-}
-.terracotta .card-brand h3 {
-  font-size: 19px;
-  font-weight: 400;
-  letter-spacing: -0.4px;
-}
-.lavender .card-brand h3 {
-  font-size: 17px;
-  font-weight: 500;
-  letter-spacing: -0.75px;
-}
-.card-brand > div > span {
-  font-size: 6.5px;
-  letter-spacing: 2px;
-  opacity: 0.7;
-  display: block;
-  margin-top: 4px;
-}
-.card-arrow {
-  margin-left: auto;
-  opacity: 0.65;
-  align-self: flex-start;
-  transform: translate(4px, -1px);
-}
-.stamp-grid {
-  display: grid;
-  gap: 12px 13px;
-  align-content: center;
-  justify-items: center;
-  height: 122px;
-  padding: 15px 8px 8px;
-  max-width: 259px;
-  margin: 0 auto;
-}
-.stamp {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  width: 35px;
-  height: 35px;
-  border: 1.5px dashed var(--stamp-border);
-  border-radius: 50%;
-  color: var(--card-muted);
-  font-size: 10px;
-}
-.stamp.filled {
-  background: var(--stamp-fill);
-  color: var(--stamp-color);
-  border: 1px solid var(--stamp-fill);
-  position: relative;
-  outline: 1px dashed var(--stamp-fill);
-  outline-offset: 2px;
-  box-shadow:
-    inset 0 0 0 3px var(--card-bg),
-    inset 0 0 0 4px var(--stamp-fill);
-}
-.stamp.filled > svg {
-  width: 19px;
-  height: 19px;
-}
-.single-row {
-  gap: 9px;
-  padding-left: 0;
-  padding-right: 0;
-}
-.single-row .stamp {
-  width: 32px;
-  height: 32px;
-}
-.gift-stamp {
-  border-style: solid;
-}
-.stamp.gift-stamp.filled {
-  background: transparent;
-  color: var(--stamp-fill);
-  outline: 0;
-  box-shadow: none;
-  border: 1px solid var(--stamp-fill);
-}
-.lavender .stamp.gift-stamp.filled {
-  background: #2399a0;
-  color: #ffffff;
-  box-shadow:
-    inset 0 0 0 3px var(--card-bg),
-    inset 0 0 0 4px var(--stamp-fill);
-  outline: 1px dashed var(--stamp-fill);
-  outline-offset: 2px;
-}
-.card-progress {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  font-size: 8px;
-  color: var(--card-muted);
-  margin-top: 5px;
-}
-.card-progress > span:first-child {
-  display: flex;
-  align-items: center;
-  gap: 3px;
-}
-.card-progress strong {
-  font-weight: 650;
-  color: var(--card-ink);
-}
-.card-progress > span:last-child {
-  font-size: 7px;
-  opacity: 0.75;
-}
-.card-bottom {
-  padding: 13px 17px 14px;
-  background: #ffffff;
-  color: #46617c;
-  border-top: 1px solid #00000003;
-}
-.card-status {
-  font-size: 8px;
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  color: #93a5b8;
-  margin-bottom: 7px;
-}
-.card-status > svg {
-  color: #aeb9c4;
-  width: 12px;
-  height: 12px;
-}
-.card-status.complete {
-  color: #1b7f86;
-}
-.status-dot {
-  width: 5px;
-  height: 5px;
-  border-radius: 50%;
-  background: #2399a0;
-}
-.card-reward {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  font-size: 9.5px;
-  font-weight: 550;
-  gap: 3px;
-}
-.card-reward svg {
-  color: #aeb9c4;
-  width: 14px;
-}
 .discover-section {
   margin-top: 34px;
 }
@@ -1237,115 +633,6 @@ main#main-content {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 19px;
-}
-.promotion-card {
-  overflow: hidden;
-  min-width: 0;
-  border-radius: 10px;
-  background: #ffffff;
-  border: 1px solid #e2e9ef;
-}
-.promotion-image {
-  height: 153px;
-  position: relative;
-  overflow: hidden;
-  background: #e8edf2;
-}
-.image-link {
-  display: block;
-  width: 100%;
-  height: 100%;
-}
-.image-link img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  transition: transform 0.5s ease;
-  object-position: center 58%;
-}
-.image-link:hover img {
-  transform: scale(1.06);
-}
-.promotion-badge {
-  position: absolute;
-  bottom: 12px;
-  left: 12px;
-  background: #fdfcf8ee;
-  padding: 6px 9px;
-  border-radius: 4px;
-  font-size: 8px;
-  font-weight: 600;
-  color: #46617c;
-  pointer-events: none;
-  box-shadow: 0 2px 7px #0001;
-}
-.favorite-button {
-  position: absolute;
-  top: 11px;
-  right: 11px;
-  background: #fbfbfae8;
-  width: 29px;
-  height: 29px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 50%;
-  color: #7d90a3;
-  backdrop-filter: blur(5px);
-}
-.favorite-button svg {
-  width: 14px;
-}
-.favorite-button:hover,
-.favorite-button.is-favorite {
-  color: #127a82;
-  background: #f0f7f8;
-}
-.promotion-info {
-  text-align: left;
-  padding: 14px 15px 15px;
-  display: block;
-  width: 100%;
-}
-.promotion-business {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  font-size: 10px;
-  font-weight: 650;
-  color: #254865;
-}
-.promotion-business > svg {
-  width: 14px;
-  color: #aeb9c4;
-}
-.promotion-info h3 {
-  font-family: 'DM Sans Variable', sans-serif;
-  font-size: 9.5px;
-  font-weight: 400;
-  color: #93a5b8;
-  letter-spacing: 0;
-  margin-top: 5px;
-  line-height: 1.7;
-}
-.promotion-info > span {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  color: #c2cdd6;
-  font-size: 7px;
-  margin-top: 11px;
-}
-.promotion-info > span i {
-  height: 2px;
-  width: 2px;
-  border-radius: 50%;
-  background: #c9d2da;
-  margin: 0 2px;
-}
-.promotion-info > span > svg {
-  width: 10px;
-  height: 10px;
 }
 .bottom-note {
   display: flex;
@@ -1653,80 +940,6 @@ main#main-content {
   color: #8fa1b5;
 }
 /* Accessible dialogs and forms */
-.dialog-overlay {
-  position: fixed;
-  inset: 0;
-  z-index: 60;
-  background: #022f5366;
-  backdrop-filter: blur(5px);
-  animation: fadeIn 0.2s ease;
-}
-.dialog-content {
-  position: fixed;
-  z-index: 61;
-  left: 50%;
-  top: 50%;
-  transform: translate(-50%, -50%);
-  width: calc(100% - 36px);
-  max-width: 460px;
-  max-height: 90dvh;
-  overflow: auto;
-  padding: 26px;
-  background: #ffffff;
-  border: 1px solid #e4eaf0;
-  border-radius: 17px;
-  box-shadow: 0 24px 80px #022f5333;
-  animation: dialogIn 0.22s ease;
-}
-.dialog-heading {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-  margin-bottom: 7px;
-}
-.dialog-heading h2 {
-  font-size: 19px;
-  line-height: 1.45;
-}
-.dialog-description {
-  font-size: 12px;
-  color: #93a5b8;
-  line-height: 1.8;
-  margin-bottom: 22px;
-  padding-right: 12px;
-}
-.dialog-content .loyalty-card {
-  max-width: 360px;
-  margin: 0 auto;
-}
-.dialog-content .card-colored {
-  padding: 23px 25px 16px;
-}
-.dialog-content .card-brand h3 {
-  font-size: 18px;
-}
-.dialog-content .card-brand > div > span {
-  font-size: 8px;
-}
-.dialog-content .stamp-grid {
-  height: 141px;
-}
-.dialog-content .card-bottom {
-  padding: 17px 22px;
-}
-.dialog-content .card-status {
-  font-size: 10px;
-}
-.dialog-content .card-reward {
-  font-size: 12px;
-}
-.dialog-content .card-progress {
-  font-size: 10px;
-}
-.dialog-content .card-progress > span:last-child {
-  font-size: 9px;
-}
 .notice {
   font-size: 11px;
   line-height: 1.8;
@@ -1748,13 +961,6 @@ main#main-content {
   display: inline;
   margin-right: 5px;
   vertical-align: middle;
-}
-.fine-print {
-  font-size: 9px;
-  color: #aeb9c4;
-  text-align: center;
-  line-height: 1.7;
-  margin-top: 14px;
 }
 .confirm-panel {
   text-align: center;
@@ -1778,34 +984,6 @@ main#main-content {
   color: #93a5b8;
   line-height: 1.8;
   margin: 12px 0 20px;
-}
-.card-detail-location {
-  display: flex;
-  align-items: center;
-  gap: 7px;
-  font-size: 11px;
-  color: #aeb9c4;
-  margin: 20px 0 16px;
-}
-.card-detail-location > span {
-  margin-left: auto;
-}
-.detail-reward {
-  display: flex;
-  gap: 12px;
-  padding: 17px 0 20px;
-  border-top: 1px solid var(--line);
-  color: #6f87a0;
-}
-.detail-reward strong {
-  font-size: 12px;
-  color: #254865;
-  font-weight: 600;
-}
-.detail-reward p {
-  font-size: 11px;
-  margin-top: 5px;
-  line-height: 1.8;
 }
 .qr-panel {
   text-align: center;
@@ -1854,69 +1032,6 @@ main#main-content {
   font-size: 9px;
   color: #7d90a3;
   margin: 10px 0;
-}
-.qr-steps {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  gap: 8px;
-  font-size: 9px;
-  color: #93a5b8;
-  margin: 24px 0 4px;
-}
-.qr-steps span {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-}
-.qr-steps b {
-  background: #eef2f6;
-  border-radius: 50%;
-  height: 20px;
-  width: 20px;
-  display: inline-flex;
-  justify-content: center;
-  align-items: center;
-  font-size: 9px;
-  font-weight: 500;
-}
-.qr-steps > svg {
-  color: #c4cfd9;
-}
-.promotion-detail-image {
-  width: 100%;
-  height: 207px;
-  object-fit: cover;
-  border-radius: 11px;
-}
-.detail-promo-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  font-size: 10px;
-  padding: 6px 10px;
-  background: #dceff0;
-  color: #14787f;
-  border-radius: 5px;
-  margin: 19px 0 12px;
-}
-.promotion-detail-title {
-  font-size: 23px;
-  line-height: 1.5;
-}
-.promotion-description {
-  font-size: 12px;
-  color: #93a5b8;
-  line-height: 1.9;
-  margin: 15px 0;
-}
-.promotion-validity {
-  display: flex;
-  gap: 7px;
-  align-items: center;
-  font-size: 10px;
-  color: #aeb9c4;
-  margin: 20px 0;
 }
 .notification-list > button {
   display: flex;
@@ -2277,10 +1392,6 @@ main#main-content {
 .card-preview-panel > .little-label {
   display: block;
   margin-bottom: 27px;
-}
-.card-preview-panel .loyalty-card {
-  max-width: 360px;
-  margin: auto;
 }
 .card-preview-panel > p {
   font-size: 10px;
@@ -2683,27 +1794,6 @@ main#main-content {
     padding-left: 54px;
     padding-right: 54px;
   }
-  .card-brand h3 {
-    font-size: 18px;
-  }
-  .card-colored {
-    padding: 24px 26px 16px;
-  }
-  .stamp-grid {
-    height: 140px;
-  }
-  .card-bottom {
-    padding: 17px 22px;
-  }
-  .card-reward {
-    font-size: 11px;
-  }
-  .card-status {
-    font-size: 10px;
-  }
-  .card-progress {
-    font-size: 10px;
-  }
   .banner-copy h2 {
     font-size: 29px;
   }
@@ -2712,9 +1802,6 @@ main#main-content {
   }
   .welcome-banner {
     min-height: 241px;
-  }
-  .promotion-image {
-    height: 186px;
   }
 }
 @media (max-width: 1200px) {
@@ -2744,62 +1831,6 @@ main#main-content {
   .loyalty-grid,
   .promotion-grid {
     gap: 14px;
-  }
-  .card-colored {
-    padding: 18px 15px 12px;
-  }
-  .card-brand {
-    gap: 6px;
-  }
-  .card-brand h3 {
-    font-size: 13px;
-  }
-  .terracotta .card-brand h3 {
-    font-size: 17px;
-  }
-  .lavender .card-brand h3 {
-    font-size: 15px;
-  }
-  .brand-emblem {
-    width: 28px;
-  }
-  .brand-emblem > svg {
-    width: 23px;
-  }
-  .card-arrow {
-    width: 14px;
-  }
-  .stamp-grid {
-    padding-left: 2px;
-    padding-right: 2px;
-    gap: 12px;
-  }
-  .stamp {
-    width: 30px;
-    height: 30px;
-  }
-  .stamp.filled > svg {
-    width: 17px;
-    height: 17px;
-  }
-  .single-row {
-    gap: 7px;
-  }
-  .single-row .stamp {
-    width: 27px;
-    height: 27px;
-  }
-  .card-reward {
-    font-size: 8.5px;
-  }
-  .card-progress {
-    font-size: 7px;
-  }
-  .card-progress > span:last-child {
-    font-size: 6px;
-  }
-  .card-bottom {
-    padding: 12px 13px;
   }
   .banner-copy {
     padding: 22px 25px;
@@ -2869,12 +1900,6 @@ main#main-content {
   .near-card > div {
     max-width: 80%;
   }
-  .promotion-info {
-    padding: 12px;
-  }
-  .promotion-image {
-    height: 145px;
-  }
 }
 @media (max-width: 1000px) and (min-width: 769px) {
   .brand {
@@ -2933,23 +1958,14 @@ main#main-content {
   .loyalty-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
-  .loyalty-grid > .loyalty-card:last-child:nth-child(odd) {
+  .loyalty-grid > [data-loyalty-card]:last-child:nth-child(odd) {
     grid-column: auto;
   }
   .promotion-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
-  .promotion-grid > .promotion-card:last-child:nth-child(3) {
+  .promotion-grid > [data-promotion-card]:last-child:nth-child(3) {
     display: none;
-  }
-  .card-brand h3 {
-    font-size: 15px;
-  }
-  .card-colored {
-    padding: 18px;
-  }
-  .stamp-grid {
-    max-width: 220px;
   }
   .stat {
     gap: 7px;
@@ -3093,97 +2109,8 @@ main#main-content {
     grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: 12px;
   }
-  .card-colored {
-    padding: 17px 12px 12px;
-  }
-  .brand-emblem {
-    display: none;
-  }
-  .card-brand h3 {
-    font-size: 12px;
-  }
-  .terracotta .card-brand h3 {
-    font-size: 16px;
-  }
-  .lavender .card-brand h3 {
-    font-size: 14px;
-  }
-  .card-brand > div > span {
-    font-size: 5.5px;
-    letter-spacing: 1.5px;
-  }
-  .stamp-grid {
-    height: 112px;
-    gap: 11px 8px;
-  }
-  .stamp {
-    width: 27px;
-    height: 27px;
-  }
-  .single-row {
-    gap: 6px;
-  }
-  .single-row .stamp {
-    width: 24px;
-    height: 24px;
-  }
-  .stamp.filled > svg {
-    width: 15px;
-    height: 15px;
-  }
-  .stamp > svg {
-    width: 17px;
-  }
-  .card-progress > span:last-child {
-    display: none;
-  }
-  .card-progress {
-    font-size: 8px;
-  }
-  .card-bottom {
-    padding: 12px 10px;
-  }
-  .card-status {
-    font-size: 7px;
-  }
-  .card-reward {
-    font-size: 8px;
-    min-height: 24px;
-    line-height: 1.6;
-    align-items: center;
-  }
-  .card-reward svg {
-    width: 12px;
-  }
   .promotion-grid {
     gap: 12px;
-  }
-  .promotion-image {
-    height: 137px;
-  }
-  .promotion-info {
-    padding: 12px;
-  }
-  .promotion-business {
-    font-size: 9px;
-  }
-  .promotion-info h3 {
-    font-size: 9px;
-  }
-  .promotion-info > span {
-    font-size: 6px;
-  }
-  .promotion-badge {
-    font-size: 7px;
-    padding: 5px 7px;
-    left: 9px;
-    bottom: 10px;
-  }
-  .favorite-button {
-    width: 26px;
-    height: 26px;
-    right: 9px;
-    top: 9px;
   }
   .discover-section .section-title h2 {
     font-size: 17px;
@@ -3210,15 +2137,6 @@ main#main-content {
   }
   .form-panel {
     padding: 20px;
-  }
-  .card-preview-panel .brand-emblem {
-    display: flex;
-  }
-  .card-preview-panel .card-brand h3 {
-    font-size: 14px;
-  }
-  .business-editor .stamp-grid {
-    max-width: 190px;
   }
   .form-columns {
     grid-template-columns: 1fr;
@@ -3250,24 +2168,6 @@ main#main-content {
   }
   .activity-amount {
     font-size: 9px;
-  }
-  .dialog-content {
-    padding: 25px;
-    max-width: 440px;
-  }
-  .dialog-content .brand-emblem {
-    display: flex;
-  }
-  .dialog-content .card-progress > span:last-child {
-    display: block;
-  }
-  .dialog-content .stamp {
-    width: 35px;
-    height: 35px;
-  }
-  .dialog-content .stamp.filled > svg {
-    width: 20px;
-    height: 20px;
   }
   .login-page {
     grid-template-columns: 1fr;
@@ -3497,100 +2397,6 @@ main#main-content {
     grid-template-columns: 1fr;
     gap: 16px;
   }
-  .card-colored {
-    padding: 22px 24px 15px;
-  }
-  .card-brand {
-    gap: 12px;
-  }
-  .brand-emblem {
-    display: flex;
-    width: 34px;
-    height: 38px;
-  }
-  .brand-emblem > svg {
-    width: 26px;
-    height: 26px;
-  }
-  .card-brand h3 {
-    font-size: 19px;
-  }
-  .terracotta .card-brand h3 {
-    font-size: 23px;
-  }
-  .lavender .card-brand h3 {
-    font-size: 21px;
-  }
-  .card-brand > div > span {
-    font-size: 7px;
-    letter-spacing: 2px;
-    margin-top: 5px;
-  }
-  .card-arrow {
-    width: 19px;
-    height: 19px;
-  }
-  .stamp-grid {
-    height: 128px;
-    max-width: 260px;
-    gap: 13px 20px;
-    padding: 16px 10px 8px;
-  }
-  .stamp {
-    width: 36px;
-    height: 36px;
-    font-size: 11px;
-  }
-  .stamp.filled > svg {
-    width: 21px;
-    height: 21px;
-  }
-  .stamp > svg {
-    width: 22px;
-    height: 22px;
-  }
-  .single-row {
-    gap: 14px;
-    padding-left: 0;
-    padding-right: 0;
-  }
-  .single-row .stamp {
-    width: 34px;
-    height: 34px;
-  }
-  .card-progress {
-    font-size: 10px;
-    margin-top: 10px;
-  }
-  .card-progress > span:last-child {
-    display: block;
-    font-size: 8px;
-  }
-  .card-bottom {
-    padding: 16px 22px;
-  }
-  .card-status {
-    font-size: 10px;
-    margin-bottom: 8px;
-  }
-  .card-status > svg {
-    width: 14px;
-    height: 14px;
-  }
-  .card-reward {
-    font-size: 12px;
-    min-height: 0;
-  }
-  .card-reward > svg {
-    width: 16px;
-    height: 16px;
-  }
-  .loyalty-card {
-    border-radius: 13px;
-  }
-  .loyalty-card:hover {
-    transform: none !important;
-  }
   .discover-section {
     margin-top: 28px;
   }
@@ -3624,45 +2430,6 @@ main#main-content {
   .promotion-grid {
     grid-template-columns: 1fr;
     gap: 19px;
-  }
-  .promotion-image {
-    height: 190px;
-  }
-  .promotion-info {
-    padding: 17px 18px;
-  }
-  .promotion-business {
-    font-size: 13px;
-  }
-  .promotion-business > svg {
-    width: 17px;
-  }
-  .promotion-info h3 {
-    font-size: 12px;
-    margin-top: 5px;
-  }
-  .promotion-info > span {
-    font-size: 9px;
-    margin-top: 13px;
-    gap: 5px;
-  }
-  .promotion-info > span svg {
-    width: 12px;
-  }
-  .promotion-badge {
-    font-size: 9px;
-    padding: 7px 10px;
-    bottom: 14px;
-    left: 15px;
-  }
-  .favorite-button {
-    height: 32px;
-    width: 32px;
-    top: 12px;
-    right: 13px;
-  }
-  .favorite-button svg {
-    width: 16px;
   }
   .bottom-note {
     font-size: 8px;
@@ -3832,12 +2599,6 @@ main#main-content {
     max-width: 100%;
     width: 100%;
   }
-  .card-preview-panel .card-brand h3 {
-    font-size: 19px;
-  }
-  .business-editor .stamp-grid {
-    max-width: 250px;
-  }
   .card-preview-panel > .little-label {
     font-size: 8px;
     margin-bottom: 18px;
@@ -3861,50 +2622,6 @@ main#main-content {
   .business-promotions article p {
     font-size: 11px;
   }
-  .dialog-content {
-    width: calc(100% - 24px);
-    padding: 22px;
-    max-height: 90dvh;
-    border-radius: 15px;
-  }
-  .dialog-heading h2 {
-    font-size: 17px;
-  }
-  .dialog-description {
-    font-size: 11px;
-    line-height: 1.9;
-    margin-bottom: 18px;
-  }
-  .dialog-content .card-brand h3 {
-    font-size: 18px;
-  }
-  .dialog-content .stamp-grid {
-    height: 125px;
-  }
-  .dialog-content .card-colored {
-    padding: 20px;
-  }
-  .dialog-content .brand-emblem {
-    width: 31px;
-  }
-  .dialog-content .card-brand {
-    gap: 8px;
-  }
-  .dialog-content .single-row {
-    gap: 12px;
-  }
-  .dialog-content .card-bottom {
-    padding: 14px 17px;
-  }
-  .dialog-content .card-reward {
-    font-size: 11px;
-  }
-  .dialog-content .card-progress {
-    font-size: 9px;
-  }
-  .dialog-content .card-progress > span:last-child {
-    font-size: 7px;
-  }
   .qr-person h3 {
     font-size: 16px;
   }
@@ -3920,21 +2637,6 @@ main#main-content {
   }
   .qr-safe {
     font-size: 8px;
-  }
-  .qr-steps {
-    font-size: 8px;
-    gap: 6px;
-  }
-  .qr-steps b {
-    width: 18px;
-    height: 18px;
-  }
-  .qr-steps span {
-    gap: 3px;
-  }
-  .dialog-content .notice {
-    font-size: 10px;
-    padding: 12px;
   }
   .notification-list .stat-icon {
     margin: 0;
@@ -3953,18 +2655,6 @@ main#main-content {
   }
   .help-steps p {
     font-size: 11px;
-  }
-  .promotion-detail-image {
-    height: 185px;
-  }
-  .promotion-detail-title {
-    font-size: 22px;
-  }
-  .promotion-description {
-    font-size: 11px;
-  }
-  .promotion-validity {
-    font-size: 9px;
   }
   .profile-detail h2 {
     font-size: 20px;
@@ -4003,17 +2693,6 @@ main#main-content {
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
   }
-  .loyalty-card:hover {
-    transform: none !important;
-  }
-}
-.card-logo {
-  width: 35px;
-  height: 35px;
-  object-fit: contain;
-  border-radius: 50%;
-  background: #ffffff;
-  padding: 3px;
 }
 @media (min-width: 1001px) {
   .page-intro p {
@@ -4021,18 +2700,6 @@ main#main-content {
   }
   .banner-copy p {
     font-size: 11px;
-  }
-  .card-status {
-    font-size: 9px;
-  }
-  .card-reward {
-    font-size: 11px;
-  }
-  .card-progress {
-    font-size: 9px;
-  }
-  .card-progress > span:last-child {
-    font-size: 8px;
   }
   .stat small {
     font-size: 10px;
@@ -4043,26 +2710,8 @@ main#main-content {
   .filter-tabs > button {
     font-size: 11px;
   }
-  .promotion-business {
-    font-size: 12px;
-  }
-  .promotion-info h3 {
-    font-size: 11px;
-  }
-  .promotion-info > span {
-    font-size: 9px;
-  }
   .search-box input {
     font-size: 11px;
-  }
-  .promotion-badge {
-    font-size: 9px;
-  }
-  .card-brand h3 {
-    font-size: 17px;
-  }
-  .terracotta .card-brand h3 {
-    font-size: 21px;
   }
 }
 @media (max-width: 768px) {
@@ -4081,9 +2730,6 @@ main#main-content {
   }
   .search-box input::placeholder {
     font-size: 11px;
-  }
-  .card-preview-panel > .loyalty-card .brand-emblem {
-    display: flex;
   }
 }
 @media (max-width: 768px) {
@@ -4650,22 +3296,6 @@ main#main-content {
 }
 .tier-row input {
   font-size: inherit;
-}
-.promotion-type-detail {
-  margin: 14px 0;
-  padding: 14px;
-  border-radius: 10px;
-  border: 1px solid var(--line);
-  background: #f4f6f8;
-}
-.promotion-type-detail .little-label {
-  display: block;
-  margin-bottom: 6px;
-}
-.promotion-type-detail p {
-  font-size: 12px;
-  color: #46617c;
-  margin: 0;
 }
 
 /* Menú digital público */
@@ -6821,12 +5451,6 @@ main#main-content {
   }
   .business-promotions article > div {
     padding: clamp(14px, 4vw, 20px);
-  }
-  .dialog-content {
-    width: min(560px, calc(100% - 24px));
-    max-height: calc(100dvh - 24px);
-    padding: clamp(16px, 4vw, 22px);
-    overscroll-behavior: contain;
   }
   .modal-form,
   .modal-form label,

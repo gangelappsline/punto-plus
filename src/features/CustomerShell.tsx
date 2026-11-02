@@ -572,7 +572,7 @@ export function CustomerLayout() {
             </div>
           </div>
         </div>
-        <p className="fine-print">
+        <p className="mt-[14px] text-center text-[9px] leading-[1.7] text-[#aeb9c4]">
           La instalación requiere HTTPS y un navegador compatible. En desarrollo, prueba la
           compilación de producción.
         </p>

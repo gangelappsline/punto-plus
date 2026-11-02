@@ -440,7 +440,7 @@ function BusinessEditor({ config }: { config: BusinessConfig }) {
       <div className="card-preview-panel">
         <span className="little-label">ASÍ LA VERÁN TUS CLIENTES</span>
         {values.logo && <img className="preview-logo" src={values.logo} alt="Logo de tu negocio" />}
-        <LoyaltyCard card={card} onClick={() => setPreview(true)} />
+        <LoyaltyCard card={card} onClick={() => setPreview(true)} variant="preview" />
         <p>
           <Check size={15} /> Los cambios se guardan cuando tú decidas.
         </p>
@@ -459,7 +459,7 @@ function BusinessEditor({ config }: { config: BusinessConfig }) {
         title="Vista previa de tu tarjeta"
         description="Esta es una simulación visual. No modifica los sellos de tus clientes."
       >
-        <LoyaltyCard card={card} onClick={() => setPreview(false)} />
+        <LoyaltyCard card={card} onClick={() => setPreview(false)} variant="dialog" />
       </Dialog>
     </div>
   );

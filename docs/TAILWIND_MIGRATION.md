@@ -37,9 +37,9 @@ responsive que reescribe esos mismos selectores. Por eso la migración va **por
 | ---- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------ |
 | 1    | Base Tailwind v4 (`@theme` + capa base)                                                                                                                    | ✅ hecho     |
 | 1    | `Button` con `cva` · `.button*`, `.icon-button`, `.text-link`, `.muted`, `.full-width`, `.sr-only`                                                         | ✅ hecho     |
-| 2    | Shells: `CustomerShell`, `BusinessShell`, `AdminShell` (`.app-shell`, `.sidebar`, `.nav-item`, `.topbar`, `.breadcrumb`, `.avatar`, `.main-footer`…)       | ⏳ siguiente |
-| 3    | Tarjetas: `LoyaltyCard`, `PromotionCard`, `Dialogs` (`.card-*`, `.stamp*`, `.promotion-*`, `.dialog-*`)                                                    | ⏳           |
-| 4    | Páginas de cliente: `CustomerPages`, `NearbyGoogleMap`, `nearbyPin`, `Scanner` (`.section*`, `.loyalty-grid`, `.promotion-grid`, `.nearby-*`, `.pp-map-*`) | ⏳           |
+| 2    | Shells: `CustomerShell`, `BusinessShell`, `AdminShell` (`.app-shell`, `.sidebar`, `.nav-item`, `.topbar`, `.breadcrumb`, `.avatar`, `.main-footer`…)       | ✅ hecho     |
+| 3    | Tarjetas: `LoyaltyCard`, `PromotionCard`, `Dialogs` (`.card-*`, `.stamp*`, `.promotion-*`, `.dialog-*`)                                                    | ✅ hecho     |
+| 4    | Páginas de cliente: `CustomerPages`, `NearbyGoogleMap`, `nearbyPin`, `Scanner` (`.section*`, `.loyalty-grid`, `.promotion-grid`, `.nearby-*`, `.pp-map-*`) | ⏳ siguiente |
 | 5    | Panel de negocio: `BusinessPage`, `BusinessDashboard`, `BusinessOnboarding`, `BusinessMenuWizard`, `BusinessQRSettings`                                    | ⏳           |
 | 6    | Administración: `AdminDashboard`, `AdminBusinessesPage`, `AdminCategoriesPage`                                                                             | ⏳           |
 | 7    | Público: `LandingPage`, `MenuPage`, `Login`, `Register`, `AuthLayout`, `NotFoundPage`, `AppSplash`                                                         | ⏳           |
@@ -47,11 +47,29 @@ responsive que reescribe esos mismos selectores. Por eso la migración va **por
 
 ## Progreso
 
-| Métrica                   | Inicio | Tras fase 1 | Tras fase 2 |
-| ------------------------- | ------ | ----------- | ----------- |
-| Líneas en `src/index.css` | 7.484  | 7.332       | 6.585       |
-| Clases propias definidas  | 457    | 445         | 405         |
-| Clases propias en uso     | 347    | 340         | 302         |
+| Métrica                   | Inicio | Tras fase 1 | Tras fase 2 | Tras fase 3 |
+| ------------------------- | ------ | ----------- | ----------- | ----------- |
+| Líneas en `src/index.css` | 7.484  | 7.332       | 6.585       | 5.484       |
+| Clases propias definidas  | 457    | 445         | 405         | 341         |
+| Clases propias en uso     | 347    | 340         | 302         | 244         |
+
+### Fase 3 · decisiones
+
+- **Los 40 bloques de tema (`.forest`, `.terracotta`…) salieron del CSS**: los
+  colores del tema se escriben ahora como variables en el propio elemento
+  (`cardThemeStyle`), con los tonos derivados (`--card-muted`, `--stamp-border`)
+  calculados con `color-mix`. Un fondo personalizado ya no necesita una regla.
+- **Las variantes de tamaño son props, no descendientes**: `LoyaltyCard`
+  recibe `variant="grid" | "dialog" | "preview"` en lugar de depender de
+  `.dialog-content .card-*` ni de `.card-preview-panel .card-*`. Las escalas
+  responsive se movieron a variantes (`max-[1200px]:`, `min-[769px]:max-[1000px]:`,
+  `max-[768px]:`, `max-[540px]:`), respetando el orden de cascada original.
+- La tarjeta expone `data-loyalty-card`, `data-variant` y `data-stamp-grid`, y la
+  promoción `data-promotion-card`: son el punto de apoyo de las pruebas y de las
+  reglas de rejilla que quedan para la fase 4.
+- Las clases de detalle de los diálogos (`.card-detail-location`,
+  `.detail-reward`, `.fine-print`, `.promotion-*`, `.qr-steps`) se movieron a
+  utilidades dentro de `Dialogs.tsx`.
 
 Nota: los tests no deben depender de clases CSS. `MobilePanelNavigation` y
 `App.test` ahora comprueban `data-*` y `aria-current`, que son la fuente de
