@@ -194,7 +194,7 @@ export function LoyaltyCard({
     >
       <div className="card-colored">
         <div className="card-watermark">
-          <BrandIcon icon={card.icon} size={170} />
+          <BrandIcon icon={card.icon} size={170}/>
         </div>
         <div className="card-brand">
           <span className="brand-emblem">

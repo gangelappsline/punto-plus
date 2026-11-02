@@ -6,6 +6,7 @@ import {
   Check,
   CloudOff,
   Compass,
+  FileUser,
   Gift,
   Heart,
   LayoutDashboard,
@@ -17,6 +18,7 @@ import {
   Stamp,
   Store,
   X,
+  PanelLeftDashed
 } from 'lucide-react';
 import { LoyaltyCard } from '../components/LoyaltyCard';
 import { Button } from '../components/ui/button';
@@ -89,18 +91,19 @@ export function LandingPage() {
             ))}
           </nav>
           <div className="hidden items-center gap-3 md:flex">
-            {!user && (
-              <Button asChild variant="ghost" className="text-navy">
+            {!user &&(
+              <Button asChild variant="ghost" className="text-navy !hidden">
                 <Link to="/registro">Crear cuenta</Link>
               </Button>
             )}
-            <Button asChild variant="ghost" className="text-navy">
+            <Button asChild variant="ghost" className="bg-navy !text-white">
               <Link to={myPanel}>
+                <PanelLeftDashed />
                 {user ? 'Mi panel' : isDemo ? 'Ir a mi demo' : 'Iniciar sesión'}
               </Link>
             </Button>
-            <Button asChild>
-              <Link to={primaryCta}>
+            <Button asChild className={user ? 'hidden' : ''}>
+              <Link to={primaryCta} className="!text-white">
                 Soy un negocio <LayoutDashboard size={16} />
               </Link>
             </Button>

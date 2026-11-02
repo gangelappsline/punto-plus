@@ -1027,7 +1027,7 @@ main#main-content {
   right: -28px;
   top: 0;
   color: var(--card-ink);
-  opacity: 0.035;
+  opacity: 0.135;
   transform: rotate(-25deg);
   z-index: -1;
 }
