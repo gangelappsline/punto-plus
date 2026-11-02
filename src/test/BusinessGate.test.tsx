@@ -171,13 +171,31 @@ describe('Guarda de alta del negocio en /business/negocio', () => {
     download.mockRestore();
   });
 
-  it('conserva el acceso a compras y promociones mientras falta el perfil', async () => {
+  it('genera y muestra el token de venta con QR y caducidad', async () => {
+    const user = userEvent.setup();
+    setOnboarded(true);
+    setup();
+    await screen.findByRole('button', { name: /Guardar configuración/ });
+
+    await user.click(screen.getByRole('button', { name: 'Generar token de venta' }));
+    expect(
+      screen.getByRole('dialog', { name: 'Token para verificar una compra' }),
+    ).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Solicitar token de venta' }));
+
+    const code = await screen.findByLabelText('Código de venta');
+    expect(code.textContent).toMatch(/^[A-Z0-9]{8}$/);
+    expect(screen.getByTitle('QR del token de venta')).toBeInTheDocument();
+    expect(screen.getByRole('status')).toHaveTextContent(/Vence en 4:|Vence en 5:/);
+    expect(readDB().saleToken?.token).toBe(code.textContent);
+  });
+
+  it('conserva el acceso a generar tokens y promociones mientras falta el perfil', async () => {
     setOnboarded(false);
     setup();
 
     await screen.findByRole('heading', { name: 'Completa la configuración de tu negocio' });
-    // Registrar una compra y las promociones siguen disponibles fuera de la guarda.
-    expect(screen.getByRole('button', { name: /Registrar una compra/ })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Generar token de venta/ })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /Promociones/ })).toBeInTheDocument();
   });
 });

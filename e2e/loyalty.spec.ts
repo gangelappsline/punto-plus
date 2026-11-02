@@ -46,18 +46,24 @@ test('el QR demo del negocio permite agregar una tarjeta', async ({ page, isMobi
   await expect(page.getByRole('dialog')).not.toBeVisible();
   await expect(page.getByRole('button', { name: /Ver tarjeta de Casa Botánica/ })).toBeVisible();
 });
-test('configura la tarjeta y registra una compra con confirmación', async ({ page }) => {
+test('el negocio genera un token y el cliente confirma la compra una sola vez', async ({
+  page,
+}) => {
   await page.goto('/admin/negocio');
-  await page.getByLabel('Nombre del negocio', { exact: true }).fill('Café de Sofía');
-  await page.getByRole('button', { name: 'Guardar configuración' }).click();
-  await expect(page.getByText('La tarjeta de tu negocio se guardó')).toBeVisible();
-  await page.getByRole('button', { name: 'Registrar una compra' }).click();
-  await page.getByRole('button', { name: 'Probar con un QR de demostración' }).click();
-  await page.getByRole('button', { name: 'Confirmar compra y agregar sello' }).click();
-  await expect(page.getByRole('dialog')).not.toBeVisible();
+  await page.getByRole('button', { name: 'Generar token de venta' }).click();
+  await page.getByRole('button', { name: 'Solicitar token de venta' }).click();
+  const token = (await page.locator('[aria-label="Código de venta"]').textContent())?.trim();
+  expect(token).toMatch(/^[A-Z0-9]{8}$/);
+
   await page.goto('/app');
+  await page.getByRole('button', { name: 'Confirmar compra' }).click();
+  await page.getByLabel('Código de venta de 8 caracteres').fill(token!);
+  await page.getByRole('button', { name: 'Validar' }).click();
+  await page.getByRole('button', { name: 'Confirmar compra' }).click();
+  await expect(page.getByRole('heading', { name: '¡Compra confirmada!' })).toBeVisible();
+  await page.getByRole('button', { name: 'Ver mis tarjetas' }).click();
   await expect(
-    page.getByRole('button', { name: /Ver tarjeta de Café de Sofía, 7 de 8/ }),
+    page.getByRole('button', { name: /Ver tarjeta de Café Avellaneda, 7 de 8/ }),
   ).toBeVisible();
 });
 test('publica una promoción permanente y se adapta al ancho disponible', async ({ page }) => {

@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -13,10 +13,11 @@ import {
   Plus,
   QrCode,
   Save,
-  ScanLine,
   Store,
+  Timer,
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { QRCodeSVG } from 'qrcode.react';
 import {
   businessSchema,
   type BusinessConfig,
@@ -29,10 +30,10 @@ import {
   useBusiness,
   useBusinessPromotions,
   useSaveBusiness,
-  useStamp,
+  useNewSaleToken,
 } from '../lib/queries';
 import { readImage } from '../lib/image';
-import type { BusinessPromotionInput } from '../services/api';
+import type { BusinessPromotionInput, SaleToken } from '../services/api';
 import {
   brandIconOptions,
   brandThemeOptions,
@@ -43,7 +44,6 @@ import {
 } from '../components/LoyaltyCard';
 import { Button } from '../components/ui/button';
 import { Dialog } from '../components/ui/dialog';
-import { Scanner } from '../components/Scanner';
 import { QueryState } from './CustomerPages';
 import { BusinessQRSettings } from '../components/BusinessQRSettings';
 const businessEditorSchema = businessSchema.extend({
@@ -376,14 +376,12 @@ function BusinessEditor({ config }: { config: BusinessConfig }) {
 export function BusinessPage() {
   const business = useBusiness();
   const [tab, setTab] = useState('card');
-  const [scanOpen, setScanOpen] = useState(false);
-  const [scanned, setScanned] = useState<string | null>(null);
+  const [saleTokenOpen, setSaleTokenOpen] = useState(false);
+  const [saleToken, setSaleToken] = useState<SaleToken | null>(null);
+  const [saleTokenSecondsLeft, setSaleTokenSecondsLeft] = useState(0);
   const [promotionOpen, setPromotionOpen] = useState(false);
   const promotions = useBusinessPromotions();
-  const stamp = useStamp(() => {
-    setScanned(null);
-    setScanOpen(false);
-  });
+  const newSaleToken = useNewSaleToken();
   const promotion = useAddPromotion(() => {
     setPromotionOpen(false);
     form.reset();
@@ -409,6 +407,25 @@ export function BusinessPage() {
   const discountType = form.watch('discountType');
   const isPermanent = form.watch('isPermanent');
 
+  useEffect(() => {
+    if (!saleToken) {
+      setSaleTokenSecondsLeft(0);
+      return;
+    }
+    const updateRemaining = () =>
+      setSaleTokenSecondsLeft(
+        Math.max(0, Math.ceil((Date.parse(saleToken.expiresAt) - Date.now()) / 1000)),
+      );
+    updateRemaining();
+    const timer = window.setInterval(updateRemaining, 1000);
+    return () => window.clearInterval(timer);
+  }, [saleToken]);
+
+  function requestSaleToken() {
+    setSaleToken(null);
+    newSaleToken.mutate(undefined, { onSuccess: setSaleToken });
+  }
+
   function promotionLabel(p: Promotion): string {
     if (p.discountTypeLabel) return p.discountTypeLabel;
     if (p.discountType === 'percentage') return `${p.discountValue ?? 0}% de descuento`;
@@ -421,9 +438,6 @@ export function BusinessPage() {
     if (p.type === 'direct') return 'Promoción directa';
     return p.description || 'Promoción';
   }
-  const onScan = useCallback((token: string) => {
-    setScanned(token);
-  }, []);
   return (
     <>
       <div className="page-intro">
@@ -436,13 +450,8 @@ export function BusinessPage() {
           </h1>
           <p>Tu comunidad empieza con una buena experiencia.</p>
         </div>
-        <Button
-          onClick={() => {
-            setScanned(null);
-            setScanOpen(true);
-          }}
-        >
-          <ScanLine size={18} /> Registrar una compra
+        <Button onClick={() => setSaleTokenOpen(true)}>
+          <QrCode size={18} /> Generar token de venta
         </Button>
       </div>
       <div className="filter-tabs activity-tabs">
@@ -547,45 +556,64 @@ export function BusinessPage() {
         </section>
       )}
       <Dialog
-        open={scanOpen}
-        onOpenChange={(open) => {
-          if (!stamp.isPending) setScanOpen(open);
-        }}
-        title={scanned ? 'Confirma la visita' : 'Un sello, una nueva visita'}
-        description={
-          scanned
-            ? 'Confirma únicamente después de verificar la compra. El servidor validará el QR y la tarjeta del cliente.'
-            : 'Pide a tu cliente que abra su código QR de Punto Plus.'
-        }
+        open={saleTokenOpen}
+        onOpenChange={setSaleTokenOpen}
+        title="Token para verificar una compra"
+        description="Muestra el QR o comparte el código de 8 caracteres con tu cliente."
       >
-        {scanned ? (
-          <div className="confirm-panel">
-            <span className="confirm-icon">
-              <ScanLine size={34} />
-            </span>
-            <h3>QR capturado</h3>
-            <p>Se agregará 1 sello a la tarjeta de tu negocio.</p>
-            {isDemo && (
-              <div className="notice">Demostración: solo se modifican datos de este navegador.</div>
-            )}
+        {saleToken && saleTokenSecondsLeft > 0 ? (
+          <div className="sale-token-panel">
+            <div className="sale-token-qr">
+              <QRCodeSVG
+                value={saleToken.token}
+                title="QR del token de venta"
+                size={240}
+                level="M"
+                marginSize={2}
+                fgColor="#000000"
+                bgColor="#FFFFFF"
+              />
+            </div>
+            <span className="little-label">CÓDIGO DE VENTA</span>
+            <p className="sale-token-code" aria-label="Código de venta">
+              {saleToken.token}
+            </p>
+            <p className="muted sale-token-hint">
+              El cliente puede escanear el QR o ingresar el código desde su perfil. Al verificarse,
+              el token se consume y no se puede volver a usar.
+            </p>
+            <p className="sale-token-countdown" role="status">
+              <Timer size={16} />
+              Vence en {Math.floor(saleTokenSecondsLeft / 60)}:
+              {String(saleTokenSecondsLeft % 60).padStart(2, '0')}
+            </p>
             <Button
               className="full-width"
-              disabled={stamp.isPending}
-              onClick={() => stamp.mutate(scanned)}
+              variant="outline"
+              disabled={newSaleToken.isPending}
+              onClick={requestSaleToken}
             >
-              {stamp.isPending ? 'Registrando…' : 'Confirmar compra y agregar sello'}
-            </Button>
-            <Button
-              className="full-width"
-              variant="ghost"
-              disabled={stamp.isPending}
-              onClick={() => setScanned(null)}
-            >
-              Escanear otro código
+              {newSaleToken.isPending ? 'Generando…' : 'Generar un nuevo token'}
             </Button>
           </div>
         ) : (
-          <Scanner onResult={onScan} business />
+          <div className="sale-token-empty">
+            <p>
+              {saleToken
+                ? 'El token venció. Genera uno nuevo para verificar la compra.'
+                : 'Cada token sirve para una sola compra y vence después de 5 minutos.'}
+            </p>
+            {isDemo && (
+              <div className="notice">Demostración: se guarda solo en este navegador.</div>
+            )}
+            <Button
+              className="full-width"
+              disabled={newSaleToken.isPending}
+              onClick={requestSaleToken}
+            >
+              {newSaleToken.isPending ? 'Generando…' : 'Solicitar token de venta'}
+            </Button>
+          </div>
         )}
       </Dialog>
       <Dialog

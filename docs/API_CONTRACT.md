@@ -143,13 +143,14 @@ Las colecciones se esperan como arrays directos. Si el backend pagina o utiliza 
 
 ## Negocio
 
-| Método y ruta               | Entrada                                                    | Respuesta                             |
-| --------------------------- | ---------------------------------------------------------- | ------------------------------------- |
-| `GET /business/card`        | —                                                          | `BusinessConfig`                      |
-| `PUT /business/card`        | `BusinessConfig`                                           | 2xx                                   |
-| `GET /business/promotions`  | —                                                          | `Promotion[]` del negocio autenticado |
-| `POST /business/promotions` | `{ title, description, expires, image }` + campos del tipo | 2xx                                   |
-| `POST /business/purchases`  | `{ token }`                                                | 2xx; un sello por compra validada     |
+| Método y ruta                   | Entrada                                                    | Respuesta                                                                                  |
+| ------------------------------- | ---------------------------------------------------------- | ------------------------------------------------------------------------------------------ |
+| `GET /business/card`            | —                                                          | `BusinessConfig`                                                                           |
+| `PUT /business/card`            | `BusinessConfig`                                           | 2xx                                                                                        |
+| `GET /business/promotions`      | —                                                          | `Promotion[]` del negocio autenticado                                                      |
+| `POST /business/promotions`     | `{ title, description, expires, image }` + campos del tipo | 2xx                                                                                        |
+| `GET /business/new-token`       | —                                                          | Devuelve un token alfanumérico de 8 caracteres, de un solo uso y válido durante 5 minutos. |
+| `POST /customer/validate-token` | `{ token }`                                                | 2xx cuando valida la compra; el servidor consume el token y registra el sello del cliente. |
 
 `BusinessConfig` creció con los datos que captura el asistente de alta:
 

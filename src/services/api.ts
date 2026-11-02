@@ -44,6 +44,8 @@ export type PromotionInput = {
   image: string;
 } & Partial<Promotion>;
 
+export type SaleToken = { token: string; expiresAt: string };
+
 export type BusinessPromotionInput = {
   title: string;
   description?: string;
@@ -970,6 +972,37 @@ function normalizeBusinessConfig(payload: unknown) {
   };
 }
 
+function normalizeSaleToken(payload: unknown): SaleToken {
+  const root = record(payload);
+  const data = record(root.data);
+  const result = record(root.result);
+  const sources = [root, data, result];
+  const rawToken =
+    (typeof payload === 'string'
+      ? payload
+      : typeof root.data === 'string'
+        ? root.data
+        : undefined) ??
+    sources
+      .map(
+        (source) =>
+          source.token ?? source.sale_token ?? source.new_token ?? source.newToken ?? source.code,
+      )
+      .find((value): value is string => typeof value === 'string');
+  const token = rawToken?.trim().toUpperCase();
+  if (!token || !/^[A-Z0-9]{8}$/.test(token))
+    throw new Error('La API no devolvió un token de venta válido de 8 caracteres.');
+
+  const rawExpiry = sources
+    .map((source) => source.expires_at ?? source.expiresAt ?? source.expiration)
+    .find((value): value is string => typeof value === 'string');
+  const expiresAt =
+    rawExpiry && Number.isFinite(Date.parse(rawExpiry))
+      ? new Date(rawExpiry).toISOString()
+      : new Date(Date.now() + 5 * 60 * 1000).toISOString();
+  return { token, expiresAt };
+}
+
 function unwrapResourceList(payload: unknown, collectionKeys: string[] = []) {
   let current = payload;
   for (let depth = 0; depth < 6; depth += 1) {
@@ -1149,6 +1182,51 @@ export const api = {
     isDemo
       ? readDB().activity
       : z.array(activitySchema).parse((await http.get('/customer/me/activity')).data),
+  newSaleToken: async (): Promise<SaleToken> => {
+    if (!isDemo) return normalizeSaleToken((await http.get('/business/new-token')).data);
+    const alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+    const bytes = crypto.getRandomValues(new Uint8Array(8));
+    const token = Array.from(bytes, (byte) => alphabet[byte % alphabet.length]).join('');
+    const saleToken = { token, expiresAt: new Date(Date.now() + 5 * 60 * 1000).toISOString() };
+    updateDB((db) => {
+      db.saleToken = saleToken;
+    });
+    return saleToken;
+  },
+  confirmSaleToken: async (rawToken: string) => {
+    const token = rawToken.trim().toUpperCase();
+    if (!/^[A-Z0-9]{8}$/.test(token))
+      throw new Error('Ingresa un código de venta válido de 8 caracteres.');
+    if (!isDemo) return http.post('/customer/validate-token', { token });
+    const currentToken = readDB().saleToken;
+    if (currentToken?.token === token && Date.parse(currentToken.expiresAt) <= Date.now()) {
+      updateDB((db) => {
+        if (db.saleToken?.token === token) db.saleToken = null;
+      });
+      throw new Error('El código venció. Pide un nuevo token al negocio.');
+    }
+    return updateDB((db) => {
+      const saleToken = db.saleToken;
+      if (!saleToken || saleToken.token !== token)
+        throw new Error('El código no existe o ya fue utilizado. Pide uno nuevo al negocio.');
+      const card = db.cards.find((item) => item.id === 'cafe' && item.joined);
+      if (!card) throw new Error('No encontramos una tarjeta activa para este negocio.');
+      if (card.stamps >= card.goal)
+        throw new Error('Tu tarjeta está completa. Canjea tu recompensa antes de sumar sellos.');
+
+      db.saleToken = null;
+      card.stamps += 1;
+      db.activity.unshift({
+        id: crypto.randomUUID(),
+        business: card.name,
+        title: 'Compra verificada · un sello más',
+        date: new Date().toISOString(),
+        type: 'stamp',
+        amount: 1,
+      });
+      return { message: 'Compra verificada. Se agregó un sello a tu tarjeta.', card };
+    });
+  },
   publicBusinessMenu: async (slug: string) => {
     if (isDemo) {
       const business = readDB().business;
@@ -1471,30 +1549,6 @@ export const api = {
     });
   },
 
-  stamp: async (token: string) => {
-    if (!isDemo)
-      return http.post(
-        '/business/purchases',
-        { token },
-        { headers: { 'Idempotency-Key': crypto.randomUUID() } },
-      );
-    if (token !== 'punto-plus:demo:sofia')
-      throw new Error('QR no válido. En demo utiliza el QR de Sofía.');
-    return updateDB((db) => {
-      const card = db.cards.find((c) => c.id === 'cafe')!;
-      if (card.stamps >= card.goal)
-        throw new Error('La tarjeta está completa. Primero canjea la recompensa.');
-      card.stamps += 1;
-      db.activity.unshift({
-        id: crypto.randomUUID(),
-        business: card.name,
-        title: 'Una visita, un sello más',
-        date: new Date().toISOString(),
-        type: 'stamp',
-        amount: 1,
-      });
-    });
-  },
   // Autenticación con Laravel Passport (Bearer token + refresh token).
   login: authService.login,
   register: authService.register,

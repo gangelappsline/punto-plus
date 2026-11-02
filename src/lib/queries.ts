@@ -177,8 +177,24 @@ export function useDeleteAdminBusiness(onSuccess?: () => void) {
   return useAction(api.deleteAdminBusiness, 'Negocio eliminado', onSuccess);
 }
 
-export function useStamp(onSuccess?: () => void) {
-  return useAction(api.stamp, '¡Compra registrada! Tu cliente tiene un sello más.', onSuccess);
+export function useNewSaleToken() {
+  return useMutation({
+    mutationFn: api.newSaleToken,
+    onError: (error) => toast.error(errorMessage(error)),
+  });
+}
+
+export function useConfirmSaleToken(onSuccess?: () => void) {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: api.confirmSaleToken,
+    onSuccess: async () => {
+      await client.invalidateQueries();
+      toast.success('Compra verificada. Se agregó un sello a tu tarjeta.');
+      onSuccess?.();
+    },
+    onError: (error) => toast.error(errorMessage(error)),
+  });
 }
 
 /**
