@@ -29,13 +29,13 @@ const initialOf = (name: string) => name.trim().charAt(0).toUpperCase() || 'P';
  * Marcador redondeado: fondo blanco, anillo de marca y el logo del negocio.
  * Si el negocio no tiene logo se muestra su inicial.
  */
-function businessIcon(business: NearbyBusiness, active: boolean) {
+function businessIcon(business: NearbyBusiness) {
   const logo = business.logo
     ? `<img src="${escapeHtml(business.logo)}" alt="" loading="lazy" onerror="this.style.display='none'" />`
     : '';
   return L.divIcon({
     className: 'pp-map-marker',
-    html: `<span class="pp-map-pin${active ? ' is-active' : ''}">
+    html: `<span class="pp-map-pin">
         <span class="pp-map-pin-bubble">${logo}<b aria-hidden="true">${escapeHtml(initialOf(business.name))}</b></span>
         <span class="pp-map-pin-tail" aria-hidden="true"></span>
       </span>`,
@@ -74,10 +74,13 @@ export function NearbyMap({
   const containerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<L.Map | null>(null);
   const markersLayerRef = useRef<L.LayerGroup | null>(null);
+  const markersRef = useRef(new Map<string, L.Marker>());
+  const businessesByIdRef = useRef(new Map<string, NearbyBusiness>());
   const userMarkerRef = useRef<L.Marker | null>(null);
   const fittedKeyRef = useRef('');
   const onSelectRef = useRef(onSelect);
   onSelectRef.current = onSelect;
+  businessesByIdRef.current = new Map(businesses.map((business) => [business.id, business]));
 
   // Inicializa el mapa una sola vez.
   useEffect(() => {
@@ -108,27 +111,44 @@ export function NearbyMap({
       map.remove();
       mapRef.current = null;
       markersLayerRef.current = null;
+      markersRef.current.clear();
+      businessesByIdRef.current.clear();
       userMarkerRef.current = null;
       fittedKeyRef.current = '';
     };
   }, []);
 
-  // Marcadores de los negocios. Se redibujan al cambiar la lista o la selección.
+  // Los marcadores solo se recrean cuando cambia la lista de negocios: así el
+  // clic, el foco y el hover sobreviven a la apertura del modal.
   useEffect(() => {
     const map = mapRef.current;
     const layer = markersLayerRef.current;
     if (!map || !layer) return;
     layer.clearLayers();
+    markersRef.current.clear();
     businesses.filter(hasCoordinates).forEach((business) => {
       const marker = L.marker([business.latitude, business.longitude], {
-        icon: businessIcon(business, business.id === selectedId),
+        icon: businessIcon(business),
         title: business.name,
         alt: business.name,
         riseOnHover: true,
-        zIndexOffset: business.id === selectedId ? 1000 : 0,
       });
-      marker.on('click', () => onSelectRef.current(business));
+      marker.on('click', () => {
+        const current = businessesByIdRef.current.get(business.id);
+        if (current) onSelectRef.current(current);
+      });
       marker.addTo(layer);
+      markersRef.current.set(business.id, marker);
+    });
+  }, [businesses]);
+
+  // Resalta el marcador del negocio abierto cambiando solo su clase, sin
+  // recrear el icono: el foco y el hover del marcador se conservan.
+  useEffect(() => {
+    markersRef.current.forEach((marker, id) => {
+      const active = id === selectedId;
+      marker.getElement()?.firstElementChild?.classList.toggle('is-active', active);
+      marker.setZIndexOffset(active ? 1000 : 0);
     });
   }, [businesses, selectedId]);
 
