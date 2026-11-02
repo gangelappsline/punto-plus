@@ -1845,10 +1845,6 @@ main#main-content {
   line-height: 1.8;
   margin: 12px 0 20px;
 }
-.confirm-panel .button-ghost {
-  margin-top: 7px;
-  font-size: 11px;
-}
 .card-detail-location {
   display: flex;
   align-items: center;
