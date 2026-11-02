@@ -222,6 +222,29 @@ Los valores fuera de catálogo se ignoran (`src/services/api.ts` valida contra l
 `light`, `pills`, `cozy`). Las plantillas de `src/lib/menuStyles.ts` son solo combinaciones de
 estas claves: no hay estado adicional que sincronizar.
 
+**Creador de menús (`/business/crear`).** Pantalla de armado rápido: el negocio elige su giro, se
+precarga un catálogo de ejemplo y ajusta productos, datos, diseño y entrega. Al publicar se envían
+**cinco `PUT /business/card`** con `{ step, data }` (mismos pasos que el configurador:
+`information`, `categories`, `products`, `design`, `service`) y el frontend deja la configuración
+lista en caché. Claves nuevas, todas **opcionales**:
+
+| Clave             | Dónde                        | Contenido                                                                                          |
+| ----------------- | ---------------------------- | -------------------------------------------------------------------------------------------------- |
+| `business_type`   | `information` / menú público | Giro elegido («Taquería», «Pizzería»…).                                                            |
+| `popular`         | `products`                   | Producto destacado en «Lo más pedido».                                                             |
+| `stock`           | `products`                   | Piezas del día; `0` = agotado. También se acepta `stock_available` o `quantity_available` al leer. |
+| `is_new`          | `products`                   | Distintivo «Nuevo».                                                                                |
+| `order_modes`     | `service`                    | `pickup` · `delivery` · `dinein`.                                                                  |
+| `payment_methods` | `service`                    | Lista libre de textos («Efectivo», «Transferencia»…).                                              |
+| `delivery_fee`    | `service`                    | Costo de envío como texto.                                                                         |
+| `menu_promo`      | `service`                    | `{ text, price?, note? }` que se muestra arriba de las secciones.                                  |
+
+El menú público los recibe en el objeto del negocio (`business_type`, `order_modes`,
+`payment_methods`, `delivery_fee`, `menu_promo`) y en cada producto (`stock`, `is_new`). Si el
+backend aún no los guarda, nada se rompe: la promoción, los distintivos y los canales simplemente no
+se muestran. Los pedidos se confirman por WhatsApp al teléfono del negocio
+(`https://wa.me/<phone>?text=…`), sin comisión ni pasarela propia.
+
 **Menú digital público.** El frontend sirve `/:business_slug` sin sesión y espera el endpoint
 público `GET /public/business/:slug/menu`, que puede responder el objeto del negocio o un
 recurso envuelto en `{ data: … }`, `{ business: … }` o `{ menu: … }`. Debe incluir `name`,

@@ -115,6 +115,17 @@ export const menuCardStyleSchema = z.enum(menuCardStyles);
 export const menuSurfaceSchema = z.enum(menuSurfaces);
 export const menuNavStyleSchema = z.enum(menuNavStyles);
 export const menuDensitySchema = z.enum(menuDensities);
+/** Formas de entrega que acepta el negocio. */
+export const orderModes = ['pickup', 'delivery', 'dinein'] as const;
+export const orderModeSchema = z.enum(orderModes);
+export type OrderMode = (typeof orderModes)[number];
+/** Promoción sencilla que se muestra arriba de las secciones del menú. */
+export const menuPromoSchema = z.object({
+  text: z.string(),
+  price: z.string().optional(),
+  note: z.string().optional(),
+});
+export type MenuPromo = z.infer<typeof menuPromoSchema>;
 export type MenuLayout = (typeof menuLayouts)[number];
 export type MenuLogoShape = (typeof menuLogoShapes)[number];
 export type MenuCardStyle = (typeof menuCardStyles)[number];
@@ -759,6 +770,10 @@ export const menuItemSchema = z.object({
   orderCount: z.coerce.number().nonnegative().optional(),
   ordersCount: z.coerce.number().nonnegative().optional(),
   available: z.boolean().optional(),
+  /** Piezas disponibles del día («Quedan 12»). `0` = agotado. */
+  stock: z.coerce.number().int().nonnegative().optional(),
+  /** Distintivo «Nuevo» en el menú. */
+  isNew: z.boolean().optional(),
 });
 export const publicMenuSchema = z.object({
   id: z.union([z.string(), z.number()]).optional(),
@@ -797,6 +812,11 @@ export const publicMenuSchema = z.object({
   menuCardStyle: menuCardStyleSchema.optional(),
   menuSurface: menuSurfaceSchema.optional(),
   menuNavStyle: menuNavStyleSchema.optional(),
+  businessType: z.string().optional(),
+  orderModes: z.array(orderModeSchema).optional(),
+  paymentMethods: z.array(z.string()).optional(),
+  deliveryFee: z.string().optional(),
+  menuPromo: menuPromoSchema.optional(),
   openingHours: z.string().optional(),
 });
 export type PublicMenu = z.infer<typeof publicMenuSchema>;
@@ -879,6 +899,12 @@ export const businessSchema = z.object({
   menuCardStyle: menuCardStyleSchema.optional(),
   menuSurface: menuSurfaceSchema.optional(),
   menuNavStyle: menuNavStyleSchema.optional(),
+  /** Giro del negocio tal como lo eligió el creador de menús («Taquería»). */
+  businessType: z.string().optional(),
+  orderModes: z.array(orderModeSchema).optional(),
+  paymentMethods: z.array(z.string()).optional(),
+  deliveryFee: z.string().optional(),
+  menuPromo: menuPromoSchema.optional(),
 });
 export type BusinessConfig = z.infer<typeof businessSchema>;
 export const businessQRConfigurationSchema = z.object({

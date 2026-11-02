@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { isDemo } from '../lib/utils';
+import { businessSlug, isDemo } from '../lib/utils';
 import {
   activitySchema,
   adminBusinessInputSchema,
@@ -21,6 +21,7 @@ import {
   menuNavStyles,
   menuSurfaces,
   nearbyBusinessSchema,
+  orderModes,
   promotionSchema,
   publicMenuSchema,
   type AdminBusiness,
@@ -71,6 +72,11 @@ export type BusinessPromotionInput = {
 
 export type PublicCategory = { id: string; name: string; icon?: string };
 export type BusinessWizardStep = 'information' | 'categories' | 'products' | 'design' | 'service';
+/** Guardado del creador de menús: mismo contrato por pasos que el configurador. */
+export type BusinessMenuSave = {
+  saves: { step: BusinessWizardStep; data: Record<string, unknown> }[];
+  config: BusinessConfig;
+};
 export type BusinessWizardStepSave = {
   step: BusinessWizardStep;
   data: Record<string, unknown>;
@@ -441,6 +447,56 @@ function menuDesignValues(
   };
 }
 
+/**
+ * Datos extra del menú armado con el creador: giro, formas de entrega,
+ * métodos de pago, costo de envío y la promoción destacada. Todo opcional.
+ */
+function menuBuilderValues(value: Record<string, unknown>) {
+  const promo = record(value.menu_promo ?? value.menuPromo);
+  const promoText = typeof promo.text === 'string' ? promo.text.trim() : '';
+  const rawOrderModes = Array.isArray(value.order_modes)
+    ? value.order_modes
+    : Array.isArray(value.orderModes)
+      ? value.orderModes
+      : [];
+  const rawPayments = Array.isArray(value.payment_methods)
+    ? value.payment_methods
+    : Array.isArray(value.paymentMethods)
+      ? value.paymentMethods
+      : [];
+  const deliveryFee = value.delivery_fee ?? value.deliveryFee;
+  return {
+    businessType: stringValue(value.business_type ?? value.businessType),
+    orderModes: rawOrderModes
+      .map((mode) => (typeof mode === 'string' ? mode : stringValue(record(mode).mode)))
+      .filter((mode): mode is (typeof orderModes)[number] =>
+        Boolean(mode && (orderModes as readonly string[]).includes(mode)),
+      ),
+    paymentMethods: rawPayments
+      .map((method) => stringValue(typeof method === 'string' ? method : record(method).name))
+      .filter((method): method is string => Boolean(method)),
+    deliveryFee:
+      typeof deliveryFee === 'string' || typeof deliveryFee === 'number'
+        ? String(deliveryFee)
+        : undefined,
+    menuPromo: promoText
+      ? {
+          text: promoText,
+          ...(typeof promo.price === 'string' || typeof promo.price === 'number'
+            ? { price: String(promo.price) }
+            : {}),
+          ...(typeof promo.note === 'string' ? { note: promo.note } : {}),
+        }
+      : undefined,
+  };
+}
+
+/** Piezas disponibles del día; acepta `stock`, `stock_available` o `quantity`. */
+function productStock(item: Record<string, unknown>) {
+  const raw = Number(item.stock ?? item.stock_available ?? item.quantity_available);
+  return Number.isFinite(raw) && raw >= 0 ? Math.floor(raw) : undefined;
+}
+
 export class PublicMenuNotFoundError extends Error {
   constructor() {
     super('No encontramos un menú publicado para este enlace.');
@@ -605,6 +661,8 @@ function normalizePublicBusinessMenu(payload: unknown) {
               ? item.isPopular
               : undefined,
         orderCount: Number.isFinite(orderCount) ? orderCount : undefined,
+        stock: productStock(item),
+        isNew: item.is_new === true || item.isNew === true ? true : undefined,
       };
     })
     .filter((item): item is NonNullable<typeof item> => Boolean(item));
@@ -692,6 +750,7 @@ function normalizePublicBusinessMenu(payload: unknown) {
         : undefined,
     menuStyle: menuStyle === 'compact' || menuStyle === 'cozy' ? menuStyle : undefined,
     ...designValues,
+    ...menuBuilderValues(value),
     openingHours: typeof openingHours === 'string' ? openingHours : undefined,
   };
 }
@@ -867,6 +926,8 @@ function normalizeBusinessConfig(payload: unknown) {
               : typeof item.is_active === 'boolean'
                 ? item.is_active
                 : undefined,
+        stock: productStock(item),
+        isNew: item.is_new === true || item.isNew === true ? true : undefined,
       };
     })
     .filter((item): item is NonNullable<typeof item> => Boolean(item));
@@ -1044,6 +1105,7 @@ function normalizeBusinessConfig(payload: unknown) {
       value.menuStyle,
     ),
     ...menuDesignValues(menuDesign, value),
+    ...menuBuilderValues(value),
     onboarded: typeof value.onboarded === 'boolean' ? value.onboarded : inferredOnboarded,
   };
 }
@@ -1566,11 +1628,22 @@ export const api = {
       return { message: 'Compra verificada. Se agregó un sello a tu tarjeta.', card };
     });
   },
-  publicBusinessMenu: async (slug: string) => {
+  /**
+   * Enlace público del menú recién armado. En demo (sin backend) acepta también
+   * el enlace del borrador que la pantalla de publicación muestra al negocio.
+   */
+  publicBusinessMenu: async (slug: string, options: { preview?: boolean } = {}) => {
     if (isDemo) {
       const business = readDB().business;
-      if (slug !== slugifyBusiness(business.name) && slug !== 'demo')
-        throw new PublicMenuNotFoundError();
+      // Se aceptan el enlace nuevo (sin acentos) y los históricos para que los
+      // enlaces ya compartidos sigan abriendo el menú.
+      const accepted = [
+        businessSlug(business.name),
+        slugifyBusiness(business.name),
+        'demo',
+        ...(options.preview ? ['mi-menu'] : []),
+      ];
+      if (!accepted.includes(slug.toLowerCase())) throw new PublicMenuNotFoundError();
       return publicMenuSchema.parse(business);
     }
     try {
@@ -1857,7 +1930,31 @@ export const api = {
       };
     });
   },
+  /**
+   * Publica el menú armado con el creador: envía la secuencia completa de pasos
+   * con `PUT /business/card` y deja la configuración ya guardada en la caché.
+   */
+  saveBusinessMenu: async ({ saves, config }: BusinessMenuSave) => {
+    if (!isDemo) {
+      for (const save of saves) await http.put('/business/card', save);
+      return { ok: true };
+    }
+    const validated = businessSchema.parse(config);
+    return updateDB((db) => {
+      db.business = validated;
+      const card = db.cards.find((c) => c.id === 'cafe');
+      if (card)
+        Object.assign(card, {
+          ...validated,
+          primaryColor: validated.primaryColor ?? db.cards[0]?.primaryColor,
+          secondaryColor: validated.secondaryColor ?? db.cards[0]?.secondaryColor,
+        });
+      return { ok: true };
+    });
+  },
   saveBusinessStep: async ({ step, data, config }: BusinessWizardStepSave) => {
+    // Cada paso viaja como PUT /business/card { step, data }; el creador de menús
+    // envía la secuencia completa al guardar desde la pantalla de publicación.
     if (!isDemo) return http.put('/business/card', { step, data });
     const validated = businessSchema.parse(config);
     return updateDB((db) => {

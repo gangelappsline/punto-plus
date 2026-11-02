@@ -98,6 +98,13 @@ npm run test:e2e      # 10 pruebas: escritorio + móvil (corren en modo demo)
 6. **Colores del menú y el QR**, precargados con los del logo y ajustables; hay vista previa de la tarjeta del menú y del QR ya pintado con esos colores.
 7. **Promoción de bienvenida**, con el tipo que el dueño elija (ver abajo).
 
+**Creador de menús** (`/business/crear`, «Crear menú» en el panel). Flujo de cinco pasos que arma el
+menú con cada respuesta y lo muestra en vivo a la derecha: 1) **¿Qué vendes?** con 12 giros y su
+catálogo de ejemplo (tacos, pizzas, café, sushi…), además de la opción de subir la foto de la carta; 2) **productos** con precio, descripción, «quedan N», destacado y «nuevo»; 3) **datos del negocio**
+con WhatsApp, dirección, horario y logo/portada; 4) **diseño** con las 12 plantillas y ajustes finos; 5) **entrega y pago** (para llevar, domicilio con costo, en el local, formas de pago y promoción).
+Al publicar se guarda con la misma secuencia `PUT /business/card` del configurador y la pantalla
+muestra el enlace, el QR y el botón de WhatsApp. La lógica vive en `src/lib/menuBuilder.ts`.
+
 **Diseños de menú precargados** (`Mi menú` → paso _Diseño_). Hay **doce plantillas** agrupadas por
 temperatura —Cálidos (Natural, Artesanal, Parrilla, Dulce), Oscuros (Brasa, Zen, Medianoche), Frescos
 (Océano, Huerto, Cítrico) y Minimalistas (Minimalista, Editorial)— y cada una fija **nueve ajustes**:

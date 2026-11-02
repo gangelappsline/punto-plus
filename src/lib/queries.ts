@@ -145,6 +145,21 @@ export function useSaveBusinessDraft() {
   });
 }
 
+/**
+ * Publica el menú armado con el creador (`/business/crear`): guarda todos los
+ * pasos y deja la configuración en la caché para que el panel la vea al instante.
+ */
+export function usePublishBusinessMenu() {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: api.saveBusinessMenu,
+    onSuccess: (_result, input) => {
+      client.setQueryData(queryKeys.business, input.config);
+    },
+    onError: (error) => toast.error(errorMessage(error)),
+  });
+}
+
 export function useAddPromotion(onSuccess?: () => void) {
   return useAction(api.addPromotion, 'Promoción publicada', onSuccess);
 }
