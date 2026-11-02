@@ -89,7 +89,7 @@ export function Scanner({
         </p>
       )}
       <Button
-        className="full-width"
+        className="w-full"
         variant={running ? 'outline' : 'default'}
         onClick={() => {
           setError('');

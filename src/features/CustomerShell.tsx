@@ -168,7 +168,7 @@ export function CustomerLayout() {
       <aside className={`sidebar ${mobileNav ? 'mobile-open' : ''}`}>
         <button
           type="button"
-          className="mobile-sidebar-close icon-button"
+          className="mobile-sidebar-close inline-flex size-9 items-center justify-center rounded-full text-slate transition-colors hover:bg-mist"
           aria-label="Ocultar opciones del menú"
           onClick={() => setMobileNav(false)}
         >
@@ -222,7 +222,7 @@ export function CustomerLayout() {
           <div className="topbar-left">
             <button
               type="button"
-              className="icon-button mobile-menu"
+              className="inline-flex size-9 items-center justify-center rounded-full text-slate transition-colors hover:bg-mist mobile-menu"
               aria-label="Mostrar opciones del menú"
               aria-controls="customer-navigation"
               aria-expanded={mobileNav}
@@ -325,7 +325,7 @@ export function CustomerLayout() {
             <p>
               El token se eliminó para que no pueda reutilizarse y se agregó un sello a tu tarjeta.
             </p>
-            <Button className="full-width" onClick={() => setPurchaseOpen(false)}>
+            <Button className="w-full" onClick={() => setPurchaseOpen(false)}>
               Ver mis tarjetas
             </Button>
           </div>
@@ -341,14 +341,14 @@ export function CustomerLayout() {
             </strong>
             {isDemo && <div className="notice">Demostración: la compra es ficticia.</div>}
             <Button
-              className="full-width"
+              className="w-full"
               disabled={confirmSale.isPending}
               onClick={() => confirmSale.mutate(purchaseToken)}
             >
               {confirmSale.isPending ? 'Validando compra…' : 'Confirmar compra'}
             </Button>
             <Button
-              className="full-width"
+              className="w-full"
               variant="ghost"
               disabled={confirmSale.isPending}
               onClick={() => setPurchaseToken(null)}
@@ -396,7 +396,7 @@ export function CustomerLayout() {
         ) : (
           <Button
             variant="outline"
-            className="full-width"
+            className="w-full"
             disabled={logout.isPending}
             onClick={() =>
               logout.mutate(undefined, {
@@ -416,7 +416,7 @@ export function CustomerLayout() {
         )}
         <Button
           variant="ghost"
-          className="full-width"
+          className="w-full"
           onClick={() => {
             setProfile(false);
             void install();

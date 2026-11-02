@@ -62,7 +62,7 @@ export function AdminLayout() {
       <aside className={`sidebar admin-sidebar ${mobileNav ? 'mobile-open' : ''}`}>
         <button
           type="button"
-          className="mobile-sidebar-close icon-button"
+          className="mobile-sidebar-close inline-flex size-9 items-center justify-center rounded-full text-slate transition-colors hover:bg-mist"
           aria-label="Ocultar opciones del menú"
           onClick={() => setMobileNav(false)}
         >
@@ -107,7 +107,7 @@ export function AdminLayout() {
           {!isDemo && (
             <Button
               variant="ghost"
-              className="full-width mt-4"
+              className="w-full mt-4"
               disabled={logout.isPending}
               onClick={() =>
                 logout.mutate(undefined, {
@@ -128,7 +128,7 @@ export function AdminLayout() {
           <div className="topbar-left">
             <button
               type="button"
-              className="icon-button mobile-menu"
+              className="inline-flex size-9 items-center justify-center rounded-full text-slate transition-colors hover:bg-mist mobile-menu"
               aria-label="Mostrar opciones del menú"
               aria-controls="admin-navigation"
               aria-expanded={mobileNav}

@@ -163,7 +163,7 @@ function BusinessEditor({ config }: { config: BusinessConfig }) {
           <Palette size={19} />
           <h2>Dale tu personalidad</h2>
         </div>
-        <p className="muted">Una tarjeta tan única como tu negocio.</p>
+        <p className="text-[13px] text-muted">Una tarjeta tan única como tu negocio.</p>
         <label>
           Nombre del negocio
           <input {...register('name')} placeholder="Nombre de tu negocio" />
@@ -341,7 +341,7 @@ function BusinessEditor({ config }: { config: BusinessConfig }) {
             </Button>
           </div>
         )}
-        <Button className="full-width" disabled={mutation.isPending || !isDirty} type="submit">
+        <Button className="w-full" disabled={mutation.isPending || !isDirty} type="submit">
           <Save size={17} />
           {mutation.isPending ? 'Guardando…' : 'Guardar configuración'}
         </Button>
@@ -551,7 +551,9 @@ export function BusinessPage() {
             ))}
           </div>
           {promotions.isSuccess && !promotions.data.length && (
-            <p className="muted">Tu primera promoción puede ser el inicio de una nueva visita.</p>
+            <p className="text-[13px] text-muted">
+              Tu primera promoción puede ser el inicio de una nueva visita.
+            </p>
           )}
         </section>
       )}
@@ -588,7 +590,7 @@ export function BusinessPage() {
               {String(saleTokenSecondsLeft % 60).padStart(2, '0')}
             </p>
             <Button
-              className="full-width"
+              className="w-full"
               variant="outline"
               disabled={newSaleToken.isPending}
               onClick={requestSaleToken}
@@ -606,11 +608,7 @@ export function BusinessPage() {
             {isDemo && (
               <div className="notice">Demostración: se guarda solo en este navegador.</div>
             )}
-            <Button
-              className="full-width"
-              disabled={newSaleToken.isPending}
-              onClick={requestSaleToken}
-            >
+            <Button className="w-full" disabled={newSaleToken.isPending} onClick={requestSaleToken}>
               {newSaleToken.isPending ? 'Generando…' : 'Solicitar token de venta'}
             </Button>
           </div>
@@ -755,7 +753,7 @@ export function BusinessPage() {
             <span aria-hidden="true" />
             Publicar activa
           </label>
-          <Button type="submit" className="full-width" disabled={promotion.isPending}>
+          <Button type="submit" className="w-full" disabled={promotion.isPending}>
             {promotion.isPending ? 'Publicando…' : 'Publicar promoción'}
           </Button>
         </form>

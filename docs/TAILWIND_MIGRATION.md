@@ -1,0 +1,57 @@
+# Migración a Tailwind v4 · seguimiento
+
+Objetivo: **todo el proyecto se estiliza con utilidades de Tailwind v4**. No se
+añaden clases CSS propias nuevas y las existentes se van retirando por áreas,
+sustituyéndolas por utilidades (o componentes con `cva`) en el JSX.
+
+## Punto de partida (auditoría)
+
+- `src/index.css`: **7.484 líneas**, **457 clases propias**, 1.344 selectores y 24
+  bloques `@media`.
+- 26 archivos `.tsx` con **347 clases propias en uso** y 1.191 `className`.
+
+El CSS está acoplado por áreas: varias clases (`.sidebar`, `.topbar`,
+`.section-title`, `.button`…) se comparten entre el panel de cliente, el de
+negocio y el de administración, y hay un bloque de 1.682 líneas de ajustes
+responsive que reescribe esos mismos selectores. Por eso la migración va **por
+áreas completas**: una clase se elimina solo cuando ya no la usa ningún archivo.
+
+## Convenciones
+
+- Tokens en `@theme` (`src/index.css`): colores de marca (`brand`, `navy`,
+  `body`, `muted`, `line`, `steel`, `slate`, `mist`, `haze`, `cloud`…), radios
+  (`rounded-card`, `rounded-panel`), sombras (`shadow-card`, `shadow-float`,
+  `shadow-dialog`) y animaciones (`animate-fade-in`, `animate-dialog-in`).
+- Utilidades directamente en el JSX; patrones repetidos como componente con
+  `cva` (`components/ui/button.tsx`).
+- `cn()` (clsx + tailwind-merge) para permitir que `className` sobrescriba.
+- Responsive: variantes `max-md:`/`max-lg:`/`min-[1600px]:` que reproducen los
+  `@media` existentes.
+- Los `@font-face`, `:root` (variables aún consumidas por CSS pendiente) y la
+  capa base con estilos de elementos (tipografía, focos, reset) se mantienen:
+  no son clases.
+
+## Estado por fase
+
+| Fase | Alcance                                                                                                                                                    | Estado       |
+| ---- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------ |
+| 1    | Base Tailwind v4 (`@theme` + capa base)                                                                                                                    | ✅ hecho     |
+| 1    | `Button` con `cva` · `.button*`, `.icon-button`, `.text-link`, `.muted`, `.full-width`, `.sr-only`                                                         | ✅ hecho     |
+| 2    | Shells: `CustomerShell`, `BusinessShell`, `AdminShell` (`.app-shell`, `.sidebar`, `.nav-item`, `.topbar`, `.breadcrumb`, `.avatar`, `.main-footer`…)       | ⏳ siguiente |
+| 3    | Tarjetas: `LoyaltyCard`, `PromotionCard`, `Dialogs` (`.card-*`, `.stamp*`, `.promotion-*`, `.dialog-*`)                                                    | ⏳           |
+| 4    | Páginas de cliente: `CustomerPages`, `NearbyGoogleMap`, `nearbyPin`, `Scanner` (`.section*`, `.loyalty-grid`, `.promotion-grid`, `.nearby-*`, `.pp-map-*`) | ⏳           |
+| 5    | Panel de negocio: `BusinessPage`, `BusinessDashboard`, `BusinessOnboarding`, `BusinessMenuWizard`, `BusinessQRSettings`                                    | ⏳           |
+| 6    | Administración: `AdminDashboard`, `AdminBusinessesPage`, `AdminCategoriesPage`                                                                             | ⏳           |
+| 7    | Público: `LandingPage`, `MenuPage`, `Login`, `Register`, `AuthLayout`, `NotFoundPage`, `AppSplash`                                                         | ⏳           |
+| 8    | Limpieza final: borrar `src/index.css` salvo `@theme` + capa base, y el bloque responsive residual                                                         | ⏳           |
+
+## Reglas para no romper la interfaz
+
+1. Una clase se borra del CSS **solo** cuando ya no aparece en ningún `.tsx`.
+2. Los ajustes responsive de la clase se convierten en variantes en el mismo
+   commit (no se dejan para después).
+3. Cada fase termina con `npm run typecheck`, `npm run build`,
+   `npx vitest run` y `npx prettier --check`.
+4. Si una clase lleva lógica de layout en contenedores (p. ej.
+   `.section-title > .button` con ancho completo en móvil), esa lógica se mueve
+   al contenedor como utilidad antes de borrar la regla.

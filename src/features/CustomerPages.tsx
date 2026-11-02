@@ -241,7 +241,7 @@ export function PromotionsPage() {
       <section className="section">
         <div className="section-title">
           <h2>Promociones para ti</h2>
-          <span className="muted">{filtered.length} promociones</span>
+          <span className="text-[13px] text-muted">{filtered.length} promociones</span>
         </div>
         <QueryState
           loading={promotions.isPending}

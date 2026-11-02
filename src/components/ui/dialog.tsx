@@ -1,6 +1,7 @@
 import * as DialogPrimitive from '@radix-ui/react-dialog';
 import { X } from 'lucide-react';
 import type { ReactNode } from 'react';
+
 export function Dialog({
   open,
   onOpenChange,
@@ -26,7 +27,10 @@ export function Dialog({
         >
           <div className="dialog-heading">
             <DialogPrimitive.Title>{title}</DialogPrimitive.Title>
-            <DialogPrimitive.Close className="icon-button" aria-label="Cerrar ventana">
+            <DialogPrimitive.Close
+              className="inline-flex size-[30px] shrink-0 items-center justify-center rounded-full text-[#b0bcc7] transition-colors hover:bg-mist"
+              aria-label="Cerrar ventana"
+            >
               <X size={20} />
               <span className="sr-only">Cerrar</span>
             </DialogPrimitive.Close>

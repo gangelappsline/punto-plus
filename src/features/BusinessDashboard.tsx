@@ -117,10 +117,12 @@ export function BusinessDashboard() {
         <section className="section" style={{ marginBottom: 0 }}>
           <div className="section-title">
             <h2>Actividad reciente</h2>
-            <span className="text-link subtle-link">Movimientos de los últimos días</span>
+            <span className="inline-flex items-center gap-[9px] text-xs font-[650] transition-[gap,color] hover:gap-[13px] hover:text-brand-deep subtle-link">
+              Movimientos de los últimos días
+            </span>
           </div>
           {activity.isPending ? (
-            <p className="muted">Cargando movimientos…</p>
+            <p className="text-[13px] text-muted">Cargando movimientos…</p>
           ) : (
             <div className="activity-list">
               {activity.data?.slice(0, 6).map((a) => (
@@ -148,7 +150,7 @@ export function BusinessDashboard() {
                 </div>
               ))}
               {activity.isSuccess && !activity.data.length && (
-                <p className="muted" style={{ padding: 18 }}>
+                <p className="text-[13px] text-muted" style={{ padding: 18 }}>
                   Aún no hay movimientos. Registra la primera compra de tu comunidad.
                 </p>
               )}

@@ -44,7 +44,7 @@ export function AuthLayout({
         </Link>
         <div className="eyebrow">{eyebrow}</div>
         <h2>{title}</h2>
-        <p className="muted">{description}</p>
+        <p className="text-[13px] text-muted">{description}</p>
         {children}
       </div>
     </main>

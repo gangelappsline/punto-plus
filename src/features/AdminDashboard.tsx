@@ -60,7 +60,10 @@ export function AdminDashboard() {
               Consulta estadísticas de clientes e ingresos, administra membresías y gestiona el
               directorio de negocios.
             </p>
-            <Link to="/admin/negocios" className="text-link subtle-link">
+            <Link
+              to="/admin/negocios"
+              className="inline-flex items-center gap-[9px] text-xs font-[650] transition-[gap,color] hover:gap-[13px] hover:text-brand-deep subtle-link"
+            >
               Administrar negocios <ArrowUpRight size={14} />
             </Link>
           </div>
@@ -72,7 +75,10 @@ export function AdminDashboard() {
               <h3>Categorías del menú</h3>
             </div>
             <p>Administra el nombre y el icono que identifican cada categoría.</p>
-            <Link to="/admin/categorias" className="text-link subtle-link">
+            <Link
+              to="/admin/categorias"
+              className="inline-flex items-center gap-[9px] text-xs font-[650] transition-[gap,color] hover:gap-[13px] hover:text-brand-deep subtle-link"
+            >
               Administrar categorías <ArrowUpRight size={14} />
             </Link>
           </div>
