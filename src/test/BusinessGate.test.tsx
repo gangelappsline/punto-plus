@@ -192,69 +192,51 @@ describe('Formulario de promoción del negocio', () => {
     await screen.findByRole('button', { name: /Guardar configuración/ });
     await user.click(screen.getByRole('button', { name: /Promociones/ }));
     await user.click(await screen.findByRole('button', { name: /Nueva promoción/ }));
-    await screen.findByLabelText('Tipo de promoción');
+    await screen.findByLabelText('Tipo de beneficio');
     return user;
   }
 
-  it('muestra los campos del tipo elegido al cambiar el selector', async () => {
+  it('muestra el campo de valor según el tipo de beneficio del contrato', async () => {
     const user = await openPromotionForm();
-    const type = screen.getByLabelText('Tipo de promoción');
+    const type = screen.getByLabelText('Tipo de beneficio');
 
-    // Por defecto es directa: no hay campos de compras ni de niveles.
-    expect(screen.getByLabelText('Siempre activa')).toBeInTheDocument();
-    expect(screen.queryByLabelText(/Después de cuántas compras/)).not.toBeInTheDocument();
-
-    await user.selectOptions(type, 'simple');
-    expect(await screen.findByLabelText(/Después de cuántas compras/)).toBeInTheDocument();
-    expect(screen.getByLabelText(/Producto gratis/)).toBeInTheDocument();
-    expect(screen.queryByLabelText('Siempre activa')).not.toBeInTheDocument();
-
-    await user.selectOptions(type, 'steps');
-    expect(await screen.findByPlaceholderText('Puntos')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /Agregar nivel/ })).toBeInTheDocument();
-    expect(screen.queryByLabelText(/Después de cuántas compras/)).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('Porcentaje de descuento')).not.toBeInTheDocument();
+    await user.selectOptions(type, 'percentage');
+    expect(await screen.findByLabelText('Porcentaje de descuento')).toBeInTheDocument();
+    await user.selectOptions(type, 'fixed');
+    expect(await screen.findByLabelText('Monto de descuento')).toBeInTheDocument();
+    await user.selectOptions(type, 'points');
+    expect(await screen.findByLabelText('Puntos o valor del beneficio')).toBeInTheDocument();
+    await user.selectOptions(type, 'gift');
+    expect(screen.queryByLabelText('Monto de descuento')).not.toBeInTheDocument();
   });
 
-  it('publica una promoción directa con los valores por defecto del formulario', async () => {
+  it('publica una promoción con los campos del contrato de la API', async () => {
     const user = await openPromotionForm();
 
     await user.type(screen.getByLabelText('Título'), 'Un café para compartir');
-    await user.type(
-      screen.getByLabelText('Descripción y condiciones'),
-      'Dos cafés por el precio de uno. Válido de lunes a viernes de 8 a 10 h.',
-    );
-    // `<input type="date">` sanitiza cada pulsación, así que se asigna el valor completo.
-    fireEvent.change(screen.getByLabelText('Válida hasta'), {
-      target: { value: '2030-12-31' },
-    });
+    await user.type(screen.getByLabelText('Descripción'), 'Dos cafés por el precio de uno.');
+    await user.selectOptions(screen.getByLabelText('Tipo de beneficio'), 'percentage');
+    await user.type(screen.getByLabelText('Porcentaje de descuento'), '20');
+    await user.type(screen.getByLabelText('Código promocional (opcional)'), 'CAFE20');
     await user.click(screen.getByRole('button', { name: /Publicar promoción/ }));
 
-    // Regresión: la fila de niveles arranca con el beneficio vacío y eso no debe
-    // impedir publicar una promoción de otro tipo (el diálogo se quedaba abierto).
     await waitFor(() => expect(readDB().promotions[0]?.title).toBe('Un café para compartir'));
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
 
     const saved = readDB().promotions[0];
-    expect(saved.type).toBe('direct');
-    expect(saved.appliesAlways).toBe(true);
-    // Solo viajan las condiciones del tipo elegido.
-    expect(saved.tiers).toBeUndefined();
-    expect(saved.purchasesRequired).toBeUndefined();
-    expect(saved.weekdays).toBeUndefined();
+    expect(saved.discountType).toBe('percentage');
+    expect(saved.discountValue).toBe(20);
+    expect(saved.code).toBe('CAFE20');
+    expect(saved.isActive).toBe(true);
   });
 
-  it('revela los días y horarios de una promoción directa no permanente', async () => {
-    const user = await openPromotionForm();
+  it('expone las fechas opcionales y el estado activo de la promoción', async () => {
+    await openPromotionForm();
 
-    expect(screen.queryByRole('button', { name: 'Jue' })).not.toBeInTheDocument();
-    await user.click(screen.getByLabelText('Siempre activa'));
-    expect(await screen.findByRole('button', { name: 'Jue' })).toBeInTheDocument();
-    expect(screen.getByLabelText('Hora de inicio')).toBeInTheDocument();
-
-    // Marcar un día debe reflejarse en el estado del botón.
-    const thursday = screen.getByRole('button', { name: 'Jue' });
-    expect(thursday).toHaveAttribute('aria-pressed', 'false');
-    await user.click(thursday);
-    expect(thursday).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.getByLabelText('Inicia (opcional)')).toHaveAttribute('type', 'datetime-local');
+    expect(screen.getByLabelText('Termina (opcional)')).toHaveAttribute('type', 'datetime-local');
+    expect(screen.getByLabelText('Máximo de canjes (opcional)')).toBeInTheDocument();
+    expect(screen.getByLabelText('Publicar activa')).toBeChecked();
   });
 });

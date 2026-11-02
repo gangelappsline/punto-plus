@@ -32,7 +32,7 @@ import {
   useStamp,
 } from '../lib/queries';
 import { readImage } from '../lib/image';
-import type { PromotionInput } from '../services/api';
+import type { BusinessPromotionInput } from '../services/api';
 import {
   brandIconOptions,
   brandThemeOptions,
@@ -51,133 +51,58 @@ const businessEditorSchema = businessSchema.extend({
 });
 const promotionFormSchema = z
   .object({
-    type: z.enum(['simple', 'steps', 'direct']),
-    title: z.string().min(5, 'Escribe al menos 5 caracteres').max(80, 'Máximo 80 caracteres'),
-    description: z.string().min(20, 'Incluye condiciones en al menos 20 caracteres').max(1000),
-    expires: z
-      .string()
-      .refine(
-        (v) => /^\d{4}-\d{2}-\d{2}$/.test(v) && new Date(`${v}T23:59:59`) > new Date(),
-        'Elige una fecha futura',
-      ),
-    image: z.string().min(1, 'Selecciona una imagen'),
-    // Sencilla
-    purchasesRequired: z.coerce.number().int().min(1, 'Elige al menos 1 compra').optional(),
-    freeProduct: z.string().optional(),
-    freeQuantity: z.coerce.number().int().min(1).optional(),
-    // Por pasos: la fila inicial arranca con el beneficio vacío, así que la forma de
-    // cada nivel se relaja aquí y la obligación real se resuelve por tipo en
-    // `superRefine`. Si se exigiera `min(1)` desde la base, ningún tipo de promoción
-    // podría publicarse mientras exista una fila sin beneficio.
-    tiers: z
-      .array(
-        z.object({
-          points: z.coerce.number(),
-          benefit: z.string(),
-        }),
-      )
-      .optional(),
-    // Directas
-    appliesAlways: z.boolean().optional(),
-    weekdays: z.array(z.coerce.number().int().min(0).max(6)).optional(),
-    startTime: z.string().optional(),
-    endTime: z.string().optional(),
+    title: z.string().trim().min(3, 'Escribe al menos 3 caracteres').max(150),
+    description: z.string().trim().max(2000).optional(),
+    loyaltyCardId: z.string().optional(),
+    discountType: z.enum(['percentage', 'fixed', 'gift', 'points']),
+    discountValue: z.preprocess(
+      (value) => (value === '' || value === null ? undefined : value),
+      z.coerce.number().optional(),
+    ),
+    code: z.string().trim().max(100).optional(),
+    terms: z.string().trim().max(2000).optional(),
+    startsAt: z.string().optional(),
+    endsAt: z.string().optional(),
+    maxRedemptions: z.preprocess(
+      (value) => (value === '' || value === null ? undefined : value),
+      z.coerce.number().int().positive().optional(),
+    ),
+    isActive: z.boolean(),
   })
   .superRefine((value, ctx) => {
-    if (value.type === 'simple') {
-      if (!value.purchasesRequired)
-        ctx.addIssue({
-          code: 'custom',
-          path: ['purchasesRequired'],
-          message: 'Escribe el número de compras requeridas.',
-        });
-      if (!value.freeProduct?.trim())
-        ctx.addIssue({
-          code: 'custom',
-          path: ['freeProduct'],
-          message: 'Escribe el producto gratis.',
-        });
-    }
-    if (value.type === 'steps') {
-      if (!value.tiers?.length)
-        ctx.addIssue({
-          code: 'custom',
-          path: ['tiers'],
-          message: 'Agrega al menos un nivel de puntos.',
-        });
-      else {
-        value.tiers.forEach((tier, index) => {
-          if (!tier.benefit?.trim())
-            ctx.addIssue({
-              code: 'custom',
-              path: ['tiers', index, 'benefit'],
-              message: 'Describe el beneficio.',
-            });
-          if (!tier.points)
-            ctx.addIssue({
-              code: 'custom',
-              path: ['tiers', index, 'points'],
-              message: 'Los puntos mínimos son obligatorios.',
-            });
-        });
-      }
-    }
-    if (value.type === 'direct' && !value.appliesAlways) {
-      if (!value.weekdays?.length)
-        ctx.addIssue({
-          code: 'custom',
-          path: ['weekdays'],
-          message: 'Selecciona al menos un día.',
-        });
-      if (!value.startTime || !value.endTime)
-        ctx.addIssue({
-          code: 'custom',
-          path: ['startTime'],
-          message: 'Elige la hora de inicio y fin.',
-        });
-      else if (value.startTime >= value.endTime)
-        ctx.addIssue({
-          code: 'custom',
-          path: ['endTime'],
-          message: 'La hora de fin debe ser posterior a la de inicio.',
-        });
-    }
+    if (value.discountType !== 'gift' && (!value.discountValue || value.discountValue <= 0))
+      ctx.addIssue({
+        code: 'custom',
+        path: ['discountValue'],
+        message: 'Escribe un valor de beneficio mayor a cero.',
+      });
+    if (value.startsAt && value.endsAt && value.startsAt >= value.endsAt)
+      ctx.addIssue({
+        code: 'custom',
+        path: ['endsAt'],
+        message: 'La fecha de fin debe ser posterior al inicio.',
+      });
   });
 type PromotionForm = z.infer<typeof promotionFormSchema>;
-/**
- * Deja en el payload únicamente las condiciones del tipo elegido: el formulario
- * conserva valores por defecto de los tres tipos y no tiene sentido enviar al
- * backend niveles de puntos vacíos en una promoción directa.
- */
-function promotionPayload(v: PromotionForm): PromotionInput {
-  const base = {
-    type: v.type,
-    title: v.title,
-    description: v.description,
-    expires: v.expires,
-    image: v.image,
+
+function toApiDateTime(value?: string) {
+  return value ? new Date(value).toISOString() : undefined;
+}
+
+function promotionPayload(value: PromotionForm): BusinessPromotionInput {
+  return {
+    title: value.title,
+    description: value.description || undefined,
+    loyaltyCardId: value.loyaltyCardId || undefined,
+    discountType: value.discountType,
+    discountValue: value.discountType === 'gift' ? undefined : value.discountValue,
+    code: value.code || undefined,
+    terms: value.terms || undefined,
+    startsAt: toApiDateTime(value.startsAt),
+    endsAt: toApiDateTime(value.endsAt),
+    maxRedemptions: value.maxRedemptions || undefined,
+    isActive: value.isActive,
   };
-  if (v.type === 'simple')
-    return {
-      ...base,
-      purchasesRequired: v.purchasesRequired,
-      freeProduct: v.freeProduct,
-      freeQuantity: v.freeQuantity,
-    };
-  if (v.type === 'steps')
-    return {
-      ...base,
-      tiers: (v.tiers ?? []).map((t) => ({ points: t.points, benefit: t.benefit })),
-    };
-  return v.appliesAlways
-    ? { ...base, appliesAlways: true }
-    : {
-        ...base,
-        appliesAlways: false,
-        weekdays: v.weekdays ?? [],
-        startTime: v.startTime,
-        endTime: v.endTime,
-      };
 }
 function BusinessEditor({ config }: { config: BusinessConfig }) {
   const {
@@ -200,6 +125,10 @@ function BusinessEditor({ config }: { config: BusinessConfig }) {
     id: 'preview',
     businessId: 'b1',
     category: 'Cafetería',
+    primaryColor: values.cardPrimaryColor,
+    secondaryColor: values.cardSecondaryColor,
+    textColor: values.cardTextColor,
+    cardShape: values.cardShape,
     tagline: '',
     location: 'Ciudad de México',
     distance: '',
@@ -242,7 +171,12 @@ function BusinessEditor({ config }: { config: BusinessConfig }) {
                 key={theme.id}
                 aria-pressed={values.theme === theme.id}
                 className={`business-theme-option ${values.theme === theme.id ? 'selected' : ''}`}
-                onClick={() => setValue('theme', theme.id, { shouldDirty: true })}
+                onClick={() => {
+                  setValue('theme', theme.id, { shouldDirty: true });
+                  setValue('cardPrimaryColor', theme.primaryColor, { shouldDirty: true });
+                  setValue('cardSecondaryColor', theme.secondaryColor, { shouldDirty: true });
+                  setValue('cardTextColor', theme.textColor, { shouldDirty: true });
+                }}
               >
                 <span className="business-theme-swatch" style={{ background: theme.swatch }} />
                 <span>{theme.label}</span>
@@ -251,8 +185,39 @@ function BusinessEditor({ config }: { config: BusinessConfig }) {
           </div>
         </fieldset>
         <fieldset className="business-style-picker">
+          <legend>Forma de la tarjeta</legend>
+          <div className="business-theme-grid">
+            {(
+              [
+                ['rounded', 'Redondeada'],
+                ['square', 'Cuadrada'],
+                ['circle', 'Muy redondeada'],
+              ] as const
+            ).map(([shape, label]) => (
+              <button
+                type="button"
+                key={shape}
+                aria-pressed={(values.cardShape ?? 'rounded') === shape}
+                className={`business-theme-option ${(values.cardShape ?? 'rounded') === shape ? 'selected' : ''}`}
+                onClick={() => setValue('cardShape', shape, { shouldDirty: true })}
+              >
+                <span
+                  aria-hidden="true"
+                  style={{
+                    width: 26,
+                    height: 18,
+                    border: '1px solid currentColor',
+                    borderRadius: shape === 'rounded' ? 6 : shape === 'square' ? 2 : 12,
+                  }}
+                />
+                <span>{label}</span>
+              </button>
+            ))}
+          </div>
+        </fieldset>
+        <fieldset className="business-style-picker">
           <legend>Icono de tu sello</legend>
-          <p>22 símbolos inspirados en comida y bebidas.</p>
+          <p>23 símbolos inspirados en comida, bebidas y recompensas.</p>
           <div className="business-icon-grid">
             {brandIconOptions.map((option) => (
               <button
@@ -408,37 +373,32 @@ export function BusinessPage() {
   const form = useForm<PromotionForm>({
     resolver: zodResolver(promotionFormSchema),
     defaultValues: {
-      type: 'direct',
       title: '',
       description: '',
-      expires: '',
-      image: '/images/coffee.webp',
-      purchasesRequired: 5,
-      freeQuantity: 1,
-      appliesAlways: true,
-      weekdays: [],
-      startTime: '',
-      endTime: '',
-      tiers: [{ points: 10, benefit: '' }],
+      loyaltyCardId: '',
+      discountType: 'gift',
+      discountValue: undefined,
+      code: '',
+      terms: '',
+      startsAt: '',
+      endsAt: '',
+      maxRedemptions: undefined,
+      isActive: true,
     },
   });
-
-  // `watch` se suscribe al formulario: al cambiar el tipo de promoción, el interruptor de
-  // "siempre activa", los días o los niveles, los campos condicionales se re-renderizan.
-  const promotionType = form.watch('type');
-  const appliesAlways = form.watch('appliesAlways');
-  const selectedDays = (form.watch('weekdays') as number[] | undefined) ?? [];
-  const tiers = (form.watch('tiers') as { points: number; benefit: string }[] | undefined) ?? [];
+  const discountType = form.watch('discountType');
 
   function promotionLabel(p: Promotion): string {
+    if (p.discountTypeLabel) return p.discountTypeLabel;
+    if (p.discountType === 'percentage') return `${p.discountValue ?? 0}% de descuento`;
+    if (p.discountType === 'fixed') return `$${p.discountValue ?? 0} de descuento`;
+    if (p.discountType === 'gift') return 'Regalo';
+    if (p.discountType === 'points') return 'Beneficio por puntos';
     if (p.type === 'simple')
-      return `Sencilla · cada ${p.purchasesRequired} compras, ${p.freeQuantity || 1} ${p.freeProduct || 'producto'} gratis`;
-    if (p.type === 'steps') return `Por pasos · ${p.tiers?.length ?? 0} niveles de puntos`;
-    if (p.type === 'direct')
-      return p.appliesAlways
-        ? 'Directa · siempre activa'
-        : `Directa · ${(p.weekdays ?? []).map((d: number) => ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'][d]).join(', ')} ${p.startTime ?? ''}-${p.endTime ?? ''}`;
-    return p.description;
+      return `Cada ${p.purchasesRequired} compras: ${p.freeProduct || 'regalo'}`;
+    if (p.type === 'steps') return `Por pasos · ${p.tiers?.length ?? 0} niveles`;
+    if (p.type === 'direct') return 'Promoción directa';
+    return p.description || 'Promoción';
   }
   const onScan = useCallback((token: string) => {
     setScanned(token);
@@ -532,11 +492,28 @@ export function BusinessPage() {
               <article key={p.id}>
                 <img src={p.image} alt="Imagen de la promoción" />
                 <div>
-                  <span className="little-label">PUBLICADA</span>
+                  <span className="little-label">
+                    {p.isActive === false
+                      ? 'PAUSADA'
+                      : p.isActiveNow === false
+                        ? 'PROGRAMADA'
+                        : 'ACTIVA'}
+                  </span>
                   <h3>{p.title}</h3>
                   <span className="promo-type">{promotionLabel(p)}</span>
                   <p>{p.description}</p>
-                  <small>Vigencia: {p.expires}</small>
+                  {p.code && <small>Código: {p.code}</small>}
+                  {p.terms && <small>{p.terms}</small>}
+                  <small>
+                    Vigencia: {p.startsAt ? p.startsAt.slice(0, 10) : 'desde su publicación'} ·{' '}
+                    {p.endsAt ? p.endsAt.slice(0, 10) : 'sin fecha de término'}
+                  </small>
+                  {p.redemptionsCount !== undefined && (
+                    <small>
+                      Canjes: {p.redemptionsCount}
+                      {p.maxRedemptions !== undefined ? ` de ${p.maxRedemptions}` : ''}
+                    </small>
+                  )}
                 </div>
               </article>
             ))}
@@ -601,170 +578,82 @@ export function BusinessPage() {
           onSubmit={form.handleSubmit((v) => promotion.mutate(promotionPayload(v)))}
         >
           <label>
-            Tipo de promoción
-            <select {...form.register('type')}>
-              <option value="simple">Sencilla · compras = producto gratis</option>
-              <option value="steps">Por pasos · beneficios por puntos</option>
-              <option value="direct">Directa · siempre o días y horas específicos</option>
-            </select>
-            {form.formState.errors.type && (
-              <span className="form-error">{form.formState.errors.type.message}</span>
-            )}
-          </label>
-          <label>
             Título
-            <input {...form.register('title')} placeholder="Las buenas mañanas son de dos" />
+            <input {...form.register('title')} placeholder="Ej. 20% en bebidas" />
             {form.formState.errors.title && (
               <span className="form-error">{form.formState.errors.title.message}</span>
             )}
           </label>
           <label>
-            Descripción y condiciones
+            Descripción
             <textarea
               {...form.register('description')}
-              rows={4}
-              placeholder="¿Qué incluye? ¿En qué horario aplica?"
+              rows={3}
+              placeholder="Describe brevemente el beneficio."
             />
-            {form.formState.errors.description && (
-              <span className="form-error">{form.formState.errors.description.message}</span>
-            )}
           </label>
           <label>
-            Válida hasta
-            <input type="date" {...form.register('expires')} />
-            {form.formState.errors.expires && (
-              <span className="form-error">{form.formState.errors.expires.message}</span>
-            )}
-          </label>
-
-          {promotionType === 'simple' && (
-            <>
-              <div className="form-columns">
-                <label>
-                  Después de cuántas compras se gana
-                  <input type="number" min="1" {...form.register('purchasesRequired')} />
-                </label>
-                <label>
-                  Cantidad de productos gratis
-                  <input
-                    type="number"
-                    min="1"
-                    {...form.register('freeQuantity')}
-                    defaultValue={1}
-                  />
-                </label>
-              </div>
-              <label>
-                Producto gratis
-                <input {...form.register('freeProduct')} placeholder="Ej. 1 café americano" />
-              </label>
-              {form.formState.errors.purchasesRequired && (
-                <span className="form-error">
-                  {form.formState.errors.purchasesRequired.message}
-                </span>
-              )}
-              {form.formState.errors.freeProduct && (
-                <span className="form-error">{form.formState.errors.freeProduct.message}</span>
-              )}
-            </>
-          )}
-          {promotionType === 'steps' && (
-            <>
-              <p className="muted">Beneficios por metas de puntos acumulados:</p>
-              {tiers.map((_tier: { points: number; benefit: string }, index: number) => (
-                <div key={index} className="tier-row">
-                  <input
-                    type="number"
-                    min="1"
-                    placeholder="Puntos"
-                    {...form.register(`tiers.${index}.points`)}
-                  />
-                  <input placeholder="Beneficio" {...form.register(`tiers.${index}.benefit`)} />
-                </div>
+            Asociar a una tarjeta de fidelidad
+            <select {...form.register('loyaltyCardId')}>
+              <option value="">No asociar a una tarjeta específica</option>
+              {business.data?.loyaltyCards?.map((cardOption) => (
+                <option key={cardOption.id} value={cardOption.id}>
+                  {cardOption.name}
+                </option>
               ))}
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={() => form.setValue('tiers', [...tiers, { points: 0, benefit: '' }])}
-              >
-                <Plus size={16} /> Agregar nivel
-              </Button>
-              {form.formState.errors.tiers && (
-                <span className="form-error">{form.formState.errors.tiers.message}</span>
+            </select>
+          </label>
+          <label>
+            Tipo de beneficio
+            <select {...form.register('discountType')}>
+              <option value="percentage">Porcentaje de descuento</option>
+              <option value="fixed">Monto fijo de descuento</option>
+              <option value="gift">Regalo o producto gratis</option>
+              <option value="points">Beneficio por puntos</option>
+            </select>
+          </label>
+          {discountType !== 'gift' && (
+            <label>
+              {discountType === 'percentage'
+                ? 'Porcentaje de descuento'
+                : discountType === 'fixed'
+                  ? 'Monto de descuento'
+                  : 'Puntos o valor del beneficio'}
+              <input type="number" min="0.01" step="any" {...form.register('discountValue')} />
+              {form.formState.errors.discountValue && (
+                <span className="form-error">{form.formState.errors.discountValue.message}</span>
               )}
-            </>
+            </label>
           )}
-          {promotionType === 'direct' && (
-            <>
-              <label className="form-check" style={{ marginBottom: 6 }}>
-                <input {...form.register('appliesAlways')} type="checkbox" defaultChecked />
-                <span aria-hidden="true" />
-                Siempre activa
-              </label>
-              {!appliesAlways && (
-                <>
-                  <label>
-                    Días de la semana
-                    <div className="weekdays">
-                      {['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'].map((day, index) => (
-                        <button
-                          key={day}
-                          type="button"
-                          className="weekday-chip"
-                          onClick={() =>
-                            form.setValue(
-                              'weekdays',
-                              selectedDays.includes(index)
-                                ? selectedDays.filter((d) => d !== index)
-                                : [...selectedDays, index],
-                            )
-                          }
-                          aria-pressed={selectedDays.includes(index)}
-                        >
-                          {day}
-                        </button>
-                      ))}
-                    </div>
-                  </label>
-                  <div className="form-columns">
-                    <label>
-                      Hora de inicio
-                      <input type="time" {...form.register('startTime')} />
-                    </label>
-                    <label>
-                      Hora de fin
-                      <input type="time" {...form.register('endTime')} />
-                    </label>
-                  </div>
-                  {form.formState.errors.weekdays && (
-                    <span className="form-error">{form.formState.errors.weekdays.message}</span>
-                  )}
-                  {form.formState.errors.startTime && (
-                    <span className="form-error">{form.formState.errors.startTime.message}</span>
-                  )}
-                </>
+          <label>
+            Código promocional (opcional)
+            <input {...form.register('code')} placeholder="Ej. BIENVENIDO" />
+          </label>
+          <label>
+            Términos y condiciones (opcional)
+            <textarea {...form.register('terms')} rows={3} />
+          </label>
+          <div className="form-columns">
+            <label>
+              Inicia (opcional)
+              <input type="datetime-local" {...form.register('startsAt')} />
+            </label>
+            <label>
+              Termina (opcional)
+              <input type="datetime-local" {...form.register('endsAt')} />
+              {form.formState.errors.endsAt && (
+                <span className="form-error">{form.formState.errors.endsAt.message}</span>
               )}
-            </>
-          )}
-
-          <label className="upload-label">
-            <ImagePlus size={18} />{' '}
-            {form.watch('image').startsWith('data:')
-              ? 'Imagen seleccionada · cambiar'
-              : 'Subir imagen (opcional, máximo 2 MB)'}
-            <input
-              type="file"
-              accept="image/png,image/jpeg,image/webp"
-              onChange={async (e) => {
-                if (!e.target.files?.[0]) return;
-                try {
-                  form.setValue('image', await readImage(e.target.files[0]));
-                } catch (err) {
-                  toast.error((err as Error).message);
-                }
-              }}
-            />
+            </label>
+          </div>
+          <label>
+            Máximo de canjes (opcional)
+            <input type="number" min="1" {...form.register('maxRedemptions')} />
+          </label>
+          <label className="form-check" style={{ marginBottom: 6 }}>
+            <input {...form.register('isActive')} type="checkbox" />
+            <span aria-hidden="true" />
+            Publicar activa
           </label>
           <Button type="submit" className="full-width" disabled={promotion.isPending}>
             {promotion.isPending ? 'Publicando…' : 'Publicar promoción'}

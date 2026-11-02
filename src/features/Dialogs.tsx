@@ -7,6 +7,11 @@ import { isDemo } from '../lib/utils';
 import type { LoyaltyCard as Card, Promotion } from '../lib/types';
 
 function promotionTypeText(p: Promotion): string {
+  if (p.discountTypeLabel) return p.discountTypeLabel;
+  if (p.discountType === 'percentage') return `${p.discountValue ?? 0}% de descuento`;
+  if (p.discountType === 'fixed') return `$${p.discountValue ?? 0} de descuento`;
+  if (p.discountType === 'gift') return 'Regalo o producto gratis';
+  if (p.discountType === 'points') return 'Beneficio por puntos';
   if (p.type === 'simple')
     return `Cada ${p.purchasesRequired ?? 0} compras = ${p.freeQuantity ?? 1} ${p.freeProduct || 'producto'} gratis`;
   if (p.type === 'steps')
@@ -64,6 +69,10 @@ export function PromotionDialog({
   onClose: () => void;
 }) {
   if (!promotion) return null;
+  const endDate = (promotion.endsAt ?? promotion.expires ?? '').slice(0, 10);
+  const hasEndDate = Boolean(
+    endDate && !endDate.startsWith('Sin fecha') && !Number.isNaN(Date.parse(endDate)),
+  );
   return (
     <Dialog
       open={!!promotion}
@@ -84,15 +93,24 @@ export function PromotionDialog({
       </span>
       <h2 className="promotion-detail-title">{promotion.title}</h2>
       <p className="promotion-description">{promotion.description}</p>
-      {promotion.type && (
+      {(promotion.type || promotion.discountType) && (
         <div className="promotion-type-detail">
-          <span className="little-label">Tipo de promoción</span>
+          <span className="little-label">Beneficio</span>
           <p>{promotionTypeText(promotion)}</p>
         </div>
       )}
+      {promotion.code && (
+        <div className="promotion-type-detail">
+          <span className="little-label">Código promocional</span>
+          <p>{promotion.code}</p>
+        </div>
+      )}
+      {promotion.terms && <p className="promotion-description">{promotion.terms}</p>}
       <div className="promotion-validity">
-        <Clock3 size={16} /> Válida hasta el{' '}
-        {format(new Date(promotion.expires + 'T12:00:00'), "d 'de' MMMM 'de' yyyy", { locale: es })}
+        <Clock3 size={16} />
+        {hasEndDate
+          ? `Válida hasta el ${format(new Date(`${endDate}T12:00:00`), "d 'de' MMMM 'de' yyyy", { locale: es })}`
+          : 'Vigente sin fecha de término'}
       </div>
       {isDemo && (
         <p className="fine-print">Promoción de demostración. No tiene validez comercial.</p>
