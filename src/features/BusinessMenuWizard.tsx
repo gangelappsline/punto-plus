@@ -24,6 +24,7 @@ import { fontOptions, fontStack } from '../components/LoyaltyCard';
 import { useBusiness, usePublicCategories, useSaveBusinessDraft } from '../lib/queries';
 import { readImage } from '../lib/image';
 import { publicMenuUrl } from '../lib/utils';
+import { menuStylePresetFor, menuStylePresets, menuStylePresetValues } from '../lib/menuStyles';
 import type { BusinessWizardStep, PublicCategory } from '../services/api';
 import { Button } from '../components/ui/button';
 import { Dialog } from '../components/ui/dialog';
@@ -145,6 +146,9 @@ export function BusinessMenuWizard() {
   const [step, setStep] = useState(0);
   const [selectedCategory, setSelectedCategory] = useState('');
   const [imageEdit, setImageEdit] = useState<{ productId: string; src: string } | null>(null);
+  // `null` = decide solo: si el diseño ya coincide con un estilo precargado no
+  // hace falta abrir los controles; si es una combinación propia, se abren.
+  const [customDesign, setCustomDesign] = useState<boolean | null>(null);
   const draftRevision = useRef(0);
 
   useEffect(() => {
@@ -174,6 +178,9 @@ export function BusinessMenuWizard() {
     });
     return [...categories.values()];
   }, [draft.categories, publicCategories.data]);
+  /** Estilo precargado que representa el diseño actual, si hay uno. */
+  const activePreset = useMemo(() => menuStylePresetFor(draft), [draft]);
+  const showDesignControls = customDesign ?? !activePreset;
   const update = <K extends keyof Draft>(key: K, value: Draft[K]) => {
     draftRevision.current += 1;
     setDraftSavedAt(null);
@@ -853,76 +860,191 @@ export function BusinessMenuWizard() {
             {step === 3 && (
               <section className="flex flex-col gap-4">
                 <p className="-mt-2 mb-1 text-sm leading-6 text-slate-500">
-                  Elige una tipografía y la paleta para que el menú tenga la personalidad de tu
-                  negocio.
+                  Elige un estilo y tu menú queda listo en un toque. Si ninguno te acomoda, usa
+                  «Personalizar» y ajusta todo a tu gusto.
                 </p>
-                <label className="flex min-w-0 flex-col gap-2 text-xs font-semibold text-slate-700">
-                  Tipografía
-                  <select
-                    className={fieldControlClass}
-                    value={draft.fontFamily}
-                    onChange={(event) =>
-                      update('fontFamily', event.target.value as Draft['fontFamily'])
-                    }
+                <div
+                  className="grid grid-cols-1 gap-3 sm:grid-cols-2"
+                  role="group"
+                  aria-label="Estilos de menú"
+                >
+                  {menuStylePresets.map((preset) => {
+                    const selected = activePreset?.id === preset.id && !customDesign;
+                    return (
+                      <button
+                        type="button"
+                        key={preset.id}
+                        aria-pressed={selected}
+                        aria-label={`Estilo ${preset.label}`}
+                        className={`flex min-w-0 flex-col gap-2 rounded-xl border p-3 text-left transition ${
+                          selected
+                            ? 'border-emerald-500 bg-emerald-50 ring-2 ring-emerald-500/20'
+                            : 'border-slate-200 hover:border-emerald-300 hover:bg-slate-50'
+                        }`}
+                        onClick={() => {
+                          const values = menuStylePresetValues(preset);
+                          update('primaryColor', values.primaryColor);
+                          update('secondaryColor', values.secondaryColor);
+                          update('fontFamily', values.fontFamily);
+                          update('menuStyle', values.menuStyle);
+                          setCustomDesign(false);
+                        }}
+                      >
+                        <span
+                          className="flex w-full items-center gap-2 rounded-lg px-3 py-2"
+                          style={{ backgroundColor: preset.secondaryColor }}
+                          aria-hidden="true"
+                        >
+                          <span
+                            className="text-xl leading-none font-extrabold"
+                            style={{
+                              color: preset.primaryColor,
+                              fontFamily: fontStack(preset.fontFamily),
+                            }}
+                          >
+                            Aa
+                          </span>
+                          <span className="ml-auto flex items-center gap-1">
+                            <span
+                              className="size-3 rounded-full"
+                              style={{ backgroundColor: preset.primaryColor }}
+                            />
+                            <span
+                              className="h-1.5 w-6 rounded-full"
+                              style={{ backgroundColor: preset.primaryColor }}
+                            />
+                          </span>
+                        </span>
+                        <span className="min-w-0">
+                          <strong className="flex items-center gap-1.5 text-sm font-bold text-slate-800">
+                            {preset.label}
+                            {selected && <Check size={14} className="text-emerald-600" />}
+                          </strong>
+                          <small className="block text-xs leading-5 text-slate-500">
+                            {preset.description}
+                          </small>
+                        </span>
+                      </button>
+                    );
+                  })}
+                  <button
+                    type="button"
+                    aria-pressed={showDesignControls}
+                    aria-label="Personalizar el diseño del menú"
+                    className={`flex min-w-0 flex-col gap-2 rounded-xl border p-3 text-left transition ${
+                      showDesignControls
+                        ? 'border-emerald-500 bg-emerald-50 ring-2 ring-emerald-500/20'
+                        : 'border-slate-200 hover:border-emerald-300 hover:bg-slate-50'
+                    }`}
+                    onClick={() => setCustomDesign(true)}
                   >
-                    {fontOptions.map((font) => (
-                      <option key={font.id} value={font.id}>
-                        {font.label} · {font.sample}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                  <ColorField
-                    label="Color principal"
-                    value={draft.primaryColor}
-                    onChange={(value) => update('primaryColor', value)}
-                  />
-                  <ColorField
-                    label="Color secundario"
-                    value={draft.secondaryColor}
-                    onChange={(value) => update('secondaryColor', value)}
-                  />
+                    <span
+                      className="flex w-full items-center gap-2 rounded-lg bg-slate-100 px-3 py-2 text-slate-500"
+                      aria-hidden="true"
+                    >
+                      <Palette size={18} />
+                      <span className="ml-auto flex items-center gap-1">
+                        <span className="size-3 rounded-full bg-slate-400" />
+                        <span className="h-1.5 w-6 rounded-full bg-slate-400" />
+                      </span>
+                    </span>
+                    <span className="min-w-0">
+                      <strong className="flex items-center gap-1.5 text-sm font-bold text-slate-800">
+                        Personalizar
+                        {showDesignControls && <Check size={14} className="text-emerald-600" />}
+                      </strong>
+                      <small className="block text-xs leading-5 text-slate-500">
+                        Tipografía, colores y forma de presentación a tu medida.
+                      </small>
+                    </span>
+                  </button>
                 </div>
-                <fieldset className="flex flex-col gap-2 rounded-2xl border border-slate-200 p-4">
-                  <legend className="px-1 text-xs font-bold text-slate-800">
-                    Estilo de presentación
-                  </legend>
-                  <label
-                    className={`flex cursor-pointer items-start gap-3 rounded-xl border p-3 transition ${draft.menuStyle === 'cozy' ? 'border-emerald-300 bg-emerald-50' : 'border-slate-200 hover:bg-slate-50'}`}
-                  >
-                    <input
-                      className="mt-1 accent-emerald-700"
-                      type="radio"
-                      name="menu-style"
-                      checked={draft.menuStyle === 'cozy'}
-                      onChange={() => update('menuStyle', 'cozy')}
-                    />
-                    <span>
-                      <strong className="text-sm font-bold text-slate-800">Espacioso</strong>
-                      <small className="text-xs leading-5 text-slate-500">
-                        Más aire entre los platillos y sus detalles.
-                      </small>
-                    </span>
-                  </label>
-                  <label
-                    className={`flex cursor-pointer items-start gap-3 rounded-xl border p-3 transition ${draft.menuStyle === 'compact' ? 'border-emerald-300 bg-emerald-50' : 'border-slate-200 hover:bg-slate-50'}`}
-                  >
-                    <input
-                      className="mt-1 accent-emerald-700"
-                      type="radio"
-                      name="menu-style"
-                      checked={draft.menuStyle === 'compact'}
-                      onChange={() => update('menuStyle', 'compact')}
-                    />
-                    <span>
-                      <strong className="text-sm font-bold text-slate-800">Compacto</strong>
-                      <small className="text-xs leading-5 text-slate-500">
-                        Muestra más productos en menos espacio.
-                      </small>
-                    </span>
-                  </label>
-                </fieldset>
+                {showDesignControls ? (
+                  <div className="flex flex-col gap-4 rounded-2xl border border-slate-200 bg-slate-50/60 p-4">
+                    <div className="flex items-center justify-between gap-3">
+                      <span className="text-xs font-bold tracking-wide text-slate-700 uppercase">
+                        Ajustes del menú
+                      </span>
+                      {activePreset && customDesign && (
+                        <span className="text-xs text-slate-500">
+                          Partiste del estilo {activePreset.label}
+                        </span>
+                      )}
+                    </div>
+                    <label className="flex min-w-0 flex-col gap-2 text-xs font-semibold text-slate-700">
+                      Tipografía
+                      <select
+                        className={fieldControlClass}
+                        value={draft.fontFamily}
+                        onChange={(event) =>
+                          update('fontFamily', event.target.value as Draft['fontFamily'])
+                        }
+                      >
+                        {fontOptions.map((font) => (
+                          <option key={font.id} value={font.id}>
+                            {font.label} · {font.sample}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                      <ColorField
+                        label="Color principal"
+                        value={draft.primaryColor}
+                        onChange={(value) => update('primaryColor', value)}
+                      />
+                      <ColorField
+                        label="Color secundario"
+                        value={draft.secondaryColor}
+                        onChange={(value) => update('secondaryColor', value)}
+                      />
+                    </div>
+                    <fieldset className="flex flex-col gap-2 rounded-2xl border border-slate-200 bg-white p-4">
+                      <legend className="px-1 text-xs font-bold text-slate-800">
+                        Estilo de presentación
+                      </legend>
+                      <label
+                        className={`flex cursor-pointer items-start gap-3 rounded-xl border p-3 transition ${draft.menuStyle === 'cozy' ? 'border-emerald-300 bg-emerald-50' : 'border-slate-200 hover:bg-slate-50'}`}
+                      >
+                        <input
+                          className="mt-1 accent-emerald-700"
+                          type="radio"
+                          name="menu-style"
+                          checked={draft.menuStyle === 'cozy'}
+                          onChange={() => update('menuStyle', 'cozy')}
+                        />
+                        <span>
+                          <strong className="text-sm font-bold text-slate-800">Espacioso</strong>
+                          <small className="text-xs leading-5 text-slate-500">
+                            Más aire entre los platillos y sus detalles.
+                          </small>
+                        </span>
+                      </label>
+                      <label
+                        className={`flex cursor-pointer items-start gap-3 rounded-xl border p-3 transition ${draft.menuStyle === 'compact' ? 'border-emerald-300 bg-emerald-50' : 'border-slate-200 hover:bg-slate-50'}`}
+                      >
+                        <input
+                          className="mt-1 accent-emerald-700"
+                          type="radio"
+                          name="menu-style"
+                          checked={draft.menuStyle === 'compact'}
+                          onChange={() => update('menuStyle', 'compact')}
+                        />
+                        <span>
+                          <strong className="text-sm font-bold text-slate-800">Compacto</strong>
+                          <small className="text-xs leading-5 text-slate-500">
+                            Muestra más productos en menos espacio.
+                          </small>
+                        </span>
+                      </label>
+                    </fieldset>
+                  </div>
+                ) : (
+                  <p className="text-xs leading-5 text-slate-500">
+                    Tu menú está usando el estilo <strong>{activePreset?.label}</strong>. Puedes
+                    cambiarlo cuando quieras.
+                  </p>
+                )}
               </section>
             )}
 
