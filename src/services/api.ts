@@ -14,7 +14,12 @@ import {
   foodCategories,
   loyaltyCardThemes,
   loyaltyCardThemeColors,
+  menuCardStyles,
   menuFontFamilies,
+  menuLayouts,
+  menuLogoShapes,
+  menuNavStyles,
+  menuSurfaces,
   nearbyBusinessSchema,
   promotionSchema,
   publicMenuSchema,
@@ -385,6 +390,57 @@ function record(value: unknown): Record<string, unknown> {
     : {};
 }
 
+/** Primer valor de la lista de opciones permitidas; ignora cualquier otro. */
+function menuEnumValue<T extends string>(options: readonly T[], ...candidates: unknown[]) {
+  return candidates.find(
+    (candidate): candidate is T =>
+      typeof candidate === 'string' && (options as readonly string[]).includes(candidate),
+  );
+}
+
+/**
+ * Diseño del menú (`menu_design`) compartido por el menú público y la configuración.
+ * Las claves nuevas son opcionales: un backend que no las guarde sigue funcionando
+ * porque el frontend cae en los valores por defecto.
+ */
+function menuDesignValues(
+  menuDesign: Record<string, unknown>,
+  fallback: Record<string, unknown> = {},
+) {
+  return {
+    menuLayout: menuEnumValue(
+      menuLayouts,
+      menuDesign.menu_layout,
+      menuDesign.menuLayout,
+      fallback.menuLayout,
+    ),
+    menuLogoShape: menuEnumValue(
+      menuLogoShapes,
+      menuDesign.logo_shape,
+      menuDesign.logoShape,
+      fallback.menuLogoShape,
+    ),
+    menuCardStyle: menuEnumValue(
+      menuCardStyles,
+      menuDesign.card_style,
+      menuDesign.cardStyle,
+      fallback.menuCardStyle,
+    ),
+    menuSurface: menuEnumValue(
+      menuSurfaces,
+      menuDesign.surface,
+      menuDesign.background,
+      fallback.menuSurface,
+    ),
+    menuNavStyle: menuEnumValue(
+      menuNavStyles,
+      menuDesign.nav_style,
+      menuDesign.navStyle,
+      fallback.menuNavStyle,
+    ),
+  };
+}
+
 export class PublicMenuNotFoundError extends Error {
   constructor() {
     super('No encontramos un menú publicado para este enlace.');
@@ -588,6 +644,7 @@ function normalizePublicBusinessMenu(payload: unknown) {
     value.welcomeMessage;
   const fontFamily = menuDesign.font_family ?? menuDesign.fontFamily ?? value.fontFamily;
   const menuStyle = menuDesign.menu_style ?? menuDesign.menuStyle ?? value.menuStyle;
+  const designValues = menuDesignValues(menuDesign, value);
   const openingHours =
     value.opening_hours ??
     value.openingHours ??
@@ -634,6 +691,7 @@ function normalizePublicBusinessMenu(payload: unknown) {
         ? (fontFamily as (typeof menuFontFamilies)[number])
         : undefined,
     menuStyle: menuStyle === 'compact' || menuStyle === 'cozy' ? menuStyle : undefined,
+    ...designValues,
     openingHours: typeof openingHours === 'string' ? openingHours : undefined,
   };
 }
@@ -979,7 +1037,13 @@ function normalizeBusinessConfig(payload: unknown) {
       menuFontFamilies.includes(rawFontFamily as (typeof menuFontFamilies)[number])
         ? (rawFontFamily as (typeof menuFontFamilies)[number])
         : undefined,
-    menuStyle: value.menuStyle,
+    menuStyle: menuEnumValue(
+      ['cozy', 'compact'] as const,
+      menuDesign.menu_style,
+      menuDesign.menuStyle,
+      value.menuStyle,
+    ),
+    ...menuDesignValues(menuDesign, value),
     onboarded: typeof value.onboarded === 'boolean' ? value.onboarded : inferredOnboarded,
   };
 }

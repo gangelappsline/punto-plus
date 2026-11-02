@@ -200,6 +200,28 @@ multipart, URLs firmadas o almacenamiento dedicado, y un límite distinto por im
 Sustituir la conversión y el payload según el backend; no asumir que admite data URLs.
 Tres imágenes por negocio en data URL pueden superar la cuota de `localStorage` en el demo.
 
+**Diseño del menú (`menu_design`).** El paso «Diseño» del configurador guarda estas claves en
+`PUT /business/card` con `{ step: "design", data: { … } }` y el menú público las recibe en
+`menu_design` (se aceptan tanto `snake_case` como `camelCase`). Las cuatro primeras ya se usaban;
+las demás son **opcionales**: si el backend no las guarda, el menú se pinta exactamente como hoy.
+
+| Clave             | Valores                                                        | Efecto                                   |
+| ----------------- | -------------------------------------------------------------- | ---------------------------------------- |
+| `primary_color`   | `#rrggbb`                                                      | Color de marca y acentos.                |
+| `secondary_color` | `#rrggbb`                                                      | Fondos suaves y bordes del logo.         |
+| `font_family`     | `dm-sans` · `manrope` · `serif` · `outfit` · `lora` · `nunito` | Tipografía del menú.                     |
+| `menu_style`      | `cozy` · `compact`                                             | Densidad de la lista de platillos.       |
+| `menu_layout`     | `spotlight` · `poster` · `split` · `compact`                   | Portada del menú.                        |
+| `logo_shape`      | `circle` · `squircle` · `square`                               | Forma del logo.                          |
+| `card_style`      | `soft` · `outlined` · `flat` · `bold`                          | Tratamiento de las tarjetas de platillo. |
+| `surface`         | `light` · `cream` · `sand` · `tinted` · `dark`                 | Fondo general del menú.                  |
+| `nav_style`       | `pills` · `tabs` · `cards`                                     | Fila de categorías.                      |
+
+Los valores fuera de catálogo se ignoran (`src/services/api.ts` valida contra las listas de
+`src/lib/types.ts`) y el frontend cae en el diseño por defecto (`spotlight`, `squircle`, `soft`,
+`light`, `pills`, `cozy`). Las plantillas de `src/lib/menuStyles.ts` son solo combinaciones de
+estas claves: no hay estado adicional que sincronizar.
+
 **Menú digital público.** El frontend sirve `/:business_slug` sin sesión y espera el endpoint
 público `GET /public/business/:slug/menu`, que puede responder el objeto del negocio o un
 recurso envuelto en `{ data: … }`, `{ business: … }` o `{ menu: … }`. Debe incluir `name`,
