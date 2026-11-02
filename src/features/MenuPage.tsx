@@ -258,7 +258,7 @@ export function MenuPage() {
               <Utensils size={30} style={{ color: primary }} />
             )}
           </div>
-          <p className="mb-2 mt-5 text-[10px] font-bold uppercase tracking-[0.2em] text-white/75">
+          <p className=" !hidden mb-2 mt-5 text-[10px] font-bold uppercase tracking-[0.2em] text-white/75">
             MENÚ DEL RESTAURANTE
           </p>
           <h1 className="max-w-3xl text-balance text-4xl font-extrabold leading-tight tracking-tight text-white drop-shadow sm:text-5xl md:text-6xl">
@@ -299,14 +299,14 @@ export function MenuPage() {
 
       <main className="relative z-10 mx-auto -mt-7 w-full max-w-6xl px-4 pb-16 sm:px-6 lg:px-8">
         <section className="mb-7 flex items-center justify-between gap-5 rounded-3xl border border-stone-200/80 bg-white p-5 shadow-sm sm:p-7">
-          <div className="min-w-0">
+          <div className="w-full text-center">
             <p className="mb-2 text-[10px] font-extrabold uppercase tracking-[0.18em] text-[var(--restaurant-primary)]">
               HECHO PARA DISFRUTAR
             </p>
             <h2 className="text-2xl font-extrabold tracking-tight text-slate-900 sm:text-3xl">
               ¿Qué se te antoja?
             </h2>
-            <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-500">
+            <p className="!hidden mt-2 max-w-2xl text-sm leading-6 text-slate-500">
               {data.welcomeMessage || 'Explora nuestros favoritos o encuentra algo nuevo.'}
             </p>
           </div>
@@ -322,7 +322,7 @@ export function MenuPage() {
 
         <div
           role="search"
-          className="sticky top-0 z-20 mb-4 flex h-13 items-center gap-3 rounded-2xl border border-stone-200 bg-white/95 px-4 text-slate-400 shadow-sm backdrop-blur-md focus-within:border-[var(--restaurant-primary)] focus-within:ring-4 focus-within:ring-[var(--restaurant-primary)]/10"
+          className="!hidden sticky top-0 z-20 mb-4 flex h-13 items-center gap-3 rounded-2xl border border-stone-200 bg-white/95 px-4 text-slate-400 shadow-sm backdrop-blur-md focus-within:border-[var(--restaurant-primary)] focus-within:ring-4 focus-within:ring-[var(--restaurant-primary)]/10"
         >
           <Search size={19} className="shrink-0" />
           <input
@@ -385,7 +385,7 @@ export function MenuPage() {
               </div>
               <span className="text-xs font-semibold text-slate-400">De la casa</span>
             </div>
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            <div className="grid grid-cols-2 gap-4 sm:grid-cols-2 lg:grid-cols-3">
               {popularItems.map((item, index) => (
                 <DishCard
                   key={item.id}

@@ -1259,18 +1259,18 @@ function LiveMenuPreview({ draft }: { draft: Draft }) {
       </header>
       <main className="restaurant-content">
         <section className="restaurant-welcome">
-          <div>
+          <div className="text-center">
             <p className="mb-1 text-[10px] font-extrabold uppercase tracking-[0.16em] text-emerald-700">
               HECHO PARA DISFRUTAR
             </p>
             <h2>¿Qué se te antoja?</h2>
-            <p>{draft.welcomeMessage || 'Explora nuestro menú.'}</p>
+            <p className="!hidden">{draft.welcomeMessage || 'Explora nuestro menú.'}</p>
           </div>
           <div className="restaurant-welcome-icon">
             <Utensils size={19} />
           </div>
         </section>
-        <div className="flex h-10 items-center gap-2 rounded-xl border border-stone-200 bg-white px-3 text-xs text-slate-400">
+        <div className="!hidden flex h-10 items-center gap-2 rounded-xl border border-stone-200 bg-white px-3 text-xs text-slate-400">
           ⌕ <span>Buscar en el menú</span>
         </div>
         <nav className="menu-category-nav" aria-label="Vista previa de categorías">
