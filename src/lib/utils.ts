@@ -22,7 +22,8 @@ export function publicMenuUrl(slug: string) {
 export type Panel = 'customer' | 'business' | 'admin';
 /** Ruta raíz del layout asignado a cada rol. */
 export function panelPathFor(role?: User['role'] | string | null) {
-  return role === 'business' ? '/business' : role === 'admin' ? '/admin' : '/app';
+  const panel = panelRole(role);
+  return panel === 'business' ? '/business' : panel === 'admin' ? '/admin' : '/app';
 }
 /** Panel al que pertenece una ruta, o `null` si es pública. */
 export function panelForPath(pathname: string): Panel | null {
@@ -31,14 +32,27 @@ export function panelForPath(pathname: string): Panel | null {
   if (pathname.startsWith('/app')) return 'customer';
   return null;
 }
+/**
+ * Rol del panel al que pertenece cada sesión.
+ *
+ * El backend (y las sesiones guardadas en versiones anteriores) puede devolver
+ * `customer`, `cliente` o `client` para la misma cuenta: todos son el panel del
+ * cliente. Sin esta equivalencia el guard redirigía a la misma ruta en bucle y
+ * el panel quedaba en blanco.
+ */
+export function panelRole(role?: User['role'] | string | null): Panel | null {
+  const value = typeof role === 'string' ? role.trim().toLowerCase() : '';
+  if (['business', 'negocio', 'merchant', 'owner', 'empresa'].includes(value)) return 'business';
+  if (['admin', 'administrator', 'administrador', 'superadmin', 'super-admin'].includes(value))
+    return 'admin';
+  if (!value) return null;
+  // Igual que `normalizeRole`: cualquier otra cuenta es de cliente.
+  return 'customer';
+}
+
 /** ¿El rol de la sesión tiene acceso a este panel? */
 export function panelAllows(panel: Panel, role?: User['role'] | string | null) {
-  if (!role) return false;
-  return panel === 'business'
-    ? role === 'business'
-    : panel === 'admin'
-      ? role === 'admin'
-      : role === 'client';
+  return panelRole(role) === panel;
 }
 /** Distancia legible para la sección "Cerca de mí". */
 export function formatDistanceKm(distanceKm?: number) {

@@ -195,7 +195,16 @@ export function readStoredSession(): StoredSession | null {
         typeof parsed.tokenType === 'string' && parsed.tokenType ? parsed.tokenType : 'Bearer',
       expiresAt: typeof parsed.expiresAt === 'number' ? parsed.expiresAt : null,
       scope: typeof parsed.scope === 'string' ? parsed.scope : null,
-      user: isRecord(parsed.user) ? (parsed.user as User) : null,
+      // Las sesiones guardadas por versiones anteriores pueden traer el rol sin
+      // normalizar (`customer`, `cliente`…): se traduce al leerlas.
+      user: isRecord(parsed.user)
+        ? {
+            id: String(parsed.user.id ?? ''),
+            name: String(parsed.user.name ?? parsed.user.email ?? ''),
+            email: String(parsed.user.email ?? ''),
+            role: normalizeRole(parsed.user.role),
+          }
+        : null,
       storedAt: typeof parsed.storedAt === 'number' ? parsed.storedAt : Date.now(),
     };
   } catch {
