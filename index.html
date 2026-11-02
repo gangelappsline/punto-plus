@@ -10,9 +10,118 @@
       content="Fidelidad para el comercio local: cada visita a tus negocios favoritos se convierte en sellos y recompensas. Para clientes y para negocios."
     />
     <title>Punto Plus · Lo bueno está cerca</title>
+    <style>
+      /* Respaldo de arranque: se ve solo si el bundle no llega a montar la app. */
+      #boot-fallback {
+        display: none;
+        font-family: 'DM Sans', system-ui, sans-serif;
+        color: #022f53;
+        background: #fbfbfa;
+        min-height: 100vh;
+        place-items: center;
+        padding: 24px;
+        text-align: center;
+      }
+      #boot-fallback[data-visible='true'] {
+        display: grid;
+      }
+      #boot-fallback div {
+        max-width: 420px;
+      }
+      #boot-fallback h1 {
+        font-size: 20px;
+        letter-spacing: -0.5px;
+        margin: 0 0 8px;
+      }
+      #boot-fallback p {
+        font-size: 14px;
+        line-height: 1.7;
+        color: #46617c;
+        margin: 0 0 16px;
+      }
+      #boot-fallback button {
+        min-height: 44px;
+        border: 0;
+        border-radius: 9px;
+        background: #2399a0;
+        color: #fff;
+        font: inherit;
+        font-weight: 650;
+        padding: 11px 18px;
+        cursor: pointer;
+      }
+      #boot-fallback code {
+        display: block;
+        margin-top: 14px;
+        font-size: 11px;
+        color: #93a5b8;
+        word-break: break-word;
+        white-space: pre-wrap;
+      }
+    </style>
   </head>
   <body>
     <div id="root"></div>
+    <div id="boot-fallback" role="alert">
+      <div>
+        <h1>No pudimos cargar la aplicación.</h1>
+        <p>
+          Suele pasar cuando se publica una versión nueva y el navegador conserva la anterior.
+          Recarga la página para continuar.
+        </p>
+        <button type="button" onclick="window.location.reload()">Recargar</button>
+        <code id="boot-fallback-detail"></code>
+      </div>
+    </div>
+    <noscript>
+      <div style="padding: 24px; font-family: system-ui, sans-serif; color: #022f53">
+        <h1 style="font-size: 20px">Necesitas activar JavaScript</h1>
+        <p style="color: #46617c">
+          Punto Plus es una aplicación web: activa JavaScript en tu navegador para ver tus tarjetas.
+        </p>
+      </div>
+    </noscript>
+    <script>
+      // Sin esto una versión vieja en caché deja la pantalla en blanco y sin pistas.
+      (function () {
+        var fallback = document.getElementById('boot-fallback');
+        var detail = document.getElementById('boot-fallback-detail');
+        function show(message) {
+          if (!fallback || fallback.getAttribute('data-visible') === 'true') return;
+          if (detail && message) detail.textContent = message;
+          fallback.setAttribute('data-visible', 'true');
+        }
+        function booted() {
+          return document.documentElement.getAttribute('data-app-booted') === 'true';
+        }
+        // Un fragmento con hash nuevo puede faltar si el deploy borró el anterior:
+        // se recarga una sola vez para pedir la versión vigente.
+        window.addEventListener('vite:preloadError', function () {
+          var key = 'punto-plus.reload-at';
+          var last = Number(sessionStorage.getItem(key) || 0);
+          if (Date.now() - last < 10000) {
+            show('No se pudo cargar una parte de la aplicación.');
+            return;
+          }
+          sessionStorage.setItem(key, String(Date.now()));
+          window.location.reload();
+        });
+        window.addEventListener('error', function (event) {
+          if (booted()) return;
+          show('Error al arrancar: ' + (event.message || 'desconocido'));
+        });
+        window.addEventListener('unhandledrejection', function (event) {
+          if (booted()) return;
+          var reason = event.reason && (event.reason.message || event.reason);
+          show('Error al arrancar: ' + (reason || 'desconocido'));
+        });
+        setTimeout(function () {
+          if (!booted() && document.getElementById('root').children.length === 0) {
+            show('La aplicación tardó demasiado en cargar.');
+          }
+        }, 10000);
+      })();
+    </script>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

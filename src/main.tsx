@@ -41,6 +41,11 @@ class ErrorBoundary extends Component<{ children: ReactNode }, { failed: boolean
 // y vuelta ni peticiones innecesarias.
 hydrateAuthOnce();
 
+// La página trae un respaldo por si el bundle no llega a ejecutarse (versión
+// vieja en caché, fragmento 404 tras un despliegue…). Al montar, se retira.
+document.documentElement.dataset.appBooted = 'true';
+document.getElementById('boot-fallback')?.remove();
+
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <ErrorBoundary>
