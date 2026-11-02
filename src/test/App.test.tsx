@@ -231,14 +231,12 @@ describe('Experiencia de cliente', () => {
     );
   });
 
-  it('usa un mapa de respaldo cuando Google Maps no está configurado', async () => {
+  it('avisa cuando Google Maps no está configurado y deja consultar los negocios', async () => {
     stubGeolocation({ permission: 'granted' });
     setup('/app/cerca-de-mi');
 
-    expect(await screen.findByTitle('Mapa de negocios cercanos')).toHaveAttribute(
-      'src',
-      expect.stringContaining('https://www.openstreetmap.org/export/embed.html'),
-    );
+    expect(await screen.findByText(/No pudimos cargar el mapa de Google Maps/)).toBeInTheDocument();
+    expect(screen.queryByTitle('Mapa de negocios cercanos')).not.toBeInTheDocument();
     expect(
       await screen.findByRole('button', { name: 'Ver información de Café Avellaneda' }),
     ).toBeInTheDocument();

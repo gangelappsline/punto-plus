@@ -14,18 +14,21 @@ proveedor de mapas y qué falta por configurar en cada entorno.
 
 ## Proveedor de mapas
 
-| Elemento   | Decisión                                                                                                       |
-| ---------- | -------------------------------------------------------------------------------------------------------------- |
-| Mapa       | **Google Maps JavaScript API** (`src/lib/googleMaps.ts` + `src/components/NearbyGoogleMap.tsx`)                |
-| Marcadores | `google.maps.OverlayView` con HTML propio (`src/components/nearbyPin.ts`)                                      |
-| Clave      | `VITE_GOOGLE_MAPS_API_KEY` (debe tener habilitada **Maps JavaScript API**)                                     |
-| Respaldo   | Si no hay clave o la API no carga, se pinta un mapa incrustado de OpenStreetMap para no dejar la sección vacía |
+| Elemento   | Decisión                                                                                                     |
+| ---------- | ------------------------------------------------------------------------------------------------------------ |
+| Mapa       | **Google Maps JavaScript API** (`src/lib/googleMaps.ts` + `src/components/NearbyGoogleMap.tsx`)              |
+| Marcadores | `google.maps.OverlayView` con HTML propio (`src/components/nearbyPin.ts`)                                    |
+| Clave      | `VITE_GOOGLE_MAPS_API_KEY` (**Maps JavaScript API**; idealmente también **Maps Embed API** para el respaldo) |
+| Respaldo   | **Google Maps Embed API** con la misma clave si la Maps JS API no carga; sin clave solo hay un aviso         |
 
+> **Solo Google Maps**: no se usa Leaflet ni OpenStreetMap en ningún caso.
+>
 > El detalle importante: el proyecto usaba Google Maps con el **Embed API** dentro
 > de un `iframe`. Ese embed no permite marcadores personalizados ni eventos de
 > clic, así que los requisitos 4 y 5 exigen la **Maps JavaScript API**. La misma
 > variable de entorno sirve, pero la clave debe tener la Maps JavaScript API
-> habilitada (y el referrer del dominio permitido).
+> habilitada (y el referrer del dominio permitido). Si la clave solo tiene Embed
+> API, la sección cae automáticamente al mapa incrustado de Google (sin pines).
 
 ## Flujo de ubicación y permiso
 
@@ -58,8 +61,8 @@ proveedor de mapas y qué falta por configurar en cada entorno.
 ## Pendientes por entorno
 
 - [ ] Configurar `VITE_GOOGLE_MAPS_API_KEY` con **Maps JavaScript API** habilitada
-      en producción, preview y local (sin ella se usa el mapa de respaldo y no
-      aparecen los pines con logo).
+      en producción, preview y local. Sin clave no hay mapa (solo el aviso);
+      con la clave limitada a Embed API se ve el mapa de Google sin pines.
 - [ ] Restringir la clave por HTTP referrer a los dominios de la app.
 - [ ] Confirmar que `/customer/near-me` devuelve `latitude`, `longitude`, `logo_url`
       y `distance_km` para que los pines se ubiquen y muestren el logo real.

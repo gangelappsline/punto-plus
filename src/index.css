@@ -6874,6 +6874,7 @@ main#main-content {
 }
 .nearby-map-card {
   position: relative;
+  min-height: clamp(300px, 46vh, 460px);
   overflow: hidden;
   border: 1px solid var(--line);
   border-radius: 16px;
@@ -7073,6 +7074,16 @@ main#main-content {
   font-size: 12px;
   line-height: 1.55;
   text-align: center;
+}
+.nearby-map-fallback small {
+  display: block;
+  margin-top: 6px;
+  color: #8393a2;
+  font-size: 11px;
+}
+/* El aviso de "sin mapa" se centra sobre el propio panel, sin iframe de fondo. */
+.nearby-map-card > .nearby-map-fallback {
+  position: absolute;
 }
 
 /* Marcadores: pin redondeado blanco con el logo del negocio. */
