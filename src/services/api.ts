@@ -23,6 +23,7 @@ import {
   type AdminCategoryInput,
   type BusinessConfig,
   type BusinessQRConfiguration,
+  type LoyaltyCard,
   type Promotion,
 } from '../lib/types';
 import { baseURL, http } from './http';
@@ -972,6 +973,163 @@ function normalizeBusinessConfig(payload: unknown) {
   };
 }
 
+function normalizeCustomerCard(payload: unknown, index: number): LoyaltyCard {
+  const customerCard = record(payload);
+  const loyaltyCard = record(customerCard.loyalty_card ?? customerCard.loyaltyCard);
+  const business = record(customerCard.business);
+  const cardBusiness = record(loyaltyCard.business);
+  const settings = record(loyaltyCard.settings);
+  const businessSettings = record(business.card_settings ?? cardBusiness.card_settings);
+  const progress = record(customerCard.progress);
+  const menuDesign = record(business.menu_design ?? cardBusiness.menu_design);
+  const name =
+    stringValue(firstDefined(business, ['name'])) ??
+    stringValue(firstDefined(cardBusiness, ['name'])) ??
+    stringValue(firstDefined(loyaltyCard, ['name'])) ??
+    'Negocio';
+  const businessId =
+    stringValue(firstDefined(customerCard, ['business_id', 'businessId'])) ??
+    stringValue(firstDefined(business, ['id'])) ??
+    stringValue(firstDefined(cardBusiness, ['id'])) ??
+    stringValue(firstDefined(loyaltyCard, ['business_id', 'businessId'])) ??
+    `business-${index + 1}`;
+  const categories = Array.isArray(business.categories)
+    ? business.categories
+    : Array.isArray(cardBusiness.categories)
+      ? cardBusiness.categories
+      : [];
+  const category =
+    categories
+      .map((item) => stringValue(typeof item === 'string' ? item : record(item).name))
+      .find((value): value is string => Boolean(value?.trim())) ??
+    stringValue(firstDefined(loyaltyCard, ['category', 'type_label', 'typeLabel'])) ??
+    stringValue(firstDefined(business, ['category'])) ??
+    'Fidelidad';
+  const rawGoal = numberValue(
+    firstDefined(customerCard, ['required_stamps', 'requiredStamps']) ??
+      firstDefined(progress, ['required', 'required_stamps']) ??
+      firstDefined(loyaltyCard, ['required_stamps', 'requiredStamps']) ??
+      firstDefined(settings, ['required_stamps', 'requiredStamps']) ??
+      firstDefined(businessSettings, ['required_stamps', 'requiredStamps']) ??
+      8,
+  );
+  const goal = Math.min(12, Math.max(2, Math.round(rawGoal ?? 8)));
+  const rawStamps = numberValue(
+    firstDefined(customerCard, ['stamps_count', 'stampsCount', 'points_count']) ??
+      firstDefined(progress, ['current', 'stamps_count', 'points_count']) ??
+      firstDefined(customerCard, ['stamps']),
+  );
+  const stamps = Math.min(goal, Math.max(0, Math.floor(rawStamps ?? 0)));
+  const primaryColor = stringValue(
+    firstDefined(loyaltyCard, ['primary_color', 'primaryColor']) ??
+      firstDefined(settings, ['primary_color', 'primaryColor']) ??
+      firstDefined(businessSettings, ['primary_color', 'primaryColor']),
+  );
+  const secondaryColor = stringValue(
+    firstDefined(loyaltyCard, ['secondary_color', 'secondaryColor']) ??
+      firstDefined(settings, ['secondary_color', 'secondaryColor']) ??
+      firstDefined(businessSettings, ['secondary_color', 'secondaryColor']),
+  );
+  const textColor = stringValue(
+    firstDefined(loyaltyCard, ['text_color', 'textColor']) ??
+      firstDefined(settings, ['text_color', 'textColor']) ??
+      firstDefined(businessSettings, ['text_color', 'textColor']),
+  );
+  const rawTheme =
+    firstDefined(settings, ['theme', 'card_theme', 'cardTheme']) ??
+    firstDefined(loyaltyCard, ['theme', 'card_theme', 'cardTheme']) ??
+    closestCardTheme(primaryColor);
+  const theme =
+    typeof rawTheme === 'string' &&
+    loyaltyCardThemes.includes(rawTheme as (typeof loyaltyCardThemes)[number])
+      ? (rawTheme as (typeof loyaltyCardThemes)[number])
+      : 'forest';
+  const rawIcon =
+    firstDefined(settings, ['stamp_icon', 'stampIcon', 'icon']) ??
+    firstDefined(businessSettings, ['stamp_icon', 'stampIcon', 'icon']) ??
+    firstDefined(loyaltyCard, ['stamp_icon', 'stampIcon']);
+  const icon =
+    typeof rawIcon === 'string' &&
+    foodBrandIcons.includes(rawIcon as (typeof foodBrandIcons)[number])
+      ? (rawIcon as (typeof foodBrandIcons)[number])
+      : 'coffee';
+  const rewards = Array.isArray(loyaltyCard.rewards) ? loyaltyCard.rewards : [];
+  const firstReward = record(rewards.find((reward) => record(reward).is_active !== false));
+  const reward =
+    stringValue(
+      firstDefined(loyaltyCard, ['reward_description', 'rewardDescription']) ??
+        firstDefined(firstReward, ['name', 'description']),
+    ) ?? 'Consulta con el negocio la recompensa disponible';
+  const address = [
+    business.address ?? cardBusiness.address,
+    business.city ?? cardBusiness.city,
+    business.country ?? cardBusiness.country,
+  ]
+    .map(stringValue)
+    .filter((part): part is string => Boolean(part?.trim()))
+    .join(', ');
+  const status = stringValue(customerCard.status)?.toLowerCase();
+  const rawFont =
+    firstDefined(settings, ['font_family', 'fontFamily']) ??
+    firstDefined(menuDesign, ['font_family', 'fontFamily']);
+  const fontFamily =
+    typeof rawFont === 'string' &&
+    menuFontFamilies.includes(rawFont as (typeof menuFontFamilies)[number])
+      ? (rawFont as (typeof menuFontFamilies)[number])
+      : undefined;
+  const rawShape =
+    firstDefined(settings, ['card_shape', 'cardShape']) ?? businessSettings.card_shape;
+  const cardShape = ['rounded', 'square', 'circle'].includes(String(rawShape))
+    ? (rawShape as 'rounded' | 'square' | 'circle')
+    : undefined;
+  const logo = publicAssetUrl(
+    firstDefined(business, ['logo_url', 'logo']) ??
+      firstDefined(cardBusiness, ['logo_url', 'logo']) ??
+      firstDefined(loyaltyCard, ['logo_url', 'logo']),
+  );
+  const id =
+    stringValue(firstDefined(customerCard, ['id', 'code'])) ?? `customer-card-${index + 1}`;
+  const description =
+    stringValue(firstDefined(loyaltyCard, ['description'])) ??
+    stringValue(firstDefined(business, ['welcome_message', 'description'])) ??
+    stringValue(firstDefined(cardBusiness, ['welcome_message', 'description'])) ??
+    'Cada visita te acerca a una recompensa.';
+  const rawLatitude = firstDefined(business, ['latitude', 'lat']) ?? cardBusiness.latitude;
+  const rawLongitude =
+    firstDefined(business, ['longitude', 'lng', 'lon']) ?? cardBusiness.longitude;
+  return cardSchema.parse({
+    id,
+    businessId,
+    name,
+    category,
+    tagline: description,
+    reward,
+    stamps,
+    goal,
+    theme,
+    icon,
+    primaryColor,
+    secondaryColor,
+    textColor,
+    cardShape,
+    fontFamily,
+    location:
+      address ||
+      (rawLatitude !== undefined &&
+      rawLatitude !== null &&
+      rawLongitude !== undefined &&
+      rawLongitude !== null
+        ? 'Ubicación en mapa'
+        : 'Ubicación no disponible'),
+    address: address || undefined,
+    latitude: rawLatitude,
+    longitude: rawLongitude,
+    distance: stringValue(firstDefined(customerCard, ['distance'])) ?? '',
+    joined: status !== 'blocked' && status !== 'expired',
+    logo,
+  });
+}
+
 function normalizeSaleToken(payload: unknown): SaleToken {
   const root = record(payload);
   const data = record(root.data);
@@ -1166,8 +1324,11 @@ function slugifyBusiness(name: string) {
 }
 
 export const api = {
-  cards: async () =>
-    isDemo ? readDB().cards : z.array(cardSchema).parse((await http.get('/customer/cards')).data),
+  cards: async () => {
+    if (isDemo) return readDB().cards;
+    const { data } = await http.get('/customer/cards', { params: { per_page: 100 } });
+    return unwrapResourceList(data, ['cards', 'customer_cards']).map(normalizeCustomerCard);
+  },
   nearMe: async (coordinates: { latitude: number; longitude: number }) => {
     if (isDemo) return readDB().cards;
     const { data } = await http.get('/customer/near-me', { params: coordinates });
