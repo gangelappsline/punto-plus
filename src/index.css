@@ -3551,7 +3551,7 @@ main#main-content {
   .main-footer > button {
     font-size: 8px;
   }
-  .location-chip {
+  .location-chip:not(.nearby-location-chip) {
     display: none;
   }
   .business-grid {
@@ -6839,184 +6839,422 @@ main#main-content {
 .customer-cards-intro .main-qr-button > svg:last-child {
   display: block;
 }
-.customer-map-layout {
-  display: grid;
-  grid-template-columns: minmax(0, 1.35fr) minmax(300px, 0.85fr);
-  align-items: start;
-  gap: 20px;
+/* Cerca de mí: poco texto, mapa grande y marcadores con el logo del negocio. */
+.nearby-intro {
+  flex-wrap: wrap;
+  align-items: center;
+  margin-bottom: 16px;
 }
-.customer-map-panel,
-.customer-map-businesses {
-  min-width: 0;
-  padding: 18px;
+.nearby-intro h1 {
+  margin-bottom: 4px;
+}
+.nearby-intro p {
+  max-width: 44ch;
+}
+.nearby-location-chip {
   border: 1px solid var(--line);
-  border-radius: 13px;
+  border-radius: 999px;
   background: #ffffff;
-}
-.customer-map-heading {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 12px;
-  margin-bottom: 14px;
-}
-.customer-map-heading h2,
-.customer-map-businesses .section-title h2 {
-  margin: 0;
-  font-size: 15px;
-  font-weight: 700;
-  color: #233f59;
-}
-.customer-map-heading p {
-  margin-top: 5px;
-  color: #8192a2;
+  padding: 9px 14px;
+  font: inherit;
   font-size: 11px;
-  line-height: 1.55;
-}
-.customer-map-heading > a {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  flex-shrink: 0;
-  color: #127a82;
-  font-size: 11px;
-  font-weight: 650;
-}
-.customer-google-map {
-  display: block;
-  width: 100%;
-  height: 420px;
-  border: 0;
-  border-radius: 10px;
-  background: #edf3f4;
-}
-.customer-map-placeholder {
-  display: grid;
-  min-height: 300px;
-  place-items: center;
-  border-radius: 10px;
-  background: #f5f8f9;
-  color: #71869a;
-  font-size: 13px;
-}
-.map-data-note,
-.location-permission-note {
-  margin-top: 11px;
-  color: #8292a1;
-  font-size: 10px;
-  line-height: 1.6;
-}
-.location-permission-note {
-  margin: -10px 0 20px;
-}
-.customer-map-businesses .section-title {
-  margin-bottom: 14px;
-}
-.customer-map-business-list {
-  display: flex;
-  max-height: 480px;
-  flex-direction: column;
-  gap: 7px;
-  overflow-y: auto;
-}
-.customer-map-business {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  min-width: 0;
-  padding: 10px;
-  border: 1px solid transparent;
-  border-radius: 10px;
-  background: #f8fafb;
-  text-align: left;
+  color: #7d90a3;
+  cursor: pointer;
   transition:
     border-color 0.15s ease,
+    color 0.15s ease;
+}
+.nearby-location-chip:hover:not(:disabled) {
+  border-color: #b9dfe1;
+  color: #127a82;
+}
+.nearby-location-chip:disabled {
+  cursor: default;
+  opacity: 0.65;
+}
+.nearby-map-card {
+  position: relative;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: #edf3f4;
+  box-shadow: 0 10px 30px #022f530f;
+}
+.nearby-map-canvas {
+  position: relative;
+  z-index: 0;
+  width: 100%;
+  height: clamp(430px, 64vh, 700px);
+  overflow: hidden;
+  background: #edf3f4;
+}
+.nearby-map-top {
+  position: absolute;
+  z-index: 520;
+  top: 12px;
+  left: 12px;
+  right: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  pointer-events: none;
+}
+.nearby-map-count {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 13px;
+  border-radius: 999px;
+  background: #ffffffeb;
+  color: #26445e;
+  font-size: 11px;
+  font-weight: 650;
+  box-shadow: 0 6px 18px #022f5326;
+  backdrop-filter: blur(6px);
+}
+.nearby-map-count svg {
+  color: #2399a0;
+}
+.nearby-map-recenter {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  margin-left: auto;
+  border: 0;
+  border-radius: 50%;
+  background: #ffffffeb;
+  color: #127a82;
+  box-shadow: 0 6px 18px #022f5326;
+  pointer-events: auto;
+  cursor: pointer;
+  transition:
+    transform 0.15s ease,
     background-color 0.15s ease;
 }
-.customer-map-business:hover,
-.customer-map-business.selected {
+.nearby-map-recenter:hover:not(:disabled) {
+  background: #ffffff;
+  transform: scale(1.04);
+}
+.nearby-map-recenter:disabled {
+  cursor: default;
+  opacity: 0.6;
+}
+.nearby-map-status {
+  position: absolute;
+  z-index: 520;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  display: grid;
+  justify-items: center;
+  gap: 10px;
+  width: max-content;
+  max-width: min(330px, calc(100% - 40px));
+  padding: 15px 18px;
+  border-radius: 13px;
+  background: #fffffff2;
+  box-shadow: 0 12px 32px #022f5326;
+  text-align: center;
+  pointer-events: none;
+}
+.nearby-map-status p {
+  font-size: 12px;
+  line-height: 1.55;
+  color: #455a6d;
+}
+.nearby-map-status .button {
+  pointer-events: auto;
+  padding: 8px 14px;
+  font-size: 11px;
+}
+.nearby-strip {
+  position: absolute;
+  z-index: 510;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  gap: 8px;
+  padding: 26px 12px 12px;
+  overflow-x: auto;
+  scrollbar-width: thin;
+  background: linear-gradient(to top, #ffffff 45%, #ffffffd9 72%, #ffffff00);
+}
+.nearby-strip-item {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 9px;
+  max-width: 232px;
+  padding: 7px 14px 7px 7px;
+  border: 1px solid #e2ebee;
+  border-radius: 999px;
+  background: #ffffff;
+  box-shadow: 0 6px 18px #022f5314;
+  text-align: left;
+  cursor: pointer;
+  transition:
+    border-color 0.15s ease,
+    transform 0.15s ease,
+    box-shadow 0.15s ease;
+}
+.nearby-strip-item:hover {
   border-color: #b9dfe1;
-  background: #eff8f8;
+  box-shadow: 0 10px 24px #022f5326;
+  transform: translateY(-1px);
 }
-.customer-map-business .business-avatar {
-  width: 38px;
-  height: 38px;
-  flex-shrink: 0;
+.nearby-strip-item .business-avatar {
+  width: 34px;
+  height: 34px;
+  margin: 0;
+  border-radius: 50%;
+  overflow: hidden;
+  background: #f1f7f8;
+  color: #2399a0;
 }
-.customer-map-business-copy {
-  display: block;
+.nearby-strip-item .business-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.nearby-strip-copy {
+  display: grid;
   min-width: 0;
-  flex: 1;
 }
-.customer-map-business-copy strong,
-.customer-map-business-copy small {
-  display: block;
+.nearby-strip-copy strong,
+.nearby-strip-copy small {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-.customer-map-business-copy strong {
+.nearby-strip-copy strong {
+  max-width: 155px;
   color: #26445e;
   font-size: 11px;
 }
-.customer-map-business-copy small {
-  margin-top: 4px;
+.nearby-strip-copy small {
+  margin-top: 1px;
   color: #8393a2;
   font-size: 9px;
 }
-.customer-map-distance {
-  flex-shrink: 0;
-  color: #73879a;
+.nearby-map-card.has-strip .leaflet-bottom.leaflet-right {
+  bottom: 92px;
+}
+.nearby-map-canvas .leaflet-control-zoom a {
+  color: #254865;
+}
+.nearby-map-canvas .leaflet-control-attribution {
   font-size: 9px;
+  background: #ffffffcc;
+}
+
+/* Marcadores: pin redondeado blanco con el logo del negocio. */
+.pp-map-marker,
+.leaflet-div-icon.pp-map-marker {
+  background: transparent;
+  border: 0;
+}
+.pp-map-pin {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 54px;
+  height: 64px;
+  filter: drop-shadow(0 6px 10px #022f532e);
+  transition: transform 0.16s ease;
+}
+.pp-map-pin:hover,
+.pp-map-pin.is-active {
+  transform: translateY(-2px) scale(1.06);
+}
+.pp-map-pin-bubble {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 50px;
+  height: 50px;
+  padding: 5px;
+  border-radius: 50%;
+  background: #ffffff;
+  box-shadow:
+    0 0 0 2px #ffffff,
+    0 0 0 3.5px #c9e3e5;
+}
+.pp-map-pin.is-active .pp-map-pin-bubble {
+  box-shadow:
+    0 0 0 2px #ffffff,
+    0 0 0 4.5px #2399a0;
+}
+.pp-map-pin-bubble b {
+  position: absolute;
+  color: #127a82;
+  font-family: 'Manrope Variable', sans-serif;
+  font-size: 18px;
+  font-weight: 700;
+  line-height: 1;
+}
+.pp-map-pin-bubble img {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  object-fit: contain;
+}
+.pp-map-pin-tail {
+  width: 14px;
+  height: 14px;
+  margin-top: -7px;
+  border-radius: 0 0 4px 0;
+  background: #ffffff;
+  transform: rotate(45deg);
+}
+.pp-map-marker-user,
+.leaflet-div-icon.pp-map-marker-user {
+  background: transparent;
+  border: 0;
+}
+.pp-map-user {
+  position: relative;
+  display: block;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #2399a0;
+  border: 3px solid #ffffff;
+  box-shadow: 0 3px 10px #022f5333;
+}
+.pp-map-user span {
+  position: absolute;
+  inset: -9px;
+  border-radius: 50%;
+  background: #2399a033;
+  animation: ppMapPulse 2.4s ease-out infinite;
+}
+@keyframes ppMapPulse {
+  0% {
+    transform: scale(0.6);
+    opacity: 0.9;
+  }
+  70% {
+    transform: scale(1.7);
+    opacity: 0;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .pp-map-user span {
+    animation: none;
+  }
+}
+
+/* Modal del negocio abierto desde un marcador. */
+.nearby-dialog {
+  max-width: 430px;
+}
+.nearby-dialog-hero {
+  position: relative;
+  height: 118px;
+  margin: 2px 0 38px;
+}
+.nearby-dialog-banner {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border-radius: 12px;
+  object-fit: cover;
+  background: linear-gradient(135deg, #2399a0, #022f53);
+}
+.nearby-dialog-logo {
+  position: absolute;
+  left: 16px;
+  bottom: -26px;
+  display: grid;
+  place-items: center;
+  width: 64px;
+  height: 64px;
+  overflow: hidden;
+  border: 3px solid #ffffff;
+  border-radius: 50%;
+  background: #ffffff;
+  color: #2399a0;
+  box-shadow: 0 8px 20px #022f5326;
+}
+.nearby-dialog-logo img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.nearby-dialog-facts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+  margin-bottom: 14px;
+  color: #5a7086;
+  font-size: 12px;
+  line-height: 1.5;
+}
+.nearby-dialog-facts span {
+  display: inline-flex;
+  align-items: flex-start;
+  gap: 6px;
+}
+.nearby-dialog-facts svg {
+  flex-shrink: 0;
+  margin-top: 1px;
+  color: #2399a0;
+}
+.nearby-dialog-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 18px;
+}
+.nearby-dialog-badges span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 10px;
+  border: 1px solid #d7ecec;
+  border-radius: 8px;
+  background: #f2f9f9;
+  color: #127a82;
+  font-size: 11px;
+  font-weight: 600;
+}
+.nearby-dialog-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+.nearby-dialog-actions .button {
+  flex: 1 1 auto;
+  justify-content: center;
 }
 @media (max-width: 900px) {
-  .customer-map-layout {
-    grid-template-columns: 1fr;
+  .nearby-map-canvas {
+    height: clamp(360px, 58vh, 540px);
   }
 }
 @media (max-width: 540px) {
-  .customer-section-tabs {
-    gap: 4px;
+  .nearby-map-canvas {
+    height: 58vh;
+    min-height: 340px;
   }
-  .customer-section-tab {
-    flex: 1;
-    gap: 5px;
-    min-width: 0;
-    padding: 0 7px;
-    font-size: 10px;
+  .nearby-strip {
+    padding: 22px 8px 10px;
   }
-  .customer-card-actions {
-    width: 100%;
-    justify-content: flex-start;
+  .nearby-strip-item {
+    max-width: 200px;
   }
-  .customer-cards-intro {
-    align-items: stretch;
-    flex-direction: column;
-    gap: 14px;
+  .nearby-strip-copy strong {
+    max-width: 128px;
   }
-  .customer-cards-intro .customer-card-actions {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr);
-  }
-  .customer-cards-intro .main-qr-button {
-    position: static;
-    width: 100%;
-    min-height: 42px;
-    font-size: 11px;
-  }
-  .customer-cards-intro .main-qr-button > svg:first-child {
-    width: 18px;
-    height: 18px;
-  }
-  .customer-map-panel,
-  .customer-map-businesses {
-    padding: 13px;
-  }
-  .customer-google-map {
-    height: 310px;
-  }
-  .customer-map-heading h2 {
-    font-size: 13px;
+  .nearby-dialog-hero {
+    height: 96px;
   }
 }
 

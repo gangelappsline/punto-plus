@@ -37,6 +37,10 @@ export function useNearMe(coordinates: { latitude: number; longitude: number } |
     queryKey: queryKeys.nearMe(coordinates?.latitude, coordinates?.longitude),
     queryFn: () => api.nearMe(coordinates!),
     enabled: coordinates !== null,
+    // Al refrescar la ubicación se conservan los negocios ya cargados: el mapa
+    // no parpadea mientras llega la respuesta de las nuevas coordenadas.
+    placeholderData: (previous) => previous,
+    staleTime: 60_000,
   });
 }
 

@@ -22,6 +22,40 @@ function setup(path = '/app') {
   return user;
 }
 
+/**
+ * Simula el permiso de ubicación del navegador. Devuelve el espía de
+ * `getCurrentPosition` para comprobar si la app insiste con el permiso.
+ */
+function stubGeolocation({
+  permission,
+  latitude = 19.4326,
+  longitude = -99.1332,
+}: {
+  permission: PermissionState | 'unknown';
+  latitude?: number;
+  longitude?: number;
+}) {
+  const getCurrentPosition = vi.fn((success: PositionCallback) =>
+    success({
+      coords: { latitude, longitude } as GeolocationCoordinates,
+      timestamp: Date.now(),
+      toJSON: () => ({}),
+    } as GeolocationPosition),
+  );
+  Object.defineProperty(navigator, 'geolocation', {
+    configurable: true,
+    value: { getCurrentPosition },
+  });
+  Object.defineProperty(navigator, 'permissions', {
+    configurable: true,
+    value:
+      permission === 'unknown'
+        ? undefined
+        : { query: vi.fn().mockResolvedValue({ state: permission }) },
+  });
+  return getCurrentPosition;
+}
+
 describe('Experiencia de cliente', () => {
   afterEach(() => {
     vi.restoreAllMocks();
@@ -113,41 +147,54 @@ describe('Experiencia de cliente', () => {
     ).toHaveTextContent('Promociones');
   });
 
-  it('Cerca de mí envía las coordenadas del cliente y no consulta otras pestañas', async () => {
+  it('Cerca de mí carga los negocios automáticamente al abrir la sección', async () => {
     const cards = vi.spyOn(api, 'cards');
     const promotions = vi.spyOn(api, 'promotions');
     const nearMe = vi.spyOn(api, 'nearMe');
     const activity = vi.spyOn(api, 'activity');
-    const position = {
-      coords: { latitude: 19.4326, longitude: -99.1332 } as GeolocationCoordinates,
-      timestamp: Date.now(),
-      toJSON: () => ({}),
-    } as GeolocationPosition;
-    const getCurrentPosition = vi.fn((success: PositionCallback) => success(position));
-    Object.defineProperty(navigator, 'geolocation', {
-      configurable: true,
-      value: { getCurrentPosition },
-    });
-    const user = setup('/app/cerca-de-mi');
+    stubGeolocation({ permission: 'granted', latitude: 19.4326, longitude: -99.1332 });
+    setup('/app/cerca-de-mi');
 
     expect(
-      await screen.findByText(/Usa tu ubicación para buscar negocios cercanos/),
+      await screen.findByRole('button', { name: /Ver información de Café Avellaneda/ }),
     ).toBeInTheDocument();
-    expect(nearMe).not.toHaveBeenCalled();
-    await user.click(screen.getByRole('button', { name: 'Usar mi ubicación' }));
-    expect(await screen.findByTitle('Mapa: Café Avellaneda')).toHaveAttribute(
-      'src',
-      expect.stringContaining('https://www.openstreetmap.org/export/embed.html'),
-    );
-    expect(await screen.findByRole('button', { name: /Café Avellaneda/ })).toBeInTheDocument();
-    expect(getCurrentPosition).toHaveBeenCalledOnce();
     expect(nearMe).toHaveBeenCalledWith({ latitude: 19.4326, longitude: -99.1332 });
+    expect(await screen.findByText('Ubicación activa')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Activar ubicación' })).not.toBeInTheDocument();
     expect(cards).not.toHaveBeenCalled();
     expect(promotions).not.toHaveBeenCalled();
     expect(activity).not.toHaveBeenCalled();
   });
 
-  it('muestra los negocios normalizados en la lista y enfoca el mapa en el seleccionado', async () => {
+  it('no vuelve a solicitar el permiso: usa la ubicación guardada sin preguntar', async () => {
+    localStorage.setItem(
+      'punto-plus:location',
+      JSON.stringify({ latitude: 19.4326, longitude: -99.1332, savedAt: Date.now() }),
+    );
+    const getCurrentPosition = stubGeolocation({ permission: 'unknown' });
+    const nearMe = vi.spyOn(api, 'nearMe');
+    setup('/app/cerca-de-mi');
+
+    expect(
+      await screen.findByRole('button', { name: /Ver información de Café Avellaneda/ }),
+    ).toBeInTheDocument();
+    expect(getCurrentPosition).not.toHaveBeenCalled();
+    expect(nearMe).toHaveBeenCalledWith({ latitude: 19.4326, longitude: -99.1332 });
+  });
+
+  it('respeta el permiso negado y no insiste con la ubicación', async () => {
+    const getCurrentPosition = stubGeolocation({ permission: 'denied' });
+    const nearMe = vi.spyOn(api, 'nearMe');
+    setup('/app/cerca-de-mi');
+
+    expect(
+      await screen.findByText(/Activa la ubicación en tu navegador para ver negocios cerca/),
+    ).toBeInTheDocument();
+    expect(getCurrentPosition).not.toHaveBeenCalled();
+    expect(nearMe).not.toHaveBeenCalled();
+  });
+
+  it('abre el modal del negocio al tocar su marcador en el mapa', async () => {
     vi.spyOn(api, 'nearMe').mockResolvedValue([
       {
         id: '45',
@@ -164,57 +211,36 @@ describe('Experiencia de cliente', () => {
         isActive: true,
       },
     ]);
-    const position = {
-      coords: { latitude: 19.3020916, longitude: -104.1540069 } as GeolocationCoordinates,
-      timestamp: Date.now(),
-      toJSON: () => ({}),
-    } as GeolocationPosition;
-    Object.defineProperty(navigator, 'geolocation', {
-      configurable: true,
-      value: { getCurrentPosition: vi.fn((success: PositionCallback) => success(position)) },
-    });
+    stubGeolocation({ permission: 'granted', latitude: 19.3020916, longitude: -104.1540069 });
     const user = setup('/app/cerca-de-mi');
 
-    await user.click(screen.getByRole('button', { name: 'Usar mi ubicación' }));
-
-    const business = await screen.findByRole('button', { name: /Taqueria Chayito/ });
-    expect(business).toHaveTextContent('Muy cerca');
-    expect(business).toHaveTextContent('Ya tienes tarjeta');
-    expect(business).toHaveTextContent('3 promociones');
-    expect(await screen.findByTitle('Mapa: Taqueria Chayito')).toHaveAttribute(
+    const marker = await screen.findByTitle('Taqueria Chayito');
+    expect(marker.querySelector('.pp-map-pin-bubble img')).toHaveAttribute(
       'src',
-      expect.stringContaining('marker=19.3020916%2C-104.1540069'),
+      'https://example.com/chayito.png',
+    );
+    await user.click(marker);
+
+    const dialog = await screen.findByRole('dialog', { name: 'Taqueria Chayito' });
+    expect(dialog).toHaveTextContent('Muy cerca');
+    expect(dialog).toHaveTextContent('Ya tienes su tarjeta');
+    expect(dialog).toHaveTextContent('3 promociones');
+    expect(within(dialog).getByRole('link', { name: /Abrir ruta/ })).toHaveAttribute(
+      'href',
+      expect.stringContaining('destination=19.3020916%2C-104.1540069'),
     );
   });
 
-  it('solicita permiso de ubicación solo después de la acción del cliente', async () => {
-    vi.stubEnv('VITE_GOOGLE_MAPS_API_KEY', 'test-google-maps-key');
-    const position = {
-      coords: { latitude: 19.4326, longitude: -99.1332 } as GeolocationCoordinates,
-      timestamp: Date.now(),
-      toJSON: () => ({}),
-    } as GeolocationPosition;
-    const getCurrentPosition = vi.fn((success: PositionCallback) => success(position));
-    Object.defineProperty(navigator, 'geolocation', {
-      configurable: true,
-      value: { getCurrentPosition },
-    });
-    const nearMe = vi.spyOn(api, 'nearMe');
+  it('abre el modal del negocio desde la lista de negocios cercanos', async () => {
+    stubGeolocation({ permission: 'granted', latitude: 19.4326, longitude: -99.1332 });
     const user = setup('/app/cerca-de-mi');
 
-    expect(screen.queryByTitle('Google Maps: Café Avellaneda')).not.toBeInTheDocument();
-    expect(getCurrentPosition).not.toHaveBeenCalled();
-    expect(nearMe).not.toHaveBeenCalled();
-    await user.click(screen.getByRole('button', { name: 'Usar mi ubicación' }));
-    expect(await screen.findByText(/Ubicación activada/)).toBeInTheDocument();
-    expect(await screen.findByTitle('Google Maps: Café Avellaneda')).toHaveAttribute(
-      'src',
-      expect.stringContaining(
-        'https://www.google.com/maps/embed/v1/search?key=test-google-maps-key',
-      ),
+    await user.click(
+      await screen.findByRole('button', { name: 'Ver información de Café Avellaneda' }),
     );
-    expect(getCurrentPosition).toHaveBeenCalledOnce();
-    expect(nearMe).toHaveBeenCalledWith({ latitude: 19.4326, longitude: -99.1332 });
+    const dialog = await screen.findByRole('dialog', { name: 'Café Avellaneda' });
+    expect(dialog).toHaveTextContent('Calle Colima 168, Roma Norte, CDMX');
+    expect(dialog).toHaveTextContent('Cafetería');
   });
 
   it('filtra tarjetas completas sin consultar otras secciones', async () => {

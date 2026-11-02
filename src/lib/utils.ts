@@ -40,6 +40,14 @@ export function panelAllows(panel: Panel, role?: User['role'] | string | null) {
       ? role === 'admin'
       : role === 'customer';
 }
+/** Distancia legible para la sección "Cerca de mí". */
+export function formatDistanceKm(distanceKm?: number) {
+  if (distanceKm === undefined || !Number.isFinite(distanceKm)) return 'Distancia no disponible';
+  if (distanceKm < 0.05) return 'Muy cerca';
+  if (distanceKm < 1) return `${Math.round(distanceKm * 1000)} m`;
+  return `${distanceKm.toFixed(1)} km`;
+}
+
 export function errorMessage(error: unknown) {
   return error instanceof Error ? error.message : 'Ocurrió un error. Inténtalo de nuevo.';
 }
