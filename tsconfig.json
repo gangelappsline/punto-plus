@@ -16,7 +16,7 @@
     "strict": true,
     "noUnusedLocals": true,
     "noUnusedParameters": true,
-    "types": ["vite/client", "vitest/globals"],
+    "types": ["vite/client", "vitest/globals", "google.maps"],
     //"baseUrl": ".",
     "paths": {
       "@/*": ["./src/*"]

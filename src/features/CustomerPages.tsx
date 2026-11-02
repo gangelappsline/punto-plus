@@ -23,7 +23,7 @@ import {
 import { formatDistanceKm } from '../lib/utils';
 import type { LoyaltyCard as Card, NearbyBusiness, Promotion } from '../lib/types';
 import { LoyaltyCard } from '../components/LoyaltyCard';
-import { NearbyMap } from '../components/NearbyMap';
+import { NearbyGoogleMap } from '../components/NearbyGoogleMap';
 import { PromotionCard } from '../components/PromotionCard';
 import { Button } from '../components/ui/button';
 import { NearbyBusinessDialog } from './Dialogs';
@@ -389,7 +389,7 @@ export function NearbyPage() {
         className={`nearby-map-card${!mapBusy && businesses.length ? ' has-strip' : ''}`}
         aria-label="Mapa y negocios cercanos"
       >
-        <NearbyMap
+        <NearbyGoogleMap
           businesses={businesses}
           center={position}
           userPosition={position}
