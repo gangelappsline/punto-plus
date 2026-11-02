@@ -28,20 +28,20 @@ async function verifyMobileDrawer(
     </QueryClientProvider>,
   );
 
-  const sidebar = container.querySelector('aside.sidebar');
-  expect(sidebar).not.toHaveClass('mobile-open');
+  const sidebar = container.querySelector('aside[data-panel-nav]');
+  expect(sidebar).toHaveAttribute('data-open', 'false');
   expect(screen.queryByRole('navigation', { name: 'Navegación móvil' })).not.toBeInTheDocument();
 
   const openButton = screen.getByRole('button', { name: 'Mostrar opciones del menú' });
   expect(openButton).toHaveAttribute('aria-expanded', 'false');
   await user.click(openButton);
-  expect(sidebar).toHaveClass('mobile-open');
+  expect(sidebar).toHaveAttribute('data-open', 'true');
   expect(openButton).toHaveAttribute('aria-expanded', 'true');
 
-  const closeButton = container.querySelector<HTMLButtonElement>('.mobile-sidebar-close');
+  const closeButton = container.querySelector<HTMLButtonElement>('[data-mobile-close]');
   expect(closeButton).toBeInTheDocument();
   await user.click(closeButton!);
-  expect(sidebar).not.toHaveClass('mobile-open');
+  expect(sidebar).toHaveAttribute('data-open', 'false');
   expect(openButton).toHaveAttribute('aria-expanded', 'false');
   unmount();
 }

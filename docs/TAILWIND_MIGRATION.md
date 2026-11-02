@@ -45,6 +45,18 @@ responsive que reescribe esos mismos selectores. Por eso la migración va **por
 | 7    | Público: `LandingPage`, `MenuPage`, `Login`, `Register`, `AuthLayout`, `NotFoundPage`, `AppSplash`                                                         | ⏳           |
 | 8    | Limpieza final: borrar `src/index.css` salvo `@theme` + capa base, y el bloque responsive residual                                                         | ⏳           |
 
+## Progreso
+
+| Métrica                   | Inicio | Tras fase 1 | Tras fase 2 |
+| ------------------------- | ------ | ----------- | ----------- |
+| Líneas en `src/index.css` | 7.484  | 7.332       | 6.585       |
+| Clases propias definidas  | 457    | 445         | 405         |
+| Clases propias en uso     | 347    | 340         | 302         |
+
+Nota: los tests no deben depender de clases CSS. `MobilePanelNavigation` y
+`App.test` ahora comprueban `data-*` y `aria-current`, que son la fuente de
+verdad del estado.
+
 ## Reglas para no romper la interfaz
 
 1. Una clase se borra del CSS **solo** cuando ya no aparece en ningún `.tsx`.
