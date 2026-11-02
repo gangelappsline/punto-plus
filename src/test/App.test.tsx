@@ -135,14 +135,56 @@ describe('Experiencia de cliente', () => {
     ).toBeInTheDocument();
     expect(nearMe).not.toHaveBeenCalled();
     await user.click(screen.getByRole('button', { name: 'Usar mi ubicación' }));
-    expect(
-      await screen.findByText(/Configura VITE_GOOGLE_MAPS_API_KEY para cargar el mapa de Google/),
-    ).toBeInTheDocument();
+    expect(await screen.findByTitle('Mapa: Café Avellaneda')).toHaveAttribute(
+      'src',
+      expect.stringContaining('https://www.openstreetmap.org/export/embed.html'),
+    );
+    expect(await screen.findByRole('button', { name: /Café Avellaneda/ })).toBeInTheDocument();
     expect(getCurrentPosition).toHaveBeenCalledOnce();
     expect(nearMe).toHaveBeenCalledWith({ latitude: 19.4326, longitude: -99.1332 });
     expect(cards).not.toHaveBeenCalled();
     expect(promotions).not.toHaveBeenCalled();
     expect(activity).not.toHaveBeenCalled();
+  });
+
+  it('muestra los negocios normalizados en la lista y enfoca el mapa en el seleccionado', async () => {
+    vi.spyOn(api, 'nearMe').mockResolvedValue([
+      {
+        id: '45',
+        name: 'Taqueria Chayito',
+        category: 'Restaurante',
+        logo: 'https://example.com/chayito.png',
+        latitude: 19.3020916,
+        longitude: -104.1540069,
+        location: 'Ubicación en mapa',
+        distanceKm: 0,
+        hasCard: true,
+        activeLoyaltyCardsCount: 2,
+        activePromotionsCount: 3,
+        isActive: true,
+      },
+    ]);
+    const position = {
+      coords: { latitude: 19.3020916, longitude: -104.1540069 } as GeolocationCoordinates,
+      timestamp: Date.now(),
+      toJSON: () => ({}),
+    } as GeolocationPosition;
+    Object.defineProperty(navigator, 'geolocation', {
+      configurable: true,
+      value: { getCurrentPosition: vi.fn((success: PositionCallback) => success(position)) },
+    });
+    const user = setup('/app/cerca-de-mi');
+
+    await user.click(screen.getByRole('button', { name: 'Usar mi ubicación' }));
+
+    const business = await screen.findByRole('button', { name: /Taqueria Chayito/ });
+    expect(business).toHaveTextContent('Muy cerca');
+    expect(business).toHaveTextContent('Ya tienes tarjeta');
+    expect(business).toHaveTextContent('3 promociones');
+    expect(await screen.findByTitle('Mapa: Taqueria Chayito')).toHaveAttribute(
+      'src',
+      expect.stringContaining('marker=19.3020916%2C-104.1540069'),
+    );
   });
 
   it('solicita permiso de ubicación solo después de la acción del cliente', async () => {

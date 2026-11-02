@@ -109,6 +109,25 @@ export const cardSchema = z.object({
   logo: z.string().optional(),
 });
 export type LoyaltyCard = z.infer<typeof cardSchema>;
+export const nearbyBusinessSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  slug: z.string().optional(),
+  description: z.string().optional(),
+  category: z.string(),
+  logo: z.string().optional(),
+  background: z.string().optional(),
+  latitude: optionalLatitudeSchema,
+  longitude: optionalLongitudeSchema,
+  address: z.string().optional(),
+  location: z.string(),
+  distanceKm: z.number().nonnegative().optional(),
+  hasCard: z.boolean(),
+  activeLoyaltyCardsCount: z.number().int().nonnegative(),
+  activePromotionsCount: z.number().int().nonnegative(),
+  isActive: z.boolean(),
+});
+export type NearbyBusiness = z.infer<typeof nearbyBusinessSchema>;
 export const promotionSchema = z.object({
   id: z.string(),
   businessId: z.string(),
