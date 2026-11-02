@@ -128,7 +128,7 @@ export function Login() {
             />
             <button
               type="button"
-              className="icon-button"
+              className="inline-flex size-9 items-center justify-center rounded-full text-slate transition-colors hover:bg-mist"
               aria-label={visible ? 'Ocultar contraseña' : 'Mostrar contraseña'}
               onClick={() => setVisible(!visible)}
             >
@@ -148,7 +148,7 @@ export function Login() {
           </div>
         )}
 
-        <Button type="submit" className="full-width" disabled={login.isPending}>
+        <Button type="submit" className="w-full" disabled={login.isPending}>
           {login.isPending ? 'Entrando…' : 'Entrar a mi comunidad'}
           <ArrowRight size={17} />
         </Button>

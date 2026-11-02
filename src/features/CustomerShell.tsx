@@ -25,7 +25,7 @@ import { Dialog } from '../components/ui/dialog';
 import { Scanner } from '../components/Scanner';
 import { useCards, useConfirmSaleToken } from '../lib/queries';
 import { useLogout } from '../lib/session';
-import { isDemo } from '../lib/utils';
+import { cn, isDemo } from '../lib/utils';
 import { demoUser, useAuth } from '../stores/auth';
 import type { LoyaltyCard, Promotion } from '../lib/types';
 import type { PageContext } from './CustomerPages';
@@ -153,76 +153,125 @@ export function CustomerLayout() {
     confirmPurchase: openPurchaseConfirmation,
   };
   return (
-    <div className="app-shell">
-      <a className="skip-link" href="#main-content">
+    <div className="flex min-h-screen">
+      <a
+        className="fixed -top-20 left-5 z-[100] rounded-lg border-2 border-brand bg-white p-3 transition-[top] focus:top-3"
+        href="#main-content"
+      >
         Saltar al contenido
       </a>
       {mobileNav && (
         <button
           type="button"
           aria-label="Ocultar opciones del menú"
-          className="sidebar-backdrop"
+          className="fixed inset-0 z-50 bg-[#022f5366] backdrop-blur-[3px] md:hidden"
           onClick={() => setMobileNav(false)}
         />
       )}
-      <aside className={`sidebar ${mobileNav ? 'mobile-open' : ''}`}>
+      <aside
+        data-panel-nav
+        data-open={mobileNav ? 'true' : 'false'}
+        className={cn(
+          'sticky top-0 z-[35] flex h-dvh w-[236px] shrink-0 flex-col border-r border-line bg-white px-[22px] pb-4 pt-[31px]',
+          'max-[1200px]:w-[211px] max-[1200px]:px-[17px] min-[1600px]:w-[254px] min-[1600px]:px-[27px]',
+          'min-[769px]:max-[1000px]:w-[190px] min-[769px]:max-[1000px]:px-[13px]',
+          'max-md:invisible max-md:fixed max-md:-left-[260px] max-md:z-[51] max-md:w-[236px] max-md:px-[22px] max-md:pb-5 max-md:pt-[27px] max-md:transition-[left] max-md:duration-200',
+          mobileNav && 'max-md:visible max-md:left-0 max-md:shadow-[10px_0_40px_#022f5333]',
+        )}
+      >
         <button
           type="button"
-          className="mobile-sidebar-close icon-button"
+          className="inline-flex size-9 items-center justify-center rounded-full text-slate transition-colors hover:bg-mist md:hidden"
           aria-label="Ocultar opciones del menú"
+          data-mobile-close
           onClick={() => setMobileNav(false)}
         >
           <X size={17} />
         </button>
-        <Link to="/" className="brand" aria-label="Punto Plus · Inicio">
-          <img src={logo} alt="Punto Plus" />
+        <Link
+          to="/"
+          className="flex items-center gap-[9px] whitespace-nowrap"
+          aria-label="Punto Plus · Inicio"
+        >
+          <img src={logo} alt="Punto Plus" className="block h-[30px] w-auto rounded-[7px]" />
         </Link>
-        <div className="community-label">TU COMUNIDAD, TUS RECOMPENSAS</div>
-        <div className="sidebar-section-label">MI ESPACIO</div>
-        <nav id="customer-navigation" aria-label="Navegación principal">
+        <div className="ml-px mt-[13px] text-[7.3px] font-semibold tracking-[1.05px] text-faint max-[1200px]:text-[6.6px] max-[1200px]:tracking-[0.8px] min-[769px]:max-[1000px]:text-[6.2px] min-[769px]:max-[1000px]:tracking-[0.7px]">
+          TU COMUNIDAD, TUS RECOMPENSAS
+        </div>
+        <div className="mx-[13px] mb-[14px] mt-[43px] text-[9px] font-semibold tracking-[1.8px] text-faint">
+          MI ESPACIO
+        </div>
+        <nav
+          id="customer-navigation"
+          className="flex flex-col gap-[7px]"
+          aria-label="Navegación principal"
+        >
           {customerNavigation.map(({ path, icon: Icon, title: label }) => (
             <NavLink
               key={path}
               to={path}
               end={path === '/app'}
-              className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}
+              className={({ isActive }) =>
+                cn(
+                  'group flex h-[45px] items-center gap-3 rounded-lg px-[13px] text-xs font-medium text-steel transition-colors hover:bg-haze',
+                  'min-[769px]:max-[1000px]:gap-[10px] min-[769px]:max-[1000px]:px-[11px] min-[769px]:max-[1000px]:text-[11px] min-[1001px]:text-[13px]',
+                  isActive && 'bg-[#d9eef0] font-[650] text-brand-deep',
+                )
+              }
             >
               <Icon size={19} strokeWidth={1.65} />
               <span>{label}</span>
-              {path === '/app' && <span className="active-nav-dot" />}
+              {path === '/app' && (
+                <span className="ml-auto hidden size-[5px] rounded-full bg-brand group-aria-[current=page]:block" />
+              )}
             </NavLink>
           ))}
         </nav>
-        <div className="sidebar-bottom">
+        <div className="mt-auto pt-8">
           {canManage && (
-            <NavLink to="/business" className="business-nav">
+            <NavLink
+              to="/business"
+              className="flex w-full items-center gap-[10px] rounded-lg px-[11px] py-3 text-[11.5px] text-slate transition-colors hover:bg-haze"
+            >
               <Store size={18} />
               <span>Mi negocio</span>
               <ArrowIcon />
             </NavLink>
           )}
-          <button className="sidebar-help" onClick={() => setHelp(true)}>
+          <button
+            className="flex w-full items-center gap-[10px] rounded-lg px-[11px] pb-[15px] pt-[10px] text-[11.5px] text-slate transition-colors hover:bg-haze"
+            onClick={() => setHelp(true)}
+          >
             <CircleHelp size={17} /> ¿Te ayudamos?
           </button>
-          <button className="profile-button" onClick={() => setProfile(true)}>
-            <span className="avatar">{user.name[0]}</span>
-            <span>
-              <strong>{user.name}</strong>
-              <small>{isDemo ? 'Miembro · Demostración' : 'Miembro Punto Plus'}</small>
+          <button
+            className="mt-[6px] flex w-full items-center gap-[10px] border-t border-line pb-[11px] pt-[18px] text-left min-[769px]:max-[1000px]:gap-[7px]"
+            onClick={() => setProfile(true)}
+          >
+            <span className="flex size-9 shrink-0 items-center justify-center rounded-full border-[3px] border-white bg-[radial-gradient(ellipse_at_70%_25%,#d7edee_0%,#9fd0d6_64%,#2399a0_100%)] font-display text-[15px] font-[650] text-navy">
+              {user.name[0]}
             </span>
-            <ChevronDown size={16} />
+            <span>
+              <strong className="block text-[11px] font-[650] min-[769px]:max-[1000px]:text-[10px]">
+                {user.name}
+              </strong>
+              <small className="mt-1 block text-[8.5px] text-[#aeb9c4] min-[769px]:max-[1000px]:text-[7.5px]">
+                {isDemo ? 'Miembro · Demostración' : 'Miembro Punto Plus'}
+              </small>
+            </span>
+            <ChevronDown size={16} className="ml-auto text-[#b0bcc7]" />
           </button>
         </div>
-        <div className="sidebar-footer">
+        <div className="mt-[13px] flex items-center justify-center gap-[6px] text-[6.5px] tracking-[1.5px] text-[#aeb9c4]">
           HECHO PARA VOLVER <Heart size={10} />
         </div>
       </aside>
-      <div className="workspace">
-        <header className="topbar">
-          <div className="topbar-left">
+      <div className="min-w-0 flex-1 max-md:pb-[78px]">
+        <header className="flex h-[75px] items-center justify-between border-b border-line bg-white px-[42px] max-[1200px]:px-[29px] min-[769px]:max-[1000px]:px-[23px] min-[1600px]:px-[54px] max-md:h-[65px] max-md:px-6 max-sm:px-5">
+          <div className="max-md:flex max-md:items-center max-md:gap-3">
             <button
               type="button"
-              className="icon-button mobile-menu"
+              className="inline-flex size-9 items-center justify-center rounded-full text-slate transition-colors hover:bg-mist max-md:-ml-[9px] max-md:inline-flex md:hidden"
               aria-label="Mostrar opciones del menú"
               aria-controls="customer-navigation"
               aria-expanded={mobileNav}
@@ -230,25 +279,33 @@ export function CustomerLayout() {
             >
               <Menu size={22} />
             </button>
-            <span className="breadcrumb">
-              Mi espacio <ChevronRight size={13} /> <strong>{title}</strong>
+            <span className="flex items-center gap-[14px] text-[10px] text-muted min-[1001px]:text-[11px] max-md:hidden">
+              Mi espacio <ChevronRight size={13} className="text-[#b6c2cd]" />{' '}
+              <strong className="font-medium text-body">{title}</strong>
             </span>
-            <Link to="/" className="mobile-brand" aria-label="Punto Plus · Inicio">
-              <img src={logo} alt="Punto Plus" />
+            <Link
+              to="/"
+              className="hidden max-md:flex max-md:items-center"
+              aria-label="Punto Plus · Inicio"
+            >
+              <img src={logo} alt="Punto Plus" className="block h-[30px] w-auto rounded-[7px]" />
             </Link>
           </div>
-          <div className="header-actions">
-            <span className="header-location">
+          <div className="flex items-center gap-[17px] max-[1200px]:gap-[10px] max-md:gap-[11px] max-sm:gap-[9px]">
+            <span className="flex items-center gap-[6px] text-[10px] text-muted min-[769px]:max-[1000px]:text-[9px] max-md:hidden">
               <MapPin size={15} /> Ciudad de México
             </span>
-            <span className="header-divider" />
+            <span className="ml-[3px] h-[18px] w-px bg-line max-md:hidden" />
             {isDemo && (
-              <button className="demo-indicator" onClick={() => setProfile(true)}>
-                <span /> Demo
+              <button
+                className="flex items-center gap-1 rounded-[5px] border border-[#e5cfae] px-[6px] py-[3px] text-[9px] text-[#b98a4e] max-md:text-[8px]"
+                onClick={() => setProfile(true)}
+              >
+                <span className="size-1 rounded-full bg-[#d9a35f]" /> Demo
               </button>
             )}
             <button
-              className="avatar small-avatar"
+              className="flex size-[31px] items-center justify-center rounded-full border-[3px] border-white bg-[radial-gradient(ellipse_at_70%_25%,#d7edee_0%,#9fd0d6_64%,#2399a0_100%)] font-display text-xs font-[650] text-navy max-md:size-[29px]"
               aria-label="Mi perfil"
               onClick={() => setProfile(true)}
             >
@@ -257,22 +314,38 @@ export function CustomerLayout() {
           </div>
         </header>
         {!online && (
-          <div className="offline-banner" role="status">
+          <div
+            className="bg-[#fbeed6] px-5 py-[10px] text-center text-xs text-[#8a5a26]"
+            role="status"
+          >
             Estás sin conexión.{' '}
             {isDemo
               ? 'Tus datos demo siguen disponibles en este dispositivo.'
               : 'Las compras y canjes necesitan conexión a internet.'}
           </div>
         )}
-        <main id="main-content">
-          <div className="main-topline"></div>
-          <nav className="customer-section-tabs" aria-label="Secciones del cliente">
+        <main
+          id="main-content"
+          className="mx-auto max-w-[1540px] px-[42px] pt-[25px] max-[1200px]:px-[29px] min-[769px]:max-[1000px]:px-[23px] max-md:px-6 max-md:pt-[21px] max-sm:px-5 max-sm:pt-[19px]"
+        >
+          <div className="mb-4 flex min-h-[35px] items-center justify-between max-md:mb-[25px] max-md:gap-[15px] max-sm:mb-[25px] max-sm:min-h-0"></div>
+          <nav
+            className="mb-7 flex gap-2 border-b border-line pb-[10px]"
+            aria-label="Secciones del cliente"
+          >
             {customerNavigation.map(({ path, icon: Icon, title }) => (
               <NavLink
                 key={path}
                 to={path}
                 end={path === '/app'}
-                className={({ isActive }) => `customer-section-tab${isActive ? ' active' : ''}`}
+                className={({ isActive }) =>
+                  cn(
+                    'inline-flex min-h-[42px] items-center justify-center gap-2 rounded-t-[9px] border border-transparent px-4 text-xs font-[650] text-[#60758a] transition-[background-color,color,border-color] duration-150 hover:bg-[#f0f5f7] hover:text-brand',
+                    'max-sm:min-w-0 max-sm:flex-1 max-sm:gap-[5px] max-sm:px-[7px] max-sm:text-[10px]',
+                    isActive &&
+                      "relative font-black text-brand-deep after:absolute after:inset-x-3 after:-bottom-[11px] after:h-[3px] after:rounded-t-[3px] after:bg-brand-deep after:content-['']",
+                  )
+                }
               >
                 <Icon size={17} aria-hidden="true" />
                 <span>{title}</span>
@@ -280,9 +353,12 @@ export function CustomerLayout() {
             ))}
           </nav>
           <Outlet context={context} />
-          <footer className="main-footer">
+          <footer className="mt-[15px] flex items-center justify-between gap-[15px] border-t border-line pb-[22px] pt-5 text-[9px] text-muted max-sm:justify-center max-sm:gap-[13px] max-sm:pb-[14px] max-sm:pt-[19px] max-sm:text-center max-sm:text-[8px]">
             <span>© {new Date().getFullYear()} Punto Plus. Lo bueno está cerca.</span>
-            <button onClick={() => void install()}>
+            <button
+              className="flex items-center gap-[6px] text-[9px] text-muted transition-colors hover:text-brand max-sm:text-[8px]"
+              onClick={() => void install()}
+            >
               <Download size={13} /> Lleva Punto Plus contigo <ArrowIcon />
             </button>
           </footer>
@@ -325,7 +401,7 @@ export function CustomerLayout() {
             <p>
               El token se eliminó para que no pueda reutilizarse y se agregó un sello a tu tarjeta.
             </p>
-            <Button className="full-width" onClick={() => setPurchaseOpen(false)}>
+            <Button className="w-full" onClick={() => setPurchaseOpen(false)}>
               Ver mis tarjetas
             </Button>
           </div>
@@ -341,14 +417,14 @@ export function CustomerLayout() {
             </strong>
             {isDemo && <div className="notice">Demostración: la compra es ficticia.</div>}
             <Button
-              className="full-width"
+              className="w-full"
               disabled={confirmSale.isPending}
               onClick={() => confirmSale.mutate(purchaseToken)}
             >
               {confirmSale.isPending ? 'Validando compra…' : 'Confirmar compra'}
             </Button>
             <Button
-              className="full-width"
+              className="w-full"
               variant="ghost"
               disabled={confirmSale.isPending}
               onClick={() => setPurchaseToken(null)}
@@ -374,7 +450,9 @@ export function CustomerLayout() {
         description="Tu espacio dentro de la comunidad Punto Plus."
       >
         <div className="profile-detail">
-          <span className="avatar">{user.name[0]}</span>
+          <span className="mx-auto mb-[14px] flex size-[63px] shrink-0 items-center justify-center rounded-full border-[3px] border-white bg-[radial-gradient(ellipse_at_70%_25%,#d7edee_0%,#9fd0d6_64%,#2399a0_100%)] font-display text-[25px] font-[650] text-navy">
+            {user.name[0]}
+          </span>
           <h2>{user.name}</h2>
           <p>{user.email}</p>
           <span className="membership">
@@ -396,7 +474,7 @@ export function CustomerLayout() {
         ) : (
           <Button
             variant="outline"
-            className="full-width"
+            className="w-full"
             disabled={logout.isPending}
             onClick={() =>
               logout.mutate(undefined, {
@@ -416,7 +494,7 @@ export function CustomerLayout() {
         )}
         <Button
           variant="ghost"
-          className="full-width"
+          className="w-full"
           onClick={() => {
             setProfile(false);
             void install();

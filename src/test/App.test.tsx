@@ -82,7 +82,10 @@ describe('Experiencia de cliente', () => {
       'aria-current',
       'page',
     );
-    expect(within(tabs).getByRole('link', { name: 'Tarjetas' })).toHaveClass('active');
+    expect(within(tabs).getByRole('link', { name: 'Tarjetas' })).toHaveAttribute(
+      'aria-current',
+      'page',
+    );
   });
 
   it('muestra las secciones en orden y permite escanear desde tarjetas', async () => {
@@ -143,8 +146,10 @@ describe('Experiencia de cliente', () => {
     expect(nearMe).not.toHaveBeenCalled();
     expect(activity).not.toHaveBeenCalled();
     expect(
-      screen.getByRole('navigation', { name: 'Secciones del cliente' }).querySelector('.active'),
-    ).toHaveTextContent('Promociones');
+      within(screen.getByRole('navigation', { name: 'Secciones del cliente' })).getByRole('link', {
+        name: 'Promociones',
+      }),
+    ).toHaveAttribute('aria-current', 'page');
   });
 
   it('Cerca de mí carga los negocios automáticamente al abrir la sección', async () => {

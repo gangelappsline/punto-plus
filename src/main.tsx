@@ -24,7 +24,10 @@ class ErrorBoundary extends Component<{ children: ReactNode }, { failed: boolean
         <img src="/icon.svg" alt="" />
         <h1>Necesitamos un nuevo comienzo.</h1>
         <p>Algo no salió como esperábamos. Tus datos guardados siguen aquí.</p>
-        <button className="button button-primary" onClick={() => window.location.reload()}>
+        <button
+          className="inline-flex min-h-11 items-center justify-center rounded-[9px] bg-brand px-[18px] py-[11px] text-xs font-[650] text-white shadow-[0_3px_5px_#1b7f8615] hover:bg-brand-dark"
+          onClick={() => window.location.reload()}
+        >
           Volver a intentar
         </button>
       </div>

@@ -493,7 +493,7 @@ export function BusinessOnboarding() {
             </>
           )}
           {isLastStep && (
-            <Button className="full-width" disabled={saving} onClick={handleSave}>
+            <Button className="w-full" disabled={saving} onClick={handleSave}>
               <Save size={17} />
               {saving ? 'Publicando…' : 'Publicar mi negocio'}
             </Button>
@@ -518,7 +518,7 @@ function LogoStep({ logo, analyzing, colors, onChange, errors }: LogoStepProps) 
     <section className="wizard-step">
       <div className="step-eyebrow">Paso 1 de 7</div>
       <h2>Sube tu logo</h2>
-      <p className="muted">
+      <p className="text-[13px] text-muted">
         Tu logo va en la tarjeta del negocio y definimos a partir de él los colores del menú y el
         QR.
       </p>
@@ -565,7 +565,7 @@ function LogoStep({ logo, analyzing, colors, onChange, errors }: LogoStepProps) 
               aria-label={`Color secundario ${colors.secondary}`}
             />
           </div>
-          <p className="muted">
+          <p className="text-[13px] text-muted">
             Los colores se extraen automáticamente del logo. Puedes ajustarlos en el paso de colores
             antes de publicar.
           </p>
@@ -589,7 +589,7 @@ function BannerStep({ banner, onChange }: BannerStepProps) {
     <section className="wizard-step">
       <div className="step-eyebrow">Paso 2 de 7</div>
       <h2>Banner del negocio</h2>
-      <p className="muted">
+      <p className="text-[13px] text-muted">
         Imagen de portada que se muestra en tu menú digital y en la tarjeta del negocio.
       </p>
       <label className="upload-label">
@@ -628,7 +628,9 @@ function NameStep({ value, onChange, errors }: NameStepProps) {
     <section className="wizard-step">
       <div className="step-eyebrow">Paso 3 de 7</div>
       <h2>Nombre del negocio</h2>
-      <p className="muted">Así aparecerá en tu tarjeta, menú digital y promociones.</p>
+      <p className="text-[13px] text-muted">
+        Así aparecerá en tu tarjeta, menú digital y promociones.
+      </p>
       <input
         autoComplete="off"
         className="text-input"
@@ -660,7 +662,7 @@ function CategoriesStep({ categories, onChange, all, errors }: CategoriesStepPro
     <section className="wizard-step">
       <div className="step-eyebrow">Paso 4 de 7</div>
       <h2>¿Qué comida vende?</h2>
-      <p className="muted">
+      <p className="text-[13px] text-muted">
         Selecciona todas las categorías que apliquen. Ayudan a crear el borrador de tu menú.
       </p>
       <div className="category-chips">
@@ -693,7 +695,7 @@ function MenuStep({ image, items, onChangeImage, onChangeItems }: MenuStepProps)
     <section className="wizard-step">
       <div className="step-eyebrow">Paso 5 de 7</div>
       <h2>Tu menú</h2>
-      <p className="muted">
+      <p className="text-[13px] text-muted">
         Sube una foto de tu menú impreso y lo analizamos para crear el borrador. Luego revisa y
         edita los platos antes de publicarlos.
       </p>
@@ -721,7 +723,7 @@ function MenuStep({ image, items, onChangeImage, onChangeItems }: MenuStepProps)
       {image && (
         <div className="menu-analysis">
           <img src={image} alt="Menú del negocio" className="menu-preview-img" />
-          <p className="muted">
+          <p className="text-[13px] text-muted">
             Imagen cargada: analizamos colores y estructura. Revisa los platos que se incluyen en tu
             menú digital.
           </p>
@@ -770,7 +772,7 @@ function MenuStep({ image, items, onChangeImage, onChangeItems }: MenuStepProps)
             />
             <button
               type="button"
-              className="icon-button"
+              className="inline-flex size-9 items-center justify-center rounded-full text-slate transition-colors hover:bg-mist"
               aria-label="Quitar plato"
               onClick={() =>
                 onChangeItems(
@@ -825,7 +827,7 @@ function ColorsStep({ logo, businessName, menuUrl, colors, onChange, errors }: C
     <section className="wizard-step">
       <div className="step-eyebrow">Paso 6 de 7</div>
       <h2>Colores del menú y el QR</h2>
-      <p className="muted">
+      <p className="text-[13px] text-muted">
         El QR comienza en negro sobre blanco para facilitar el escaneo. Puedes personalizar su
         estilo en la sección Código QR después de publicar.
       </p>
@@ -882,7 +884,7 @@ function ColorsStep({ logo, businessName, menuUrl, colors, onChange, errors }: C
             fgColor="#000000"
             bgColor="#FFFFFF"
           />
-          <p className="muted">Tu QR con los colores del negocio</p>
+          <p className="text-[13px] text-muted">Tu QR con los colores del negocio</p>
         </div>
       </div>
     </section>
@@ -902,7 +904,7 @@ function PromotionStep({ draft, onChange, errors }: PromotionStepProps) {
     <section className="wizard-step">
       <div className="step-eyebrow">Paso 7 de 7</div>
       <h2>Tu promoción de bienvenida</h2>
-      <p className="muted">
+      <p className="text-[13px] text-muted">
         Elige cómo quieres premiar a tus clientes. Esta promoción aparecerá en Explorar.
       </p>
       <div className="field">
@@ -985,7 +987,7 @@ function PromotionStep({ draft, onChange, errors }: PromotionStepProps) {
             }}
           />
         </label>
-        <p className="muted">Sin imagen se usa una ilustración de café.</p>
+        <p className="text-[13px] text-muted">Sin imagen se usa una ilustración de café.</p>
       </div>
 
       {draft.type === 'simple' && (
@@ -1037,7 +1039,7 @@ function PromotionStep({ draft, onChange, errors }: PromotionStepProps) {
       )}
       {draft.type === 'steps' && (
         <>
-          <p className="muted">Beneficios por metas de puntos:</p>
+          <p className="text-[13px] text-muted">Beneficios por metas de puntos:</p>
           {draft.tiers.map((tier) => {
             const tierError = errors[`tier-points-${tier.id}`] ?? errors[`tier-benefit-${tier.id}`];
             return (
@@ -1077,7 +1079,7 @@ function PromotionStep({ draft, onChange, errors }: PromotionStepProps) {
                   />
                   <button
                     type="button"
-                    className="icon-button remove-tier"
+                    className="inline-flex size-9 items-center justify-center rounded-full text-slate transition-colors hover:bg-mist remove-tier"
                     aria-label="Quitar nivel"
                     onClick={() =>
                       setField(

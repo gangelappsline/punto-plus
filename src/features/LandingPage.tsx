@@ -106,7 +106,7 @@ export function LandingPage() {
             </Button>
           </div>
           <button
-            className="icon-button md:hidden lg:hidden xl:hidden"
+            className="inline-flex size-9 items-center justify-center rounded-full text-slate transition-colors hover:bg-mist md:hidden lg:hidden xl:hidden"
             aria-label={menuOpen ? 'Cerrar menú' : 'Abrir menú'}
             aria-expanded={menuOpen}
             onClick={() => setMenuOpen(!menuOpen)}

@@ -300,7 +300,7 @@ export function Register() {
             />
             <button
               type="button"
-              className="icon-button"
+              className="inline-flex size-9 items-center justify-center rounded-full text-slate transition-colors hover:bg-mist"
               aria-label={visible ? 'Ocultar contraseña' : 'Mostrar contraseña'}
               onClick={() => setVisible(!visible)}
             >
@@ -373,7 +373,7 @@ export function Register() {
           </div>
         )}
 
-        <Button type="submit" className="full-width" disabled={mutation.isPending}>
+        <Button type="submit" className="w-full" disabled={mutation.isPending}>
           {mutation.isPending
             ? 'Creando tu cuenta…'
             : isBusiness
