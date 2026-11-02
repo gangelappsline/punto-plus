@@ -83,7 +83,7 @@ export async function login(credentials: LoginCredentials): Promise<StoredSessio
  */
 export async function register(input: RegisterInput): Promise<StoredSession> {
   const payload = buildRegisterPayload(input);
-  //if (isDemo) return demoSession(input.email, input.role, input.name);
+  if (isDemo) return demoSession(input.email, input.role, input.name);
 
   const { data } = await http.post(authConfig.registerPath, payload, {
     headers: tokenRequestHeaders(null),

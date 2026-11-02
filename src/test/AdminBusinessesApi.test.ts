@@ -13,7 +13,7 @@ beforeEach(() => apiMock.reset());
 
 describe('Administración de negocios', () => {
   it('consulta /api/admin/business y normaliza negocios y métricas', async () => {
-    apiMock.onGet('/api/admin/business').reply(200, {
+    apiMock.onGet('/admin/business').reply(200, {
       data: {
         businesses: [
           {
@@ -38,7 +38,7 @@ describe('Administración de negocios', () => {
 
     const report = await api.adminBusinesses();
 
-    expect(apiMock.history.get[0].url).toBe('/api/admin/business');
+    expect(apiMock.history.get[0].url).toBe('/admin/business');
     expect(report.businesses[0]).toMatchObject({
       id: '8',
       name: 'Café del Centro',
@@ -58,7 +58,7 @@ describe('Administración de negocios', () => {
   });
 
   it('lee la respuesta paginada con stats anidadas de la API de plataforma', async () => {
-    apiMock.onGet('/api/admin/business').reply(200, {
+    apiMock.onGet('/admin/business').reply(200, {
       stats: {
         businesses: {
           total: 2,
@@ -144,9 +144,9 @@ describe('Administración de negocios', () => {
   });
 
   it('crea, actualiza y elimina negocios usando la ruta REST de administración', async () => {
-    apiMock.onPost('/api/admin/business').reply(201, { id: 12 });
-    apiMock.onPut('/api/admin/business/12').reply(200, { id: 12 });
-    apiMock.onDelete('/api/admin/business/12').reply(204);
+    apiMock.onPost('/admin/business').reply(201, { id: 12 });
+    apiMock.onPut('/admin/business/12').reply(200, { id: 12 });
+    apiMock.onDelete('/admin/business/12').reply(204);
     const input = {
       name: 'La Casa del Té',
       email: 'hola@casadelte.mx',
@@ -159,7 +159,7 @@ describe('Administración de negocios', () => {
     await api.updateAdminBusiness('12', input);
     await api.deleteAdminBusiness('12');
 
-    expect(apiMock.history.post[0].url).toBe('/api/admin/business');
+    expect(apiMock.history.post[0].url).toBe('/admin/business');
     expect(JSON.parse(apiMock.history.post[0].data as string)).toEqual({
       name: input.name,
       email: input.email,
@@ -167,7 +167,7 @@ describe('Administración de negocios', () => {
       status: input.status,
       membership_expires_at: input.membershipExpiresAt,
     });
-    expect(apiMock.history.put[0].url).toBe('/api/admin/business/12');
+    expect(apiMock.history.put[0].url).toBe('/admin/business/12');
     expect(JSON.parse(apiMock.history.put[0].data as string)).toEqual({
       name: input.name,
       email: input.email,
@@ -175,7 +175,7 @@ describe('Administración de negocios', () => {
       status: input.status,
       membership_expires_at: input.membershipExpiresAt,
     });
-    expect(apiMock.history.delete[0].url).toBe('/api/admin/business/12');
+    expect(apiMock.history.delete[0].url).toBe('/admin/business/12');
   });
 
   it('rechaza estados fuera del conjunto permitido', async () => {

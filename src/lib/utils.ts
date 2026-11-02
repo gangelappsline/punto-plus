@@ -38,7 +38,7 @@ export function panelAllows(panel: Panel, role?: User['role'] | string | null) {
     ? role === 'business'
     : panel === 'admin'
       ? role === 'admin'
-      : role === 'customer';
+      : role === 'client';
 }
 /** Distancia legible para la sección "Cerca de mí". */
 export function formatDistanceKm(distanceKm?: number) {

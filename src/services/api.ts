@@ -828,6 +828,14 @@ function normalizeBusinessConfig(payload: unknown) {
   const cardSecondaryColor =
     primaryLoyaltyCard.secondary_color ?? cardSettings.secondary_color ?? undefined;
   const cardTextColor = primaryLoyaltyCard.text_color ?? cardSettings.text_color ?? undefined;
+  const rawStampIconColor =
+    primaryCardSettings.stamp_icon_color ??
+    cardSettings.stamp_icon_color ??
+    firstDefined(primaryLoyaltyCard, ['stamp_icon_color', 'stampIconColor']);
+  const cardStampIconColor =
+    typeof rawStampIconColor === 'string' && /^#[\da-f]{6}$/i.test(rawStampIconColor)
+      ? rawStampIconColor
+      : undefined;
   const rawTheme =
     primaryCardSettings.theme ??
     cardSettings.theme ??
@@ -908,6 +916,7 @@ function normalizeBusinessConfig(payload: unknown) {
     cardPrimaryColor: typeof cardPrimaryColor === 'string' ? cardPrimaryColor : undefined,
     cardSecondaryColor: typeof cardSecondaryColor === 'string' ? cardSecondaryColor : undefined,
     cardTextColor: typeof cardTextColor === 'string' ? cardTextColor : undefined,
+    cardStampIconColor,
     cardShape: ['rounded', 'square', 'circle'].includes(
       String(
         primaryLoyaltyCard.card_shape ?? primaryCardSettings.card_shape ?? cardSettings.card_shape,
@@ -1103,6 +1112,14 @@ function normalizeCustomerCard(payload: unknown, index: number): LoyaltyCard {
       firstDefined(settings, ['text_color', 'textColor']) ??
       firstDefined(businessSettings, ['text_color', 'textColor']),
   );
+  const rawStampIconColor =
+    firstDefined(loyaltyCard, ['stamp_icon_color', 'stampIconColor']) ??
+    firstDefined(settings, ['stamp_icon_color', 'stampIconColor']) ??
+    firstDefined(businessSettings, ['stamp_icon_color', 'stampIconColor']);
+  const stampIconColor =
+    typeof rawStampIconColor === 'string' && /^#[\da-f]{6}$/i.test(rawStampIconColor)
+      ? rawStampIconColor
+      : undefined;
   const rawTheme =
     firstDefined(settings, ['theme', 'card_theme', 'cardTheme']) ??
     firstDefined(loyaltyCard, ['theme', 'card_theme', 'cardTheme']) ??
@@ -1179,6 +1196,7 @@ function normalizeCustomerCard(payload: unknown, index: number): LoyaltyCard {
     primaryColor,
     secondaryColor,
     textColor,
+    stampIconColor,
     cardShape,
     fontFamily,
     location:
@@ -1695,6 +1713,7 @@ export const api = {
         secondary_color: config.cardSecondaryColor ?? themeColors.secondaryColor,
         text_color: config.cardTextColor ?? themeColors.textColor,
         stamp_icon: config.icon,
+        stamp_icon_color: config.cardStampIconColor ?? themeColors.stampIconColor,
         card_shape: config.cardShape,
         welcome_message: config.welcomeMessage,
         required_stamps: config.goal,
@@ -1712,6 +1731,7 @@ export const api = {
           ...config.loyaltyCardSettings,
           theme: config.theme,
           stamp_icon: config.icon,
+          stamp_icon_color: cardSettings.stamp_icon_color,
           ...(config.fontFamily ? { font_family: config.fontFamily } : {}),
           ...(config.cardShape ? { card_shape: config.cardShape } : {}),
         },
@@ -1736,6 +1756,10 @@ export const api = {
           secondaryColor:
             config.cardSecondaryColor ?? loyaltyCardThemeColors[config.theme].secondaryColor,
           textColor: config.cardTextColor ?? loyaltyCardThemeColors[config.theme].textColor,
+          stampIconColor:
+            config.cardStampIconColor ??
+            loyaltyCardThemeColors[config.theme].stampIconColor ??
+            loyaltyCardThemeColors[config.theme].primaryColor,
           stamps: Math.min(card.stamps, config.goal),
         });
     });

@@ -13,7 +13,7 @@ beforeEach(() => apiMock.reset());
 
 describe('Tema de tarjeta y promociones del negocio', () => {
   it('lee el perfil documentado y normaliza los ajustes visuales y tarjetas', async () => {
-    apiMock.onGet('/api/business/profile').reply(200, {
+    apiMock.onGet('/business/profile').reply(200, {
       data: {
         id: 'business-1',
         name: 'Café Aurora',
@@ -46,7 +46,7 @@ describe('Tema de tarjeta y promociones del negocio', () => {
 
     const business = await api.business();
 
-    expect(apiMock.history.get[0].url).toBe('/api/business/profile');
+    expect(apiMock.history.get[0].url).toBe('/business/profile');
     expect(business).toMatchObject({
       name: 'Café Aurora',
       theme: 'terracotta',
@@ -63,9 +63,9 @@ describe('Tema de tarjeta y promociones del negocio', () => {
   });
 
   it('guarda el perfil, los ajustes por defecto y el tema de la tarjeta existente', async () => {
-    apiMock.onPut('/api/business/profile').reply(200, { data: { id: 'business-1' } });
-    apiMock.onPut('/api/business/card-settings').reply(200, { data: { card_settings: {} } });
-    apiMock.onPut('/api/business/cards/card-1').reply(200, { data: { id: 'card-1' } });
+    apiMock.onPut('/business/profile').reply(200, { data: { id: 'business-1' } });
+    apiMock.onPut('/business/card-settings').reply(200, { data: { card_settings: {} } });
+    apiMock.onPut('/business/cards/card-1').reply(200, { data: { id: 'card-1' } });
 
     await api.saveBusiness({
       name: 'Café Aurora',
@@ -83,9 +83,9 @@ describe('Tema de tarjeta y promociones del negocio', () => {
     });
 
     expect(apiMock.history.put.map((request) => request.url)).toEqual([
-      '/api/business/profile',
-      '/api/business/card-settings',
-      '/api/business/cards/card-1',
+      '/business/profile',
+      '/business/card-settings',
+      '/business/cards/card-1',
     ]);
     expect(JSON.parse(apiMock.history.put[1].data)).toMatchObject({
       primary_color: '#f5be8b',
@@ -104,7 +104,7 @@ describe('Tema de tarjeta y promociones del negocio', () => {
   });
 
   it('lee promociones paginadas con el contrato nuevo', async () => {
-    apiMock.onGet('/api/business/promotions').reply(200, {
+    apiMock.onGet('/business/promotions').reply(200, {
       data: [
         {
           id: 'promotion-1',
@@ -149,7 +149,7 @@ describe('Tema de tarjeta y promociones del negocio', () => {
   });
 
   it('envía fechas nulas para promociones permanentes sin vencimiento', async () => {
-    apiMock.onPost('/api/business/promotions').reply(201, { data: { id: 'promotion-permanent' } });
+    apiMock.onPost('/business/promotions').reply(201, { data: { id: 'promotion-permanent' } });
 
     await api.addPromotion({
       title: 'Café de la casa',
@@ -165,7 +165,7 @@ describe('Tema de tarjeta y promociones del negocio', () => {
   });
 
   it('envía el banner base64 en el campo acordado', async () => {
-    apiMock.onPost('/api/business/promotions').reply(201, { data: { id: 'promotion-2' } });
+    apiMock.onPost('/business/promotions').reply(201, { data: { id: 'promotion-2' } });
 
     await api.addPromotion({
       title: 'Dos por uno',
@@ -182,7 +182,7 @@ describe('Tema de tarjeta y promociones del negocio', () => {
       isActive: true,
     });
 
-    expect(apiMock.history.post[0].url).toBe('/api/business/promotions');
+    expect(apiMock.history.post[0].url).toBe('/business/promotions');
     expect(JSON.parse(apiMock.history.post[0].data)).toEqual({
       title: 'Dos por uno',
       description: 'Aplica los martes.',

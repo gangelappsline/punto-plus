@@ -20,8 +20,11 @@ import { toast } from 'sonner';
 import { QRCodeSVG } from 'qrcode.react';
 import {
   businessSchema,
+  loyaltyCardThemeColors,
+  readableInkColor,
   type BusinessConfig,
   type LoyaltyCard as Card,
+  type LoyaltyCardTheme,
   type Promotion,
 } from '../lib/types';
 import { isDemo } from '../lib/utils';
@@ -36,6 +39,7 @@ import { readImage } from '../lib/image';
 import type { BusinessPromotionInput, SaleToken } from '../services/api';
 import {
   brandIconOptions,
+  brandThemeList,
   brandThemeOptions,
   fontOptions,
   fontStack,
@@ -137,6 +141,9 @@ function BusinessEditor({ config }: { config: BusinessConfig }) {
   const values = watch();
   const mutation = useSaveBusiness();
   const [preview, setPreview] = useState(false);
+  const currentThemeColors =
+    loyaltyCardThemeColors[(values.theme ?? 'forest') as LoyaltyCardTheme] ??
+    loyaltyCardThemeColors.forest;
   const card: Card = {
     ...values,
     goal: Math.min(12, Math.max(2, Number(values.goal) || 2)),
@@ -146,6 +153,7 @@ function BusinessEditor({ config }: { config: BusinessConfig }) {
     primaryColor: values.cardPrimaryColor,
     secondaryColor: values.cardSecondaryColor,
     textColor: values.cardTextColor,
+    stampIconColor: values.cardStampIconColor,
     cardShape: values.cardShape,
     tagline: '',
     location: 'Ciudad de México',
@@ -180,25 +188,108 @@ function BusinessEditor({ config }: { config: BusinessConfig }) {
           {errors.goal && <span className="form-error">{errors.goal.message}</span>}
         </label>
         <fieldset className="business-style-picker">
-          <legend>Paleta de color</legend>
-          <p>Elige el ambiente que mejor representa tu negocio.</p>
-          <div className="business-theme-grid">
-            {brandThemeOptions.map((theme) => (
-              <button
-                type="button"
-                key={theme.id}
-                aria-pressed={values.theme === theme.id}
-                className={`business-theme-option ${values.theme === theme.id ? 'selected' : ''}`}
-                onClick={() => {
-                  setValue('theme', theme.id, { shouldDirty: true });
-                  setValue('cardPrimaryColor', theme.primaryColor, { shouldDirty: true });
-                  setValue('cardSecondaryColor', theme.secondaryColor, { shouldDirty: true });
-                  setValue('cardTextColor', theme.textColor, { shouldDirty: true });
-                }}
+          <legend>Color de fondo</legend>
+          <p>Cuarenta tonos organizados por familia. Elige el que mejor representa tu negocio.</p>
+          <div className="space-y-4">
+            {brandThemeOptions.map((group) => (
+              <div key={group.label}>
+                <span className="mb-2 block text-[10px] font-semibold uppercase tracking-[1.2px] text-muted">
+                  {group.label}
+                </span>
+                <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
+                  {group.options.map((theme) => {
+                    const selected = values.theme === theme.id;
+                    return (
+                      <button
+                        type="button"
+                        key={theme.id}
+                        aria-pressed={selected}
+                        aria-label={theme.label}
+                        className={`flex min-w-0 items-center gap-[7px] rounded-[9px] border px-2 py-[7px] text-left text-[9px] leading-[1.3] transition-colors ${
+                          selected
+                            ? 'border-brand bg-[#eff9f8] font-bold text-brand-deep shadow-[0_0_0_1px_#2399a033]'
+                            : 'border-[#e1e8ed] bg-white text-[#536c82] hover:border-[#9dc9c7] hover:bg-[#f5fbfa]'
+                        }`}
+                        onClick={() => {
+                          setValue('theme', theme.id, { shouldDirty: true });
+                          setValue('cardPrimaryColor', theme.primaryColor, { shouldDirty: true });
+                          setValue('cardSecondaryColor', theme.secondaryColor, {
+                            shouldDirty: true,
+                          });
+                          setValue('cardTextColor', theme.textColor, { shouldDirty: true });
+                          setValue('cardStampIconColor', theme.stampIconColor, {
+                            shouldDirty: true,
+                          });
+                        }}
+                      >
+                        <span
+                          className="size-5 shrink-0 rounded-full border border-[#022f5318]"
+                          style={{ background: theme.swatch }}
+                        />
+                        <span className="truncate">{theme.label}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            ))}
+          </div>
+          <label className="mt-3 flex items-center gap-2 text-[10px] font-semibold text-[#536c82]">
+            <input
+              type="color"
+              aria-label="Color de fondo personalizado"
+              className="size-8 cursor-pointer rounded-lg border-0 bg-transparent p-0"
+              value={values.cardPrimaryColor ?? currentThemeColors.primaryColor}
+              onChange={(event) => {
+                const background = event.target.value;
+                setValue('cardPrimaryColor', background, { shouldDirty: true });
+                // Si el color elegido ya existe en la paleta, el tema lo acompaña.
+                const match = brandThemeList.find(
+                  (theme) => theme.primaryColor.toLowerCase() === background.toLowerCase(),
+                );
+                if (match) setValue('theme', match.id, { shouldDirty: true });
+                setValue('cardTextColor', readableInkColor(background), { shouldDirty: true });
+              }}
+            />
+            Fondo personalizado
+            <span className="font-mono font-normal text-muted">
+              {values.cardPrimaryColor ?? currentThemeColors.primaryColor}
+            </span>
+          </label>
+        </fieldset>
+        <fieldset className="business-style-picker">
+          <legend>Colores de la tarjeta</legend>
+          <p>Ajusta el texto y el icono de los sellos completados.</p>
+          <div className="grid gap-2 sm:grid-cols-3">
+            {(
+              [
+                ['cardTextColor', 'Color del texto', currentThemeColors.textColor],
+                ['cardSecondaryColor', 'Color del sello', currentThemeColors.secondaryColor],
+                [
+                  'cardStampIconColor',
+                  'Color del icono del sello',
+                  currentThemeColors.stampIconColor,
+                ],
+              ] as const
+            ).map(([field, label, fallback]) => (
+              <div
+                key={field}
+                className="flex flex-col gap-1 rounded-[9px] border border-[#e1e8ed] bg-white p-2"
               >
-                <span className="business-theme-swatch" style={{ background: theme.swatch }} />
-                <span>{theme.label}</span>
-              </button>
+                <span className="text-[9px] font-semibold text-[#536c82]">{label}</span>
+                <span className="flex items-center gap-2">
+                  <input
+                    type="color"
+                    aria-label={label}
+                    className="size-9 cursor-pointer rounded-lg border border-[#022f5318] bg-transparent p-0"
+                    value={values[field] ?? fallback}
+                    onChange={(event) => setValue(field, event.target.value, { shouldDirty: true })}
+                  />
+                  <span className="font-mono text-[10px] text-muted">
+                    {values[field] ?? fallback}
+                  </span>
+                </span>
+              </div>
             ))}
           </div>
         </fieldset>
