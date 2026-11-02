@@ -1108,7 +1108,7 @@ function businessPromotionPayload(input: PromotionInput | BusinessPromotionInput
 }
 
 async function syncBusinessAsset(type: 'logo' | 'background', source: string | undefined) {
-  if (source === '') return http.delete(`/api/business/assets/${type}`);
+  if (source === '') return http.delete(`/business/assets/${type}`);
   if (!source?.startsWith('data:')) return;
   const blob = await fetch(source).then((response) => response.blob());
   const extension = blob.type.split('/')[1]?.split('+')[0] || 'png';
@@ -1118,7 +1118,7 @@ async function syncBusinessAsset(type: 'logo' | 'background', source: string | u
     'file',
     new File([blob], `${type}.${extension}`, { type: blob.type || 'image/png' }),
   );
-  return http.post('/api/business/assets', formData);
+  return http.post('/business/assets', formData);
 }
 
 function slugifyBusiness(name: string) {
@@ -1139,7 +1139,7 @@ export const api = {
   },
   promotions: async () => {
     if (isDemo) return readDB().promotions;
-    const { data } = await http.get('/api/customer/promotions', { params: { per_page: 100 } });
+    const { data } = await http.get('/customer/promotions', { params: { per_page: 100 } });
     return unwrapResourceList(data, ['promotions']).map(normalizePromotion);
   },
   activity: async () =>
@@ -1258,8 +1258,8 @@ export const api = {
     }
     const { data } =
       page > 1
-        ? await http.get('/api/admin/business', { params: { page } })
-        : await http.get('/api/admin/business');
+        ? await http.get('/admin/business', { params: { page } })
+        : await http.get('/admin/business');
     const response = unwrapAdminBusinessResponse(data);
     const meta = response.pagination;
     const pagination = {
@@ -1297,7 +1297,7 @@ export const api = {
         return created;
       });
     }
-    return http.post('/api/admin/business', payload);
+    return http.post('/admin/business', payload);
   },
   updateAdminBusiness: async (id: string, input: AdminBusinessInput) => {
     const business = adminBusinessInputSchema.parse(input);
@@ -1320,7 +1320,7 @@ export const api = {
         return businesses[index];
       });
     }
-    return http.put(`/api/admin/business/${encodeURIComponent(id)}`, payload);
+    return http.put(`/admin/business/${encodeURIComponent(id)}`, payload);
   },
   deleteAdminBusiness: async (id: string) => {
     if (isDemo) {
@@ -1330,15 +1330,15 @@ export const api = {
         businesses.splice(index, 1);
       });
     }
-    return http.delete(`/api/admin/business/${encodeURIComponent(id)}`);
+    return http.delete(`/admin/business/${encodeURIComponent(id)}`);
   },
   businessPromotions: async () => {
-    const { data } = await http.get('/api/business/promotions', { params: { per_page: 100 } });
+    const { data } = await http.get('/business/promotions', { params: { per_page: 100 } });
     return unwrapResourceList(data, ['promotions']).map(normalizePromotion);
   },
   business: async () => {
     if (isDemo) return readDB().business;
-    const { data } = await http.get('/api/business/profile');
+    const { data } = await http.get('/business/profile');
     return businessSchema.parse(normalizeBusinessConfig(data));
   },
   saveBusiness: async (input: BusinessConfig) => {
@@ -1348,7 +1348,7 @@ export const api = {
         name: config.name,
         ...(config.categories[0] ? { category: config.categories[0] } : {}),
       };
-      await http.put('/api/business/profile', profilePayload);
+      await http.put('/business/profile', profilePayload);
       await syncBusinessAsset('logo', config.logo);
       await syncBusinessAsset('background', config.banner);
       const themeColors = loyaltyCardThemeColors[config.theme];
@@ -1361,7 +1361,7 @@ export const api = {
         welcome_message: config.welcomeMessage,
         required_stamps: config.goal,
       };
-      await http.put('/api/business/card-settings', cardSettings);
+      await http.put('/business/card-settings', cardSettings);
       const cardPayload = {
         name: config.name,
         description: config.description || null,
@@ -1379,8 +1379,8 @@ export const api = {
         },
       };
       return config.loyaltyCardId
-        ? http.put(`/api/business/cards/${encodeURIComponent(config.loyaltyCardId)}`, cardPayload)
-        : http.post('/api/business/cards', {
+        ? http.put(`/business/cards/${encodeURIComponent(config.loyaltyCardId)}`, cardPayload)
+        : http.post('/business/cards', {
             ...cardPayload,
             is_active: true,
             is_public: true,
@@ -1442,7 +1442,7 @@ export const api = {
     });
   },
   addPromotion: async (input: PromotionInput | BusinessPromotionInput) => {
-    if (!isDemo) return http.post('/api/business/promotions', businessPromotionPayload(input));
+    if (!isDemo) return http.post('/business/promotions', businessPromotionPayload(input));
     return updateDB((db) => {
       if ('discountType' in input) {
         const payload = businessPromotionPayload(input);
