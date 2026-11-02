@@ -1,10 +1,22 @@
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { ArrowRight, Clock3, Gift, MapPin, Sparkles } from 'lucide-react';
+import {
+  ArrowRight,
+  ArrowUpRight,
+  Clock3,
+  CreditCard,
+  Gift,
+  MapPin,
+  Navigation,
+  Sparkles,
+  Store,
+} from 'lucide-react';
 import { Dialog } from '../components/ui/dialog';
+import { Button } from '../components/ui/button';
 import { LoyaltyCard } from '../components/LoyaltyCard';
-import { isDemo } from '../lib/utils';
-import type { LoyaltyCard as Card, Promotion } from '../lib/types';
+import type { Coordinates } from '../lib/geolocation';
+import { formatDistanceKm, isDemo } from '../lib/utils';
+import type { LoyaltyCard as Card, NearbyBusiness, Promotion } from '../lib/types';
 
 function promotionTypeText(p: Promotion): string {
   if (p.discountTypeLabel) return p.discountTypeLabel;
@@ -127,6 +139,92 @@ export function PromotionDialog({
         <span>
           <b>2</b> Muestra la promoción
         </span>
+      </div>
+    </Dialog>
+  );
+}
+
+/** Información del negocio que se abre al tocar su marcador en "Cerca de mí". */
+export function NearbyBusinessDialog({
+  business,
+  origin,
+  onClose,
+}: {
+  business: NearbyBusiness | null;
+  origin: Coordinates | null;
+  onClose: () => void;
+}) {
+  if (!business) return null;
+  const coordinates =
+    business.latitude !== undefined && business.longitude !== undefined
+      ? `${business.latitude},${business.longitude}`
+      : null;
+  const destination =
+    coordinates || `${business.name}, ${business.address || business.location}, Ciudad de México`;
+  const routeUrl = origin
+    ? `https://www.google.com/maps/dir/?api=1&origin=${origin.latitude},${origin.longitude}&destination=${encodeURIComponent(destination)}`
+    : `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(destination)}`;
+  return (
+    <Dialog
+      open={!!business}
+      onOpenChange={(open) => {
+        if (!open) onClose();
+      }}
+      title={business.name}
+      description={business.description || business.category}
+      className="nearby-dialog"
+    >
+      <div className="nearby-dialog-hero">
+        {business.background ? (
+          <img className="nearby-dialog-banner" src={business.background} alt="" />
+        ) : (
+          <span className="nearby-dialog-banner" aria-hidden="true" />
+        )}
+        <span className="nearby-dialog-logo">
+          {business.logo ? <img src={business.logo} alt="" /> : <Store size={26} />}
+        </span>
+      </div>
+      <div className="nearby-dialog-facts">
+        <span>
+          <Store size={15} />
+          {business.category}
+        </span>
+        <span>
+          <MapPin size={15} />
+          {business.address || business.location}
+        </span>
+        <span>
+          <Navigation size={15} />
+          {formatDistanceKm(business.distanceKm)}
+        </span>
+      </div>
+      {(business.hasCard ||
+        business.activeLoyaltyCardsCount > 0 ||
+        business.activePromotionsCount > 0) && (
+        <div className="nearby-dialog-badges">
+          {(business.hasCard || business.activeLoyaltyCardsCount > 0) && (
+            <span>
+              <CreditCard size={14} />
+              {business.hasCard
+                ? 'Ya tienes su tarjeta'
+                : `${business.activeLoyaltyCardsCount} tarjeta${business.activeLoyaltyCardsCount === 1 ? ' activa' : 's activas'}`}
+            </span>
+          )}
+          {business.activePromotionsCount > 0 && (
+            <span>
+              <Gift size={14} />
+              {business.activePromotionsCount}{' '}
+              {business.activePromotionsCount === 1 ? 'promoción' : 'promociones'}
+            </span>
+          )}
+        </div>
+      )}
+      <div className="nearby-dialog-actions">
+        <Button asChild>
+          <a href={routeUrl} target="_blank" rel="noreferrer">
+            <Navigation size={16} /> Abrir ruta <ArrowUpRight size={15} />
+          </a>
+        </Button>
       </div>
     </Dialog>
   );

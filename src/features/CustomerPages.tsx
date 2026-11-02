@@ -1,9 +1,10 @@
-import { useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Link, useOutletContext } from 'react-router-dom';
 import {
   ArrowUpRight,
   ChevronDown,
   Gift,
+  LocateFixed,
   MapPin,
   QrCode,
   Search,
@@ -11,10 +12,21 @@ import {
   Store,
 } from 'lucide-react';
 import { useCards, useNearMe, usePromotions } from '../lib/queries';
-import type { LoyaltyCard as Card, Promotion } from '../lib/types';
+import {
+  readLocationPermission,
+  readStoredLocation,
+  rememberLocationDenied,
+  requestCoordinates,
+  storeLocation,
+  type Coordinates,
+} from '../lib/geolocation';
+import { formatDistanceKm } from '../lib/utils';
+import type { LoyaltyCard as Card, NearbyBusiness, Promotion } from '../lib/types';
 import { LoyaltyCard } from '../components/LoyaltyCard';
+import { NearbyMap } from '../components/NearbyMap';
 import { PromotionCard } from '../components/PromotionCard';
 import { Button } from '../components/ui/button';
+import { NearbyBusinessDialog } from './Dialogs';
 export interface PageContext {
   search: string;
   userName: string;
@@ -78,13 +90,6 @@ const matches = (value: string, search: string) =>
         .replace(/[\u0300-\u036f]/g, '')
         .toLowerCase(),
     );
-
-const formatNearbyDistance = (distanceKm?: number) => {
-  if (distanceKm === undefined || !Number.isFinite(distanceKm)) return 'Distancia no disponible';
-  if (distanceKm < 0.05) return 'Muy cerca';
-  if (distanceKm < 1) return `${Math.round(distanceKm * 1000)} m`;
-  return `${distanceKm.toFixed(1)} km`;
-};
 
 export function CardsPage() {
   const { search, showCard, scan, confirmPurchase } = useOutletContext<PageContext>();
@@ -269,221 +274,200 @@ export function PromotionsPage() {
 
 export function NearbyPage() {
   const { search } = useOutletContext<PageContext>();
-  const [position, setPosition] = useState<{ latitude: number; longitude: number } | null>(null);
-  const businessesQuery = useNearMe(position);
+  const initialPosition = readStoredLocation();
+  const [position, setPosition] = useState<Coordinates | null>(initialPosition);
   const [locationStatus, setLocationStatus] = useState<
-    'idle' | 'loading' | 'ready' | 'denied' | 'unavailable'
-  >('idle');
-  const [selectedBusinessId, setSelectedBusinessId] = useState<string | null>(null);
-  const businesses = (businessesQuery.data || []).filter((business) =>
-    matches(
-      `${business.name} ${business.category} ${business.location} ${business.address || ''}`,
-      search,
-    ),
-  );
-  const selected =
-    businesses.find((business) => business.id === selectedBusinessId) || businesses[0];
-  const selectedCoordinates =
-    selected?.latitude !== undefined && selected.longitude !== undefined
-      ? `${selected.latitude},${selected.longitude}`
-      : null;
-  const centerCoordinates = position ? `${position.latitude},${position.longitude}` : null;
-  const query =
-    selectedCoordinates ||
-    (selected
-      ? `${selected.name}, ${selected.address || selected.location}, Ciudad de México`
-      : centerCoordinates || 'negocios Punto Plus en Ciudad de México');
-  const googleMapsApiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY?.trim();
-  const mapCoordinates = selectedCoordinates || centerCoordinates;
-  const [mapLatitude, mapLongitude] = mapCoordinates?.split(',').map(Number) || [];
-  const mapUrl = googleMapsApiKey
-    ? `https://www.google.com/maps/embed/v1/search?key=${encodeURIComponent(googleMapsApiKey)}&q=${encodeURIComponent(query)}&zoom=14`
-    : mapCoordinates && mapLatitude !== undefined && mapLongitude !== undefined
-      ? `https://www.openstreetmap.org/export/embed.html?bbox=${encodeURIComponent(
-          `${(mapLongitude - 0.02).toFixed(5)},${(mapLatitude - 0.015).toFixed(5)},${(mapLongitude + 0.02).toFixed(5)},${(mapLatitude + 0.015).toFixed(5)}`,
-        )}&layer=mapnik&marker=${encodeURIComponent(mapCoordinates)}`
-      : null;
-  const externalMapQuery =
-    selectedCoordinates ||
-    `${selected?.name || 'negocios Punto Plus'}, ${selected?.address || selected?.location || 'Ciudad de México'}`;
-  const externalMapUrl = selected
-    ? position
-      ? `https://www.google.com/maps/dir/?api=1&origin=${position.latitude},${position.longitude}&destination=${encodeURIComponent(externalMapQuery)}`
-      : `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(externalMapQuery)}`
-    : 'https://www.google.com/maps/search/?api=1&query=negocios+Punto+Plus';
+    'loading' | 'ready' | 'denied' | 'unavailable'
+  >(initialPosition ? 'ready' : 'loading');
+  const [updatingLocation, setUpdatingLocation] = useState(false);
+  const [selectedBusiness, setSelectedBusiness] = useState<NearbyBusiness | null>(null);
+  const businessesQuery = useNearMe(position);
 
-  function requestLocation() {
-    if (!navigator.geolocation) {
-      setLocationStatus('unavailable');
+  // La ubicación se resuelve sola al abrir la sección: si el cliente ya dio
+  // permiso (o dejó coordenadas guardadas) no se vuelve a preguntar nada.
+  useEffect(() => {
+    let active = true;
+    const stored = readStoredLocation();
+    void (async () => {
+      const permission = await readLocationPermission();
+      if (!active) return;
+      if (permission === 'denied') {
+        setLocationStatus('denied');
+        return;
+      }
+      if (permission === 'unknown' && stored) {
+        setLocationStatus('ready');
+        return;
+      }
+      if (!stored) setLocationStatus('loading');
+      setUpdatingLocation(true);
+      const result = await requestCoordinates();
+      if (!active) return;
+      setUpdatingLocation(false);
+      if (result.coordinates) {
+        storeLocation(result.coordinates);
+        setPosition(result.coordinates);
+        setLocationStatus('ready');
+        return;
+      }
+      if (result.failure === 'denied') {
+        rememberLocationDenied();
+        setLocationStatus('denied');
+        return;
+      }
+      if (!stored) setLocationStatus('unavailable');
+    })();
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  async function updateLocation() {
+    setUpdatingLocation(true);
+    if (!position) setLocationStatus('loading');
+    const result = await requestCoordinates();
+    setUpdatingLocation(false);
+    if (result.coordinates) {
+      storeLocation(result.coordinates);
+      setPosition(result.coordinates);
+      setLocationStatus('ready');
       return;
     }
-    setLocationStatus('loading');
-    navigator.geolocation.getCurrentPosition(
-      ({ coords }) => {
-        setPosition({ latitude: coords.latitude, longitude: coords.longitude });
-        setLocationStatus('ready');
-      },
-      (error) => {
-        setLocationStatus(error.code === error.PERMISSION_DENIED ? 'denied' : 'unavailable');
-      },
-      { enableHighAccuracy: true, timeout: 12000, maximumAge: 60000 },
-    );
+    if (result.failure === 'denied') rememberLocationDenied();
+    setLocationStatus(result.failure);
   }
+
+  const businesses = useMemo(
+    () =>
+      (businessesQuery.data || []).filter((business) =>
+        matches(
+          `${business.name} ${business.category} ${business.location} ${business.address || ''}`,
+          search,
+        ),
+      ),
+    [businessesQuery.data, search],
+  );
+  const waitingForPosition = !position && (locationStatus === 'loading' || updatingLocation);
+  const locating = waitingForPosition || updatingLocation;
+  const mapBusy = waitingForPosition || (Boolean(position) && businessesQuery.isPending);
+  const statusMessage = waitingForPosition
+    ? 'Buscando tu ubicación…'
+    : !position && locationStatus === 'denied'
+      ? 'Activa la ubicación en tu navegador para ver negocios cerca.'
+      : !position && locationStatus === 'unavailable'
+        ? 'No pudimos obtener tu ubicación.'
+        : position && businessesQuery.isPending
+          ? 'Buscando negocios cercanos…'
+          : null;
 
   return (
     <>
-      <div className="page-intro">
+      <div className="page-intro nearby-intro">
         <div>
-          <div className="eyebrow">NEGOCIOS QUE FORMAN PARTE DE PUNTO PLUS</div>
           <h1>
             Cerca <span>de ti.</span>
           </h1>
-          <p>Encuentra los negocios participantes y consulta su ubicación en el mapa.</p>
+          <p>Negocios participantes a tu alrededor.</p>
         </div>
-        <Button onClick={requestLocation} disabled={locationStatus === 'loading'}>
-          <MapPin size={17} />
-          {locationStatus === 'loading' ? 'Buscando ubicación…' : 'Usar mi ubicación'}
-        </Button>
-      </div>
-      {locationStatus !== 'idle' && (
-        <p className="location-permission-note" role="status">
+        <button
+          type="button"
+          className="location-chip nearby-location-chip"
+          onClick={() => void updateLocation()}
+          disabled={locating}
+        >
+          <MapPin size={15} />
           {locationStatus === 'ready'
-            ? 'Ubicación activada. Puedes abrir la ruta al negocio seleccionado en Google Maps.'
-            : locationStatus === 'denied'
-              ? 'No tenemos permiso para usar tu ubicación. Puedes habilitarlo en los ajustes del navegador.'
-              : locationStatus === 'unavailable'
-                ? 'No fue posible obtener tu ubicación en este dispositivo. Aún puedes explorar los negocios.'
-                : 'Solicitando permiso de ubicación…'}
-        </p>
-      )}
-      <section className="customer-map-layout" aria-label="Mapa y negocios cercanos">
-        <div className="customer-map-panel">
-          <div className="customer-map-heading">
-            <div>
-              <h2>{selected ? selected.name : 'Mapa de negocios'}</h2>
-              <p>
-                {selected
-                  ? selected.address || selected.location
-                  : 'Selecciona un negocio del listado'}
-              </p>
-            </div>
-            {selected && (
-              <a href={externalMapUrl} target="_blank" rel="noreferrer">
-                Abrir ruta <ArrowUpRight size={14} />
-              </a>
-            )}
-          </div>
-          {locationStatus === 'idle' ? (
-            <div className="customer-map-placeholder" role="status">
-              <div>
-                <MapPin size={22} />
-                <p>Usa tu ubicación para buscar negocios cercanos.</p>
-              </div>
-            </div>
-          ) : locationStatus === 'loading' || businessesQuery.isPending ? (
-            <div className="customer-map-placeholder" role="status">
-              {locationStatus === 'loading' ? 'Obteniendo tu ubicación…' : 'Cargando negocios…'}
-            </div>
-          ) : locationStatus === 'denied' || locationStatus === 'unavailable' ? (
-            <div className="customer-map-placeholder" role="status">
-              Permite el acceso a tu ubicación para buscar negocios cercanos.
-            </div>
-          ) : businessesQuery.isError ? (
-            <div className="customer-map-placeholder">
-              <QueryState loading={false} error retry={() => void businessesQuery.refetch()} />
-            </div>
-          ) : !mapUrl ? (
-            <div className="customer-map-placeholder" role="status">
-              No hay coordenadas disponibles para mostrar el mapa.
-            </div>
-          ) : (
-            <iframe
-              className="customer-google-map"
-              title={`${googleMapsApiKey ? 'Google Maps' : 'Mapa'}: ${selected?.name || 'negocios Punto Plus'}`}
-              src={mapUrl}
-              loading="lazy"
-              referrerPolicy="no-referrer-when-downgrade"
-              allowFullScreen
-            />
-          )}
-          <p className="map-data-note">
-            {googleMapsApiKey
-              ? 'La ubicación se muestra en Google Maps. Si el negocio no tiene coordenadas, su marcador puede ser aproximado.'
-              : 'El mapa se muestra con OpenStreetMap. Se centra en el negocio cuando hay coordenadas disponibles; si no, usa tu ubicación.'}
-          </p>
+            ? 'Ubicación activa'
+            : locating
+              ? 'Buscando…'
+              : locationStatus === 'denied'
+                ? 'Ubicación bloqueada'
+                : 'Activar ubicación'}
+        </button>
+      </div>
+      <section
+        className={`nearby-map-card${!mapBusy && businesses.length ? ' has-strip' : ''}`}
+        aria-label="Mapa y negocios cercanos"
+      >
+        <NearbyMap
+          businesses={businesses}
+          center={position}
+          userPosition={position}
+          selectedId={selectedBusiness?.id}
+          onSelect={setSelectedBusiness}
+        />
+        <div className="nearby-map-top">
+          <span className="nearby-map-count">
+            <Store size={14} aria-hidden="true" />
+            {businesses.length} {businesses.length === 1 ? 'negocio cerca' : 'negocios cerca'}
+          </span>
+          <button
+            type="button"
+            className="nearby-map-recenter"
+            onClick={() => void updateLocation()}
+            disabled={locating}
+            aria-label="Actualizar mi ubicación"
+            title="Actualizar mi ubicación"
+          >
+            <LocateFixed size={16} />
+          </button>
         </div>
-        <section className="customer-map-businesses" aria-label="Negocios cercanos">
-          <div className="section-title">
-            <h2>Negocios cercanos</h2>
-            <span className="count-badge">{businesses.length}</span>
-          </div>
-          {locationStatus === 'idle' ? (
-            <p>Activa tu ubicación para ver los negocios cercanos.</p>
-          ) : locationStatus === 'loading' ? (
-            <p role="status">Obteniendo tu ubicación…</p>
-          ) : locationStatus === 'denied' || locationStatus === 'unavailable' ? (
-            <p>Se necesita tu ubicación para cargar los negocios cercanos.</p>
-          ) : businessesQuery.isPending ? (
-            <p role="status">Cargando negocios cercanos…</p>
-          ) : businessesQuery.isError ? (
-            <EmptyState
-              title="No pudimos cargar los negocios"
-              description="Comprueba tu conexión e inténtalo de nuevo."
-            >
-              <Button variant="outline" onClick={() => void businessesQuery.refetch()}>
+        {statusMessage && (
+          <div className="nearby-map-status" role="status">
+            <p>{statusMessage}</p>
+            {(locationStatus === 'denied' || locationStatus === 'unavailable') && !locating && (
+              <Button variant="outline" onClick={() => void updateLocation()}>
                 Volver a intentar
               </Button>
-            </EmptyState>
-          ) : !businesses.length ? (
-            <EmptyState
-              title={search ? 'No encontramos negocios' : 'No hay negocios cercanos'}
-              description={
-                search
-                  ? 'Prueba con otro nombre o categoría.'
-                  : 'Cuando haya negocios participantes cerca de ti, aparecerán aquí.'
-              }
-            />
-          ) : (
-            <div className="customer-map-business-list">
-              {businesses.map((business) => (
-                <button
-                  key={business.id}
-                  type="button"
-                  className={`customer-map-business${selected?.id === business.id ? ' selected' : ''}`}
-                  aria-pressed={selected?.id === business.id}
-                  onClick={() => setSelectedBusinessId(business.id)}
-                >
-                  <span className="business-avatar">
-                    {business.logo ? (
-                      <img src={business.logo} alt="" />
-                    ) : (
-                      <Store size={18} aria-hidden="true" />
-                    )}
-                  </span>
-                  <span className="customer-map-business-copy">
-                    <strong>{business.name}</strong>
-                    <small>
-                      {business.category}
-                      {business.address ? ` · ${business.address}` : ''}
-                    </small>
-                    <small>
-                      {business.hasCard
-                        ? 'Ya tienes tarjeta'
-                        : `${business.activeLoyaltyCardsCount} tarjeta${business.activeLoyaltyCardsCount === 1 ? '' : 's'} activa${business.activeLoyaltyCardsCount === 1 ? '' : 's'}`}
-                      {business.activePromotionsCount > 0
-                        ? ` · ${business.activePromotionsCount} ${business.activePromotionsCount === 1 ? 'promoción' : 'promociones'}`
-                        : ''}
-                    </small>
-                  </span>
-                  <span className="customer-map-distance">
-                    {formatNearbyDistance(business.distanceKm)}
-                  </span>
-                </button>
-              ))}
-            </div>
-          )}
-        </section>
+            )}
+          </div>
+        )}
+        {!mapBusy && !statusMessage && businessesQuery.isSuccess && !businesses.length && (
+          <div className="nearby-map-status" role="status">
+            <p>
+              {search ? 'No encontramos negocios con esa búsqueda.' : 'Aún no hay negocios cerca.'}
+            </p>
+          </div>
+        )}
+        {businessesQuery.isError && (
+          <div className="nearby-map-status" role="status">
+            <p>No pudimos cargar los negocios cercanos.</p>
+            <Button variant="outline" onClick={() => void businessesQuery.refetch()}>
+              Volver a intentar
+            </Button>
+          </div>
+        )}
+        {!mapBusy && businesses.length > 0 && (
+          <div className="nearby-strip" aria-label="Negocios cercanos">
+            {businesses.map((business) => (
+              <button
+                key={business.id}
+                type="button"
+                className="nearby-strip-item"
+                onClick={() => setSelectedBusiness(business)}
+                aria-label={`Ver información de ${business.name}`}
+              >
+                <span className="business-avatar">
+                  {business.logo ? (
+                    <img src={business.logo} alt="" />
+                  ) : (
+                    <Store size={18} aria-hidden="true" />
+                  )}
+                </span>
+                <span className="nearby-strip-copy">
+                  <strong>{business.name}</strong>
+                  <small>{formatDistanceKm(business.distanceKm)}</small>
+                </span>
+              </button>
+            ))}
+          </div>
+        )}
       </section>
+      <NearbyBusinessDialog
+        business={selectedBusiness}
+        origin={position}
+        onClose={() => setSelectedBusiness(null)}
+      />
     </>
   );
 }
