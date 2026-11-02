@@ -797,19 +797,24 @@ export function builderSaves(config: BusinessConfig): BuilderSave[] {
 }
 
 /**
- * Errores por paso, en el mismo orden que la pantalla: giro → productos →
- * negocio → diseño → entrega. Vacío cuando se puede continuar.
+ * Errores por paso, en el mismo orden que la pantalla del creador:
+ * diseño → logo y banner → categorías → productos → configuración.
+ * Vacío cuando se puede continuar.
  */
 export function builderStepError(state: BuilderState, step: number): string {
-  if (step === 0 && !state.typeId && !state.items.length)
-    return 'Elige qué vendes para armar tu menú.';
-  if (step === 1) {
+  // Pasos 0 (Diseño) y 1 (Logo y banner) son opcionales: siempre se puede seguir.
+  if (step === 2) {
+    if (!state.categories.length) return 'Agrega al menos una sección a tu menú.';
+    if (state.items.some((item) => !state.categories.includes(item.category)))
+      return 'Cada producto debe pertenecer a una de tus secciones.';
+  }
+  if (step === 3) {
     if (!state.items.length) return 'Agrega al menos un producto a tu menú.';
     if (state.items.some((item) => !item.name.trim() || !item.price.trim()))
       return 'Cada producto necesita nombre y precio.';
     if (!builderCategories(state).length) return 'Asigna tus productos a una categoría.';
   }
-  if (step === 2) {
+  if (step === 4) {
     if (state.name.trim().length < 2)
       return 'Escribe el nombre de tu negocio (mínimo 2 caracteres).';
     const digits = state.whatsapp.replace(/\D/g, '');
@@ -818,8 +823,6 @@ export function builderStepError(state: BuilderState, step: number): string {
     if (!state.serviceDays.length) return 'Selecciona al menos un día de servicio.';
     if (!state.openingTime || !state.closingTime || state.openingTime >= state.closingTime)
       return 'Revisa el horario: el cierre debe ser después de la apertura.';
-  }
-  if (step === 4) {
     if (!state.orderModes.length) return 'Elige al menos una forma de entrega.';
     if (state.promo.enabled && state.promo.text.trim().length < 5)
       return 'Escribe la promoción con al menos 5 caracteres.';

@@ -98,12 +98,18 @@ npm run test:e2e      # 10 pruebas: escritorio + móvil (corren en modo demo)
 6. **Colores del menú y el QR**, precargados con los del logo y ajustables; hay vista previa de la tarjeta del menú y del QR ya pintado con esos colores.
 7. **Promoción de bienvenida**, con el tipo que el dueño elija (ver abajo).
 
-**Creador de menús** (`/business/crear`, «Crear menú» en el panel). Flujo de cinco pasos que arma el
-menú con cada respuesta y lo muestra en vivo a la derecha: 1) **¿Qué vendes?** con 12 giros y su
-catálogo de ejemplo (tacos, pizzas, café, sushi…), además de la opción de subir la foto de la carta; 2) **productos** con precio, descripción, «quedan N», destacado y «nuevo»; 3) **datos del negocio**
-con WhatsApp, dirección, horario y logo/portada; 4) **diseño** con las 12 plantillas y ajustes finos; 5) **entrega y pago** (para llevar, domicilio con costo, en el local, formas de pago y promoción).
+**Creador de menús** (`/crear-menu?codigo=<invitación>`, «Crear menú» en el panel). Es una ruta
+pública: cualquiera puede armarlo sin cuenta. Está diseñado para el celular y en pantallas grandes se
+centra en un marco de **500 px** que simula un móvil. El flujo tiene cinco pasos: 1) **Diseño** con las
+12 plantillas y ajustes finos; 2) **Logo y banner** para la portada del menú; 3) **Categorías**, donde
+se crean o quitan las secciones y se puede sembrar un menú de ejemplo con uno de los 12 giros
+(tacos, pizzas, café, sushi…); 4) **Productos** con precio, descripción, «quedan N», destacado,
+«nuevo» y la opción de subir la foto de la carta; 5) **Configuración** con los datos del negocio,
+WhatsApp, dirección, horario, entrega, formas de pago y promoción. La vista previa en vivo acompaña al
+formulario en la misma columna.
 Al publicar se guarda con la misma secuencia `PUT /business/card` del configurador y la pantalla
-muestra el enlace, el QR y el botón de WhatsApp. La lógica vive en `src/lib/menuBuilder.ts`.
+muestra el enlace, el QR y el botón de WhatsApp; sin sesión, el botón lleva al registro conservando el
+`codigo` de invitación. La lógica vive en `src/lib/menuBuilder.ts`.
 
 **Diseños de menú precargados** (`Mi menú` → paso _Diseño_). Hay **doce plantillas** agrupadas por
 temperatura —Cálidos (Natural, Artesanal, Parrilla, Dulce), Oscuros (Brasa, Zen, Medianoche), Frescos

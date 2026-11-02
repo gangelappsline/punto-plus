@@ -60,6 +60,15 @@ export default function App() {
           </GuestOnly>
         }
       />
+      {/* Creador público: cualquiera arma su menú, con o sin cuenta. */}
+      <Route
+        path="/crear-menu"
+        element={
+          <Suspense fallback={<AppSplash message="Armando tu menú…" />}>
+            <MenuBuilder publicRoute />
+          </Suspense>
+        }
+      />
       <Route
         path="/app"
         element={
@@ -92,14 +101,7 @@ export default function App() {
             </Suspense>
           }
         />
-        <Route
-          path="crear"
-          element={
-            <Suspense fallback={<AppSplash message="Armando tu menú…" />}>
-              <MenuBuilder />
-            </Suspense>
-          }
-        />
+        <Route path="crear" element={<Navigate to="/crear-menu" replace />} />
         <Route
           path="negocio"
           element={

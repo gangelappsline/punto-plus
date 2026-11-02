@@ -21,7 +21,7 @@ import logo from '../assets/images/logo_2.webp';
 const businessNavigation = [
   { path: '/business', icon: LayoutDashboard, title: 'Resumen', end: true },
   { path: '/business/mi-menu', icon: Utensils, title: 'Mi menú', end: false },
-  { path: '/business/crear', icon: Sparkles, title: 'Crear menú', end: false },
+  { path: '/crear-menu', icon: Sparkles, title: 'Crear menú', end: false },
   { path: '/business/negocio', icon: Store, title: 'Mi negocio', end: false },
 ];
 
