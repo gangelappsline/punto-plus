@@ -22,11 +22,14 @@ import {
   Salad,
   Sandwich,
   Soup,
+  Star,
   UtensilsCrossed,
   Wheat,
   type LucideIcon,
 } from 'lucide-react';
 import { motion } from 'framer-motion';
+import type { CSSProperties } from 'react';
+import { loyaltyCardThemeColors } from '../lib/types';
 import type {
   FoodBrandIcon,
   LoyaltyCard as Card,
@@ -57,6 +60,7 @@ export const brandIcons: Record<FoodBrandIcon, LucideIcon> = {
   utensils: UtensilsCrossed,
   glass: GlassWater,
   bean: Bean,
+  star: Star,
 };
 
 export const brandIconOptions: { id: FoodBrandIcon; label: string }[] = [
@@ -82,26 +86,30 @@ export const brandIconOptions: { id: FoodBrandIcon; label: string }[] = [
   { id: 'bean', label: 'Grano' },
   { id: 'leaf', label: 'Vegano' },
   { id: 'utensils', label: 'Restaurante' },
+  { id: 'star', label: 'Estrella' },
 ];
 
-export const brandThemeOptions: {
-  id: LoyaltyCardTheme;
-  label: string;
-  swatch: string;
-}[] = [
-  { id: 'forest', label: 'Bosque', swatch: '#254865' },
-  { id: 'terracotta', label: 'Terracota', swatch: '#f5be8b' },
-  { id: 'lavender', label: 'Lavanda', swatch: '#d9e6f2' },
-  { id: 'ocean', label: 'Océano', swatch: '#187f87' },
-  { id: 'matcha', label: 'Matcha', swatch: '#67845b' },
-  { id: 'citrus', label: 'Cítrico', swatch: '#e9c85d' },
-  { id: 'berry', label: 'Frutos rojos', swatch: '#80536f' },
-  { id: 'rose', label: 'Rosa', swatch: '#e7a6b3' },
-  { id: 'chocolate', label: 'Cacao', swatch: '#76533f' },
-  { id: 'sunset', label: 'Atardecer', swatch: '#e78c62' },
-  { id: 'sky', label: 'Cielo', swatch: '#82b8d0' },
-  { id: 'midnight', label: 'Medianoche', swatch: '#39416c' },
+const brandThemeLabels: [LoyaltyCardTheme, string][] = [
+  ['forest', 'Bosque'],
+  ['terracotta', 'Terracota'],
+  ['lavender', 'Lavanda'],
+  ['ocean', 'Océano'],
+  ['matcha', 'Matcha'],
+  ['citrus', 'Cítrico'],
+  ['berry', 'Frutos rojos'],
+  ['rose', 'Rosa'],
+  ['chocolate', 'Cacao'],
+  ['sunset', 'Atardecer'],
+  ['sky', 'Cielo'],
+  ['midnight', 'Medianoche'],
 ];
+
+export const brandThemeOptions = brandThemeLabels.map(([id, label]) => ({
+  id,
+  label,
+  ...loyaltyCardThemeColors[id],
+  swatch: loyaltyCardThemeColors[id].primaryColor,
+}));
 
 export const fontOptions: { id: MenuFontFamily; label: string; sample: string }[] = [
   { id: 'dm-sans', label: 'DM Sans', sample: 'Moderna' },
@@ -166,6 +174,21 @@ export function LoyaltyCard({
   index?: number;
 }) {
   const complete = card.stamps >= card.goal;
+  const cardStyle = {
+    fontFamily: fontStack(card.fontFamily),
+    ...(card.primaryColor ? { '--card-bg': card.primaryColor } : {}),
+    ...(card.secondaryColor ? { '--stamp-fill': card.secondaryColor } : {}),
+    ...(card.cardShape
+      ? { borderRadius: { rounded: '13px', square: '4px', circle: '24px' }[card.cardShape] }
+      : {}),
+    ...(card.textColor
+      ? {
+          '--card-ink': card.textColor,
+          '--stamp-color': card.primaryColor ?? card.textColor,
+          '--card-muted': card.textColor,
+        }
+      : {}),
+  } as CSSProperties;
   return (
     <motion.button
       type="button"
@@ -174,7 +197,7 @@ export function LoyaltyCard({
       transition={{ delay: index * 0.07, duration: 0.35 }}
       whileHover={{ y: -4 }}
       className={`loyalty-card ${card.theme}`}
-      style={{ fontFamily: fontStack(card.fontFamily) }}
+      style={cardStyle}
       onClick={onClick}
       aria-label={`Ver tarjeta de ${card.name}, ${card.stamps} de ${card.goal} sellos`}
     >

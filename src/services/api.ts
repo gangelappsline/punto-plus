@@ -13,6 +13,7 @@ import {
   foodBrandIcons,
   foodCategories,
   loyaltyCardThemes,
+  loyaltyCardThemeColors,
   menuFontFamilies,
   promotionSchema,
   publicMenuSchema,
@@ -42,6 +43,20 @@ export type PromotionInput = {
   expires: string;
   image: string;
 } & Partial<Promotion>;
+
+export type BusinessPromotionInput = {
+  title: string;
+  description?: string;
+  loyaltyCardId?: string;
+  discountType: 'percentage' | 'fixed' | 'gift' | 'points';
+  discountValue?: number;
+  code?: string;
+  terms?: string;
+  startsAt?: string;
+  endsAt?: string;
+  maxRedemptions?: number;
+  isActive: boolean;
+};
 
 export type PublicCategory = { id: string; name: string; icon?: string };
 export type BusinessWizardStep = 'information' | 'categories' | 'products' | 'design' | 'service';
@@ -679,14 +694,43 @@ function normalizePublicCategories(payload: unknown): PublicCategory[] {
   return [];
 }
 
+function closestCardTheme(color: unknown) {
+  if (typeof color !== 'string' || !/^#[\da-f]{6}$/i.test(color)) return undefined;
+  const rgb = [1, 3, 5].map((offset) => Number.parseInt(color.slice(offset, offset + 2), 16));
+  return Object.entries(loyaltyCardThemeColors)
+    .map(([theme, colors]) => {
+      const candidate = [1, 3, 5].map((offset) =>
+        Number.parseInt(colors.primaryColor.slice(offset, offset + 2), 16),
+      );
+      const distance = rgb.reduce((sum, value, index) => sum + (value - candidate[index]) ** 2, 0);
+      return { theme, distance };
+    })
+    .sort((a, b) => a.distance - b.distance)[0]?.theme;
+}
+
 function normalizeBusinessConfig(payload: unknown) {
   const value = unwrapBusinessConfig(payload);
   const cardSettings = record(value.card_settings ?? value.cardSettings);
+  const loyaltyCardsRaw = Array.isArray(value.loyalty_cards)
+    ? value.loyalty_cards
+    : Array.isArray(value.loyaltyCards)
+      ? value.loyaltyCards
+      : [];
+  const primaryLoyaltyCard = record(loyaltyCardsRaw[0]);
+  const primaryCardSettings = record(primaryLoyaltyCard.settings);
   const menuDesign = record(value.menu_design ?? value.menuDesign);
   const rawFontFamily =
-    menuDesign.font_family ?? menuDesign.fontFamily ?? cardSettings.font_family ?? value.fontFamily;
+    menuDesign.font_family ??
+    menuDesign.fontFamily ??
+    primaryCardSettings.font_family ??
+    cardSettings.font_family ??
+    value.fontFamily;
   const name = typeof value.name === 'string' ? value.name : '';
-  const rawCategories = Array.isArray(value.categories) ? value.categories : [];
+  const rawCategories = Array.isArray(value.categories)
+    ? value.categories
+    : typeof value.category === 'string' && value.category.trim()
+      ? [value.category]
+      : [];
   const categoryDetails = rawCategories
     .map((category) => {
       if (typeof category === 'string') return { id: category, name: category };
@@ -762,15 +806,33 @@ function normalizeBusinessConfig(payload: unknown) {
       };
     })
     .filter((item): item is NonNullable<typeof item> => Boolean(item));
-  const rawGoal = Number(cardSettings.required_stamps ?? value.goal ?? 8);
+  const rawGoal = Number(
+    primaryLoyaltyCard.required_stamps ?? cardSettings.required_stamps ?? value.goal ?? 8,
+  );
   const goal = Number.isFinite(rawGoal) ? Math.min(12, Math.max(2, Math.round(rawGoal))) : 8;
-  const rawIcon = cardSettings.stamp_icon ?? cardSettings.icon ?? value.icon;
+  const rawIcon =
+    primaryCardSettings.stamp_icon ?? cardSettings.stamp_icon ?? cardSettings.icon ?? value.icon;
   const icon =
     typeof rawIcon === 'string' &&
     foodBrandIcons.includes(rawIcon as (typeof foodBrandIcons)[number])
       ? (rawIcon as (typeof foodBrandIcons)[number])
       : 'coffee';
-  const rawTheme = cardSettings.theme ?? cardSettings.card_theme ?? value.theme;
+  const cardPrimaryColor =
+    primaryLoyaltyCard.primary_color ?? cardSettings.primary_color ?? undefined;
+  const cardSecondaryColor =
+    primaryLoyaltyCard.secondary_color ?? cardSettings.secondary_color ?? undefined;
+  const cardTextColor = primaryLoyaltyCard.text_color ?? cardSettings.text_color ?? undefined;
+  const rawTheme =
+    primaryCardSettings.theme ??
+    cardSettings.theme ??
+    cardSettings.card_theme ??
+    value.theme ??
+    Object.entries(loyaltyCardThemeColors).find(
+      ([, colors]) =>
+        typeof cardPrimaryColor === 'string' &&
+        colors.primaryColor.toLowerCase() === cardPrimaryColor.toLowerCase(),
+    )?.[0] ??
+    closestCardTheme(cardPrimaryColor);
   const validTheme =
     typeof rawTheme === 'string' &&
     loyaltyCardThemes.includes(rawTheme as (typeof loyaltyCardThemes)[number])
@@ -783,8 +845,16 @@ function normalizeBusinessConfig(payload: unknown) {
   const address = addressParts.join(', ');
   const logo = publicAssetUrl(value.logo_url ?? value.logo);
   const banner = publicAssetUrl(value.background_url ?? value.banner);
-  const primaryColor = cardSettings.primary_color ?? value.primaryColor;
-  const secondaryColor = cardSettings.secondary_color ?? value.secondaryColor;
+  const primaryColor =
+    menuDesign.primary_color ??
+    menuDesign.primaryColor ??
+    value.primary_color ??
+    value.primaryColor;
+  const secondaryColor =
+    menuDesign.secondary_color ??
+    menuDesign.secondaryColor ??
+    value.secondary_color ??
+    value.secondaryColor;
   const qrSettings = record(value.qr_settings ?? value.qrSettings);
   const qrForeground =
     qrSettings.foreground ??
@@ -822,10 +892,36 @@ function normalizeBusinessConfig(payload: unknown) {
 
   return {
     name,
-    reward: requiredString(value.reward) ?? 'Recompensa por fidelidad',
+    reward:
+      requiredString(primaryLoyaltyCard.reward_description ?? primaryLoyaltyCard.reward) ??
+      requiredString(value.reward) ??
+      'Recompensa por fidelidad',
     goal,
     theme: validTheme,
     icon,
+    cardPrimaryColor: typeof cardPrimaryColor === 'string' ? cardPrimaryColor : undefined,
+    cardSecondaryColor: typeof cardSecondaryColor === 'string' ? cardSecondaryColor : undefined,
+    cardTextColor: typeof cardTextColor === 'string' ? cardTextColor : undefined,
+    cardShape: ['rounded', 'square', 'circle'].includes(
+      String(
+        primaryLoyaltyCard.card_shape ?? primaryCardSettings.card_shape ?? cardSettings.card_shape,
+      ),
+    )
+      ? (primaryLoyaltyCard.card_shape ?? primaryCardSettings.card_shape ?? cardSettings.card_shape)
+      : undefined,
+    loyaltyCardId: typeof primaryLoyaltyCard.id === 'string' ? primaryLoyaltyCard.id : undefined,
+    loyaltyCardSettings: primaryCardSettings,
+    loyaltyCards: loyaltyCardsRaw
+      .map((card) => {
+        const item = record(card);
+        return typeof item.id === 'string'
+          ? {
+              id: item.id,
+              name: typeof item.name === 'string' ? item.name : 'Tarjeta de fidelidad',
+            }
+          : null;
+      })
+      .filter((card): card is { id: string; name: string } => Boolean(card)),
     logo: typeof logo === 'string' ? logo : undefined,
     banner: typeof banner === 'string' ? banner : undefined,
     categories,
@@ -873,6 +969,158 @@ function normalizeBusinessConfig(payload: unknown) {
   };
 }
 
+function unwrapResourceList(payload: unknown, collectionKeys: string[] = []) {
+  let current = payload;
+  for (let depth = 0; depth < 6; depth += 1) {
+    if (Array.isArray(current)) return current;
+    const value = record(current);
+    const namedCollection = collectionKeys.find((key) => Array.isArray(value[key]));
+    if (namedCollection) return value[namedCollection] as unknown[];
+    if (Array.isArray(value.data)) return value.data;
+    if (value.data !== undefined) {
+      current = value.data;
+      continue;
+    }
+    break;
+  }
+  return [];
+}
+
+function normalizePromotion(payload: unknown): Promotion {
+  const value = record(payload);
+  const business = record(value.business);
+  const discountType = ['percentage', 'fixed', 'gift', 'points'].includes(
+    String(value.discount_type ?? value.discountType),
+  )
+    ? (value.discount_type ?? value.discountType)
+    : undefined;
+  const endsAt = value.ends_at ?? value.endsAt ?? value.expires;
+  const startsAt = value.starts_at ?? value.startsAt;
+  const rawDiscountValue = value.discount_value ?? value.discountValue;
+  const rawMaxRedemptions = value.max_redemptions ?? value.maxRedemptions;
+  const rawRedemptionsCount = value.redemptions_count ?? value.redemptionsCount;
+  const discountValue =
+    rawDiscountValue === null || rawDiscountValue === undefined || rawDiscountValue === ''
+      ? undefined
+      : Number(rawDiscountValue);
+  const maxRedemptions =
+    rawMaxRedemptions === null || rawMaxRedemptions === undefined || rawMaxRedemptions === ''
+      ? undefined
+      : Number(rawMaxRedemptions);
+  const redemptionsCount =
+    rawRedemptionsCount === null || rawRedemptionsCount === undefined || rawRedemptionsCount === ''
+      ? undefined
+      : Number(rawRedemptionsCount);
+  const businessName =
+    (typeof business.name === 'string' && business.name) ||
+    (typeof value.business === 'string' && value.business) ||
+    'Negocio Punto Plus';
+  const discountTypeLabel =
+    typeof value.discount_type_label === 'string'
+      ? value.discount_type_label
+      : typeof value.discountTypeLabel === 'string'
+        ? value.discountTypeLabel
+        : typeof discountType === 'string'
+          ? { percentage: 'Porcentaje', fixed: 'Monto fijo', gift: 'Regalo', points: 'Puntos' }[
+              discountType
+            ]
+          : undefined;
+  return promotionSchema.parse({
+    id: String(value.id ?? `promotion-${crypto.randomUUID()}`),
+    businessId: String(value.business_id ?? value.businessId ?? business.id ?? ''),
+    business: businessName,
+    title: typeof value.title === 'string' ? value.title : 'Promoción',
+    description: typeof value.description === 'string' ? value.description : '',
+    category: typeof value.category === 'string' ? value.category : 'Promociones',
+    image: publicAssetUrl(value.image_url ?? value.image) ?? '/images/coffee.webp',
+    badge: discountTypeLabel ?? (typeof value.badge === 'string' ? value.badge : 'Promoción'),
+    expires: typeof endsAt === 'string' ? endsAt.slice(0, 10) : 'Sin fecha de expiración',
+    discountType,
+    discountTypeLabel,
+    discountValue: Number.isFinite(discountValue) ? discountValue : undefined,
+    code: typeof value.code === 'string' ? value.code : undefined,
+    terms: typeof value.terms === 'string' ? value.terms : undefined,
+    startsAt: typeof startsAt === 'string' ? startsAt : undefined,
+    endsAt: typeof endsAt === 'string' ? endsAt : undefined,
+    isActive: typeof value.is_active === 'boolean' ? value.is_active : value.isActive,
+    isActiveNow: typeof value.is_active_now === 'boolean' ? value.is_active_now : value.isActiveNow,
+    maxRedemptions: Number.isFinite(maxRedemptions) ? maxRedemptions : undefined,
+    redemptionsCount: Number.isFinite(redemptionsCount) ? redemptionsCount : undefined,
+    loyaltyCardId:
+      typeof (value.loyalty_card_id ?? value.loyaltyCardId) === 'string'
+        ? String(value.loyalty_card_id ?? value.loyaltyCardId)
+        : undefined,
+    type: ['simple', 'steps', 'direct'].includes(String(value.type)) ? value.type : undefined,
+    purchasesRequired: value.purchasesRequired,
+    freeProduct: value.freeProduct,
+    freeQuantity: value.freeQuantity,
+    tiers: value.tiers,
+    appliesAlways: value.appliesAlways,
+    weekdays: value.weekdays,
+    startTime: value.startTime,
+    endTime: value.endTime,
+  });
+}
+
+function businessPromotionPayload(input: PromotionInput | BusinessPromotionInput) {
+  if ('discountType' in input) {
+    return {
+      title: input.title,
+      description: input.description,
+      loyalty_card_id: input.loyaltyCardId || null,
+      discount_type: input.discountType,
+      discount_value: input.discountValue ?? null,
+      code: input.code || null,
+      terms: input.terms || null,
+      starts_at: input.startsAt || null,
+      ends_at: input.endsAt || null,
+      max_redemptions: input.maxRedemptions ?? null,
+      is_active: input.isActive,
+    };
+  }
+  const kind = input.type === 'simple' ? 'gift' : input.type === 'steps' ? 'points' : 'percentage';
+  const legacyTerms = [
+    input.type === 'simple' && input.purchasesRequired
+      ? `Se requiere completar ${input.purchasesRequired} compras.`
+      : '',
+    input.type === 'simple' && input.freeProduct
+      ? `Producto de regalo: ${input.freeQuantity ?? 1} × ${input.freeProduct}.`
+      : '',
+    input.type === 'steps' && input.tiers?.length
+      ? `Niveles: ${input.tiers.map((tier) => `${tier.points} puntos: ${tier.benefit}`).join('; ')}.`
+      : '',
+    input.type === 'direct' && input.appliesAlways === false
+      ? `Aplica los días ${input.weekdays?.join(', ') ?? ''} de ${input.startTime ?? ''} a ${input.endTime ?? ''}.`
+      : '',
+  ].filter(Boolean);
+  return {
+    title: input.title,
+    description: input.description,
+    discount_type: kind,
+    discount_value: null,
+    code: null,
+    terms: legacyTerms.join(' ') || null,
+    starts_at: null,
+    ends_at: input.expires || null,
+    max_redemptions: null,
+    is_active: true,
+  };
+}
+
+async function syncBusinessAsset(type: 'logo' | 'background', source: string | undefined) {
+  if (source === '') return http.delete(`/api/business/assets/${type}`);
+  if (!source?.startsWith('data:')) return;
+  const blob = await fetch(source).then((response) => response.blob());
+  const extension = blob.type.split('/')[1]?.split('+')[0] || 'png';
+  const formData = new FormData();
+  formData.append('type', type);
+  formData.append(
+    'file',
+    new File([blob], `${type}.${extension}`, { type: blob.type || 'image/png' }),
+  );
+  return http.post('/api/business/assets', formData);
+}
+
 function slugifyBusiness(name: string) {
   return name
     .toLowerCase()
@@ -889,10 +1137,11 @@ export const api = {
     const { data } = await http.get('/customer/near-me', { params: coordinates });
     return z.array(cardSchema).parse(data);
   },
-  promotions: async () =>
-    isDemo
-      ? readDB().promotions
-      : z.array(promotionSchema).parse((await http.get('/customer/promotions')).data),
+  promotions: async () => {
+    if (isDemo) return readDB().promotions;
+    const { data } = await http.get('/api/customer/promotions', { params: { per_page: 100 } });
+    return unwrapResourceList(data, ['promotions']).map(normalizePromotion);
+  },
   activity: async () =>
     isDemo
       ? readDB().activity
@@ -1083,20 +1332,74 @@ export const api = {
     }
     return http.delete(`/api/admin/business/${encodeURIComponent(id)}`);
   },
-  businessPromotions: async () =>
-    z.array(promotionSchema).parse((await http.get('/business/promotions')).data),
+  businessPromotions: async () => {
+    const { data } = await http.get('/api/business/promotions', { params: { per_page: 100 } });
+    return unwrapResourceList(data, ['promotions']).map(normalizePromotion);
+  },
   business: async () => {
     if (isDemo) return readDB().business;
-    const { data } = await http.get('business/card');
+    const { data } = await http.get('/api/business/profile');
     return businessSchema.parse(normalizeBusinessConfig(data));
   },
   saveBusiness: async (input: BusinessConfig) => {
     const config = businessSchema.parse(input);
-    if (!isDemo) return http.put('/business/card', config);
+    if (!isDemo) {
+      const profilePayload = {
+        name: config.name,
+        ...(config.categories[0] ? { category: config.categories[0] } : {}),
+      };
+      await http.put('/api/business/profile', profilePayload);
+      await syncBusinessAsset('logo', config.logo);
+      await syncBusinessAsset('background', config.banner);
+      const themeColors = loyaltyCardThemeColors[config.theme];
+      const cardSettings = {
+        primary_color: config.cardPrimaryColor ?? themeColors.primaryColor,
+        secondary_color: config.cardSecondaryColor ?? themeColors.secondaryColor,
+        text_color: config.cardTextColor ?? themeColors.textColor,
+        stamp_icon: config.icon,
+        card_shape: config.cardShape,
+        welcome_message: config.welcomeMessage,
+        required_stamps: config.goal,
+      };
+      await http.put('/api/business/card-settings', cardSettings);
+      const cardPayload = {
+        name: config.name,
+        description: config.description || null,
+        required_stamps: config.goal,
+        reward_description: config.reward,
+        primary_color: cardSettings.primary_color,
+        secondary_color: cardSettings.secondary_color,
+        text_color: cardSettings.text_color,
+        settings: {
+          ...config.loyaltyCardSettings,
+          theme: config.theme,
+          stamp_icon: config.icon,
+          ...(config.fontFamily ? { font_family: config.fontFamily } : {}),
+          ...(config.cardShape ? { card_shape: config.cardShape } : {}),
+        },
+      };
+      return config.loyaltyCardId
+        ? http.put(`/api/business/cards/${encodeURIComponent(config.loyaltyCardId)}`, cardPayload)
+        : http.post('/api/business/cards', {
+            ...cardPayload,
+            is_active: true,
+            is_public: true,
+            inherit_business_branding: true,
+          });
+    }
     return updateDB((db) => {
       db.business = config;
       const card = db.cards.find((c) => c.id === 'cafe');
-      if (card) Object.assign(card, { ...config, stamps: Math.min(card.stamps, config.goal) });
+      if (card)
+        Object.assign(card, {
+          ...config,
+          primaryColor:
+            config.cardPrimaryColor ?? loyaltyCardThemeColors[config.theme].primaryColor,
+          secondaryColor:
+            config.cardSecondaryColor ?? loyaltyCardThemeColors[config.theme].secondaryColor,
+          textColor: config.cardTextColor ?? loyaltyCardThemeColors[config.theme].textColor,
+          stamps: Math.min(card.stamps, config.goal),
+        });
     });
   },
   saveBusinessQRConfiguration: async (input: BusinessQRConfiguration) => {
@@ -1138,18 +1441,30 @@ export const api = {
         Object.assign(card, { ...validated, stamps: Math.min(card.stamps, validated.goal) });
     });
   },
-  addPromotion: async (input: PromotionInput) => {
-    if (!isDemo) return http.post('/business/promotions', input);
+  addPromotion: async (input: PromotionInput | BusinessPromotionInput) => {
+    if (!isDemo) return http.post('/api/business/promotions', businessPromotionPayload(input));
     return updateDB((db) => {
-      db.promotions.unshift({
-        ...input,
-        id: crypto.randomUUID(),
-        businessId: 'b1',
-        business: db.business.name,
-        category:
-          (input.category as string | undefined) ?? db.business.categories?.[0] ?? 'Cafetería',
-        badge: 'Nuevo para ti',
-      });
+      if ('discountType' in input) {
+        const payload = businessPromotionPayload(input);
+        db.promotions.unshift(
+          normalizePromotion({
+            ...payload,
+            id: crypto.randomUUID(),
+            business_id: 'b1',
+            business: { name: db.business.name },
+          }),
+        );
+      } else {
+        db.promotions.unshift({
+          ...input,
+          id: crypto.randomUUID(),
+          businessId: 'b1',
+          business: db.business.name,
+          category:
+            (input.category as string | undefined) ?? db.business.categories?.[0] ?? 'Cafetería',
+          badge: 'Nuevo para ti',
+        });
+      }
     });
   },
 

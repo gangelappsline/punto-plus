@@ -43,6 +43,7 @@ export const foodBrandIcons = [
   'utensils',
   'glass',
   'bean',
+  'star',
 ] as const;
 export const menuFontFamilies = [
   'dm-sans',
@@ -56,6 +57,23 @@ export const loyaltyCardThemeSchema = z.enum(loyaltyCardThemes);
 export const foodBrandIconSchema = z.enum(foodBrandIcons);
 export const menuFontFamilySchema = z.enum(menuFontFamilies);
 export type LoyaltyCardTheme = (typeof loyaltyCardThemes)[number];
+export const loyaltyCardThemeColors: Record<
+  LoyaltyCardTheme,
+  { primaryColor: string; secondaryColor: string; textColor: string }
+> = {
+  forest: { primaryColor: '#254865', secondaryColor: '#d9e5ef', textColor: '#f1f5f8' },
+  terracotta: { primaryColor: '#f5be8b', secondaryColor: '#fcebd7', textColor: '#022f53' },
+  lavender: { primaryColor: '#d9e6f2', secondaryColor: '#2399a0', textColor: '#1d4160' },
+  ocean: { primaryColor: '#187f87', secondaryColor: '#e4f6f5', textColor: '#f2ffff' },
+  matcha: { primaryColor: '#67845b', secondaryColor: '#ecf2df', textColor: '#fbfff5' },
+  citrus: { primaryColor: '#e9c85d', secondaryColor: '#fff9df', textColor: '#453a1e' },
+  berry: { primaryColor: '#80536f', secondaryColor: '#f4e6ef', textColor: '#fff7fd' },
+  rose: { primaryColor: '#e7a6b3', secondaryColor: '#fff5f5', textColor: '#4d2c3b' },
+  chocolate: { primaryColor: '#76533f', secondaryColor: '#f4e8d9', textColor: '#fff9f0' },
+  sunset: { primaryColor: '#e78c62', secondaryColor: '#fff2e9', textColor: '#452d28' },
+  sky: { primaryColor: '#82b8d0', secondaryColor: '#eef9fc', textColor: '#153c52' },
+  midnight: { primaryColor: '#39416c', secondaryColor: '#e8e8f5', textColor: '#f4f5ff' },
+};
 export type FoodBrandIcon = (typeof foodBrandIcons)[number];
 export type MenuFontFamily = (typeof menuFontFamilies)[number];
 const optionalLatitudeSchema = z.preprocess(
@@ -77,6 +95,10 @@ export const cardSchema = z.object({
   goal: z.number().int().min(2).max(12),
   theme: loyaltyCardThemeSchema,
   icon: foodBrandIconSchema,
+  primaryColor: z.string().optional(),
+  secondaryColor: z.string().optional(),
+  textColor: z.string().optional(),
+  cardShape: z.enum(['rounded', 'square', 'circle']).optional(),
   fontFamily: menuFontFamilySchema.optional(),
   location: z.string(),
   address: z.string().optional(),
@@ -98,6 +120,18 @@ export const promotionSchema = z.object({
   badge: z.string(),
   expires: z.string(),
   type: z.enum(['simple', 'steps', 'direct']).optional(),
+  discountType: z.enum(['percentage', 'fixed', 'gift', 'points']).optional(),
+  discountTypeLabel: z.string().optional(),
+  discountValue: z.number().optional(),
+  code: z.string().optional(),
+  terms: z.string().optional(),
+  startsAt: z.string().optional(),
+  endsAt: z.string().optional(),
+  isActive: z.boolean().optional(),
+  isActiveNow: z.boolean().optional(),
+  maxRedemptions: z.number().optional(),
+  redemptionsCount: z.number().optional(),
+  loyaltyCardId: z.string().optional(),
   // Sencilla: al completar N compras se regala producto(s).
   purchasesRequired: z.coerce.number().int().min(1).optional(),
   freeProduct: z.string().optional(),
@@ -356,6 +390,13 @@ export const businessSchema = z.object({
   goal: z.coerce.number().int().min(2, 'Mínimo 2 sellos').max(12, 'Máximo 12 sellos'),
   theme: loyaltyCardThemeSchema,
   icon: foodBrandIconSchema,
+  cardPrimaryColor: z.string().optional(),
+  cardSecondaryColor: z.string().optional(),
+  cardTextColor: z.string().optional(),
+  cardShape: z.enum(['rounded', 'square', 'circle']).optional(),
+  loyaltyCardId: z.string().optional(),
+  loyaltyCardSettings: z.record(z.string(), z.unknown()).optional(),
+  loyaltyCards: z.array(z.object({ id: z.string(), name: z.string() })).optional(),
   logo: z.string().optional(),
   banner: z.string().optional(),
   categories: z.array(z.string()).default([]),
