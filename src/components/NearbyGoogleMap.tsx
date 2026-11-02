@@ -1,5 +1,11 @@
 import { useEffect, useRef, useState } from 'react';
-import { hasGoogleMapsApiKey, loadGoogleMaps } from '../lib/googleMaps';
+import {
+  googleMapsApiKey,
+  googleMapsEmbedUrl,
+  hasGoogleMapsApiKey,
+  loadGoogleMaps,
+  onGoogleMapsAuthFailure,
+} from '../lib/googleMaps';
 import type { NearbyBusiness } from '../lib/types';
 import { createBusinessPin, createUserDot, hasCoordinates, type MapCoordinates } from './nearbyPin';
 
@@ -80,32 +86,18 @@ const overlayFactory = createOverlayFactory();
 const toLatLng = ({ latitude, longitude }: MapCoordinates) => ({ lat: latitude, lng: longitude });
 
 /**
- * Respaldo cuando Google Maps no está configurado o no carga: un mapa
- * incrustado de OpenStreetMap para no dejar la sección vacía. Los marcadores
- * con logo y el modal requieren la API JavaScript de Google.
+ * Estado del mapa:
+ * - `loading`: cargando la Maps JavaScript API.
+ * - `ready`: mapa interactivo de Google con pines de los negocios.
+ * - `embed`: la clave no sirve para la Maps JavaScript API; se muestra el mapa
+ *   incrustado de Google (Maps Embed API) con la misma clave.
+ * - `missing-key`: no hay `VITE_GOOGLE_MAPS_API_KEY`; se muestra un aviso.
  */
-function fallbackMapUrl(businesses: NearbyBusiness[], center: MapCoordinates | null) {
-  const points = businesses.filter(hasCoordinates).map((business) => ({
-    latitude: business.latitude,
-    longitude: business.longitude,
-  }));
-  if (center) points.push(center);
-  if (!points.length) points.push(FALLBACK_CENTER);
-  const latitudes = points.map((point) => point.latitude);
-  const longitudes = points.map((point) => point.longitude);
-  const north = Math.max(...latitudes) + 0.012;
-  const south = Math.min(...latitudes) - 0.012;
-  const east = Math.max(...longitudes) + 0.018;
-  const west = Math.min(...longitudes) - 0.018;
-  const marker = `${points[0].latitude},${points[0].longitude}`;
-  return `https://www.openstreetmap.org/export/embed.html?bbox=${encodeURIComponent(
-    `${west.toFixed(5)},${south.toFixed(5)},${east.toFixed(5)},${north.toFixed(5)}`,
-  )}&layer=mapnik&marker=${encodeURIComponent(marker)}`;
-}
+type MapStatus = 'loading' | 'ready' | 'embed' | 'missing-key';
 
 /**
- * Mapa de "Cerca de mí" con Google Maps: marcadores redondeados con el logo
- * del negocio y clic para abrir su información.
+ * Mapa de "Cerca de mí" **siempre con Google Maps**: marcadores redondeados con
+ * el logo del negocio y clic para abrir su información.
  */
 export function NearbyGoogleMap({
   businesses,
@@ -124,9 +116,7 @@ export function NearbyGoogleMap({
   const mapRef = useRef<google.maps.Map | null>(null);
   const markersRef = useRef(new Map<string, { overlay: PinOverlay; element: HTMLElement }>());
   const userOverlayRef = useRef<PinOverlay | null>(null);
-  const [status, setStatus] = useState<'loading' | 'ready' | 'unavailable'>(
-    hasGoogleMapsApiKey ? 'loading' : 'unavailable',
-  );
+  const [status, setStatus] = useState<MapStatus>(hasGoogleMapsApiKey ? 'loading' : 'missing-key');
   const onSelectRef = useRef(onSelect);
   onSelectRef.current = onSelect;
   const handlersRef = useRef(new Map<string, { business: NearbyBusiness; handler: () => void }>());
@@ -136,11 +126,14 @@ export function NearbyGoogleMap({
       { business, handler: () => onSelectRef.current(business) },
     ]),
   );
+  const failedStatusRef = useRef<MapStatus>('embed');
+  failedStatusRef.current = hasGoogleMapsApiKey ? 'embed' : 'missing-key';
 
-  // Crea el mapa una sola vez, cuando la API de Google Maps ya está disponible.
+  // Crea el mapa de Google una sola vez, cuando la Maps JavaScript API está lista.
   useEffect(() => {
     let cancelled = false;
     const container = containerRef.current;
+    if (!hasGoogleMapsApiKey || !container) return;
     void loadGoogleMaps()
       .then((maps) => {
         if (cancelled || !container) return;
@@ -157,7 +150,7 @@ export function NearbyGoogleMap({
         setStatus('ready');
       })
       .catch(() => {
-        if (!cancelled) setStatus('unavailable');
+        if (!cancelled) setStatus(failedStatusRef.current);
       });
     return () => {
       cancelled = true;
@@ -172,6 +165,12 @@ export function NearbyGoogleMap({
     };
     // El mapa se monta una sola vez; los cambios se aplican en los efectos de abajo.
     // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Si Google rechaza la clave, se pasa al mapa incrustado (sigue siendo Google).
+  useEffect(() => {
+    if (!hasGoogleMapsApiKey) return;
+    return onGoogleMapsAuthFailure(() => setStatus(failedStatusRef.current));
   }, []);
 
   // Marcadores de los negocios: se recrean solo cuando cambia la lista.
@@ -233,30 +232,50 @@ export function NearbyGoogleMap({
     map.fitBounds(bounds, { top: 110, right: 60, bottom: 130, left: 60 });
   }, [businesses, center, userPosition, status]);
 
-  const fallbackUrl =
-    status === 'unavailable' ? fallbackMapUrl(businesses, userPosition ?? center) : null;
+  // Respaldo con Google Maps Embed: mismo proveedor, sin pines personalizados.
+  const anchor = userPosition ?? (businesses.find(hasCoordinates) as MapCoordinates | undefined);
+  const embedQuery = anchor
+    ? `${anchor.latitude},${anchor.longitude}`
+    : businesses[0]?.address || businesses[0]?.location || 'Ciudad de México';
+  const embedUrl =
+    status === 'embed'
+      ? googleMapsEmbedUrl({
+          apiKey: googleMapsApiKey,
+          query: embedQuery,
+          zoom: businesses.filter(hasCoordinates).length <= 1 ? 16 : 14,
+        })
+      : null;
 
   return (
     <>
-      <div
-        className="nearby-map-canvas"
-        ref={containerRef}
-        hidden={status === 'unavailable'}
-        aria-label="Mapa de negocios cercanos"
-        aria-busy={status === 'loading'}
-      />
-      {fallbackUrl && (
+      {status !== 'missing-key' && (
+        <div
+          className="nearby-map-canvas"
+          ref={containerRef}
+          hidden={status !== 'loading' && status !== 'ready'}
+          aria-label="Mapa de negocios cercanos"
+          aria-busy={status === 'loading'}
+        />
+      )}
+      {embedUrl && (
         <iframe
           className="nearby-map-canvas nearby-map-iframe"
           title="Mapa de negocios cercanos"
-          src={fallbackUrl}
+          src={embedUrl}
           loading="lazy"
           referrerPolicy="no-referrer-when-downgrade"
+          allowFullScreen
         />
       )}
       {status === 'loading' && (
         <div className="nearby-map-fallback" role="status">
           <p>Cargando el mapa…</p>
+        </div>
+      )}
+      {status === 'missing-key' && (
+        <div className="nearby-map-fallback" role="status">
+          <p>No pudimos cargar el mapa de Google Maps.</p>
+          <small>Puedes consultar los negocios cercanos en la lista de abajo.</small>
         </div>
       )}
     </>
