@@ -276,7 +276,7 @@ export function StampGrid({
         overrides.singleRow,
       )}
       style={{
-        gridTemplateColumns: `repeat(${singleRow ? card.goal : card.goal <= 6 ? 3 : 4}, 1fr)`,
+        gridTemplateColumns: `repeat(${singleRow ? card.goal : card.goal <= 6 ? 3 : 5}, 1fr)`,
       }}
       aria-label={`${card.stamps} de ${card.goal} sellos`}
       data-stamp-grid
