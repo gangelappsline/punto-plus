@@ -27,7 +27,12 @@ export default defineConfig({
       },
       workbox: {
         globPatterns: ['**/*.{js,css,html,svg,png,jpg,jpeg,webp,woff2}'],
+        // Cualquier navegación (incluido /app al recargar) la resuelve el index
+        // precargado; las llamadas a la API nunca pasan por el service worker.
         navigateFallbackDenylist: [/^\/api\//],
+        // Al publicar, borra las precargas de la versión anterior: si se quedan,
+        // un index.html viejo puede pedir fragmentos que ya no existen.
+        cleanupOutdatedCaches: true,
       },
     }),
   ],

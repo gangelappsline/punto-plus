@@ -1,0 +1,32 @@
+# Punto Plus es una SPA: cualquier ruta del cliente se resuelve con index.html.
+# Sin esto, entrar directo a /app (recarga, marcador o acceso desde el inicio)
+# devuelve el 404 del hosting y la pantalla queda en blanco.
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+  RewriteBase /
+
+  # Los archivos y carpetas reales (assets/, imágenes, sw.js…) se sirven tal cual.
+  RewriteRule ^index\.html$ - [L]
+  RewriteCond %{REQUEST_FILENAME} -f [OR]
+  RewriteCond %{REQUEST_FILENAME} -d
+  RewriteRule ^ - [L]
+
+  RewriteRule . /index.html [L]
+</IfModule>
+
+# El HTML y el service worker nunca se cachean: cada despliegue debe verse al
+# instante. Los assets llevan hash en el nombre y sí pueden cachearse.
+<IfModule mod_headers.c>
+  <FilesMatch "\.(js|css|woff2|png|jpe?g|webp|svg)$">
+    Header set Cache-Control "public, max-age=31536000, immutable"
+  </FilesMatch>
+  # Va después para ganar sobre la regla anterior (sw.js también es .js).
+  <FilesMatch "^(index\.html|sw\.js|registerSW\.js)$">
+    Header set Cache-Control "no-cache, must-revalidate"
+  </FilesMatch>
+</IfModule>
+
+<IfModule mod_mime.c>
+  AddType application/manifest+json .webmanifest
+  AddType font/woff2 .woff2
+</IfModule>

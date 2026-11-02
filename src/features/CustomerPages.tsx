@@ -114,8 +114,10 @@ export function CardsPage() {
     <>
       <div className="mt-6">
         <div className="flex items-center justify-center w-full my-2">
-          <button onClick={scan} className="bg-[#127a82] text-white px-4 py-2 rounded">Agregar nueva compra</button>
-        </div> 
+          <button onClick={scan} className="bg-[#127a82] text-white px-4 py-2 rounded">
+            Agregar nueva compra
+          </button>
+        </div>
         <div>
           <h1>
             Tus tarjetas <span>de lealtad.</span>

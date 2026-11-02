@@ -254,7 +254,8 @@ al servidor.
 - La experiencia demo funciona offline después de una primera carga del build de producción. El modo API requiere red para consultar datos privados o realizar operaciones.
 - La instalación es contextual mediante `beforeinstallprompt`, con instrucciones para Safari/iOS y navegadores sin ese evento.
 - La cámara necesita **HTTPS** (o localhost) y permiso del usuario. En previews embebidos, el contenedor también debe permitir `camera`; si no, abrir la app en una pestaña independiente. Hay entrada manual como alternativa.
-- Compilar y desplegar **`dist/`**. Todas las rutas SPA deben reescribirse a `/index.html`. Se incluyen `vercel.json` y `public/_redirects` para Vercel/Netlify.
+- Compilar y desplegar **`dist/`**. Todas las rutas SPA deben reescribirse a `/index.html`. Se incluyen `vercel.json`, `public/_redirects` y `public/.htaccess` para Vercel, Netlify y Apache/cPanel. Si una ruta directa como `/app` no responde `200` con el HTML, el panel se queda en blanco: ver [`docs/DEPLOY.md`](docs/DEPLOY.md).
+- `index.html`, `sw.js` y `registerSW.js` deben servirse **sin caché**; `/assets/*` puede ser inmutable (lleva hash). Diagnóstico paso a paso en [`docs/DEPLOY.md`](docs/DEPLOY.md).
 - No usar `vite preview` como servidor de producción. Servir estáticos con CDN o un servidor adecuado y HTTPS.
 - Para otros hosts de desarrollo, agregarlos explícitamente a `server.allowedHosts`. No desactivar indiscriminadamente el control de hosts.
 

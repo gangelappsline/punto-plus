@@ -67,16 +67,21 @@ describe('Color del icono del sello (stamp_icon_color)', () => {
       <LoyaltyCard card={{ ...baseCard, stampIconColor: '#ff00aa' }} onClick={() => undefined} />,
     );
 
-    const card = container.querySelector('.loyalty-card') as HTMLElement;
+    const card = container.querySelector('[data-loyalty-card]') as HTMLElement;
     expect(card.style.getPropertyValue('--stamp-color')).toBe('#ff00aa');
   });
 
   it('sin color propio conserva el del tema de la paleta', () => {
     const { container } = render(<LoyaltyCard card={baseCard} onClick={() => undefined} />);
 
-    const card = container.querySelector('.loyalty-card') as HTMLElement;
-    expect(card.style.getPropertyValue('--stamp-color')).toBe('');
-    expect(card).toHaveClass('terracotta');
+    const card = container.querySelector('[data-loyalty-card]') as HTMLElement;
+    // Sin `stampIconColor` la variable sale del tema (terracotta), no del CSS.
+    expect(card.style.getPropertyValue('--stamp-color')).toBe(
+      loyaltyCardThemeColors.terracotta.stampIconColor,
+    );
+    expect(card.style.getPropertyValue('--card-bg')).toBe(
+      loyaltyCardThemeColors.terracotta.primaryColor,
+    );
   });
 
   it('muestra el icono del sello y la recompensa de la tarjeta', () => {

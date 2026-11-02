@@ -6,7 +6,6 @@ import {
   Check,
   CloudOff,
   Compass,
-  FileUser,
   Gift,
   Heart,
   LayoutDashboard,
@@ -18,7 +17,7 @@ import {
   Stamp,
   Store,
   X,
-  PanelLeftDashed
+  PanelLeftDashed,
 } from 'lucide-react';
 import { LoyaltyCard } from '../components/LoyaltyCard';
 import { Button } from '../components/ui/button';
@@ -91,7 +90,7 @@ export function LandingPage() {
             ))}
           </nav>
           <div className="hidden items-center gap-3 md:flex">
-            {!user &&(
+            {!user && (
               <Button asChild variant="ghost" className="text-navy !hidden">
                 <Link to="/registro">Crear cuenta</Link>
               </Button>

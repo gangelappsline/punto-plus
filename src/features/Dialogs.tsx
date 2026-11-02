@@ -47,24 +47,24 @@ export function CardDialog({ selected, onClose }: { selected: Card | null; onClo
       title={selected.name}
       description={selected.tagline}
     >
-      <LoyaltyCard card={selected} onClick={() => undefined} />
-      <div className="card-detail-location">
+      <LoyaltyCard card={selected} onClick={() => undefined} variant="dialog" />
+      <div className="mt-5 mb-4 flex items-center gap-[7px] text-[11px] text-[#aeb9c4]">
         <MapPin size={16} />
         {selected.location}
-        <span>{selected.distance}</span>
+        <span className="ml-auto">{selected.distance}</span>
       </div>
-      <div className="detail-reward">
+      <div className="flex gap-3 border-t border-line pt-[17px] pb-5 text-[#6f87a0]">
         <Gift size={22} />
         <div>
-          <strong>{selected.reward}</strong>
-          <p>
+          <strong className="text-[12px] font-[600] text-navy">{selected.reward}</strong>
+          <p className="mt-[5px] text-[11px] leading-[1.8]">
             {ready
               ? 'Tu recompensa está lista. Disfrútala en el negocio.'
               : `Obtén un sello por cada compra. Completa ${selected.goal} para ganar.`}
           </p>
         </div>
       </div>
-      <p className="fine-print">
+      <p className="mt-[14px] text-center text-[9px] leading-[1.7] text-[#aeb9c4]">
         {isDemo
           ? 'Tarjeta de demostración. No tiene validez comercial.'
           : 'Consulta las condiciones y registra tus compras directamente en el negocio.'}
@@ -97,30 +97,36 @@ export function PromotionDialog({
       description="Un buen motivo para darte una vuelta por el barrio."
     >
       <img
-        className="promotion-detail-image"
+        className="h-[207px] w-full rounded-[11px] object-cover max-[540px]:h-[185px]"
         src={promotion.image}
         alt={`Promoción de ${promotion.business}`}
       />
-      <span className="detail-promo-badge">
+      <span className="mt-[19px] mb-3 inline-flex items-center gap-[5px] rounded-[5px] bg-[#dceff0] px-[10px] py-[6px] text-[10px] text-[#14787f]">
         <Sparkles size={14} />
         {promotion.badge}
       </span>
-      <h2 className="promotion-detail-title">{promotion.title}</h2>
-      <p className="promotion-description">{promotion.description}</p>
+      <h2 className="text-[23px] leading-[1.5] max-[540px]:text-[22px]">{promotion.title}</h2>
+      <p className="my-[15px] text-[12px] leading-[1.9] text-[#93a5b8] max-[540px]:text-[11px]">
+        {promotion.description}
+      </p>
       {(promotion.type || promotion.discountType) && (
-        <div className="promotion-type-detail">
-          <span className="little-label">Beneficio</span>
-          <p>{promotionTypeText(promotion)}</p>
+        <div className="my-[14px] rounded-[10px] border border-line bg-[#f4f6f8] p-[14px]">
+          <span className="little-label mb-[6px] block">Beneficio</span>
+          <p className="text-[12px] text-[#46617c]">{promotionTypeText(promotion)}</p>
         </div>
       )}
       {promotion.code && (
-        <div className="promotion-type-detail">
-          <span className="little-label">Código promocional</span>
-          <p>{promotion.code}</p>
+        <div className="my-[14px] rounded-[10px] border border-line bg-[#f4f6f8] p-[14px]">
+          <span className="little-label mb-[6px] block">Código promocional</span>
+          <p className="text-[12px] text-[#46617c]">{promotion.code}</p>
         </div>
       )}
-      {promotion.terms && <p className="promotion-description">{promotion.terms}</p>}
-      <div className="promotion-validity">
+      {promotion.terms && (
+        <p className="my-[15px] text-[12px] leading-[1.9] text-[#93a5b8] max-[540px]:text-[11px]">
+          {promotion.terms}
+        </p>
+      )}
+      <div className="my-5 flex items-center gap-[7px] text-[10px] text-[#aeb9c4] max-[540px]:text-[9px]">
         <Clock3 size={16} />
         {hasEndDate
           ? `Válida hasta el ${format(new Date(`${endDate}T12:00:00`), "d 'de' MMMM 'de' yyyy", { locale: es })}`
@@ -129,15 +135,26 @@ export function PromotionDialog({
             : 'Vigente sin fecha de término'}
       </div>
       {isDemo && (
-        <p className="fine-print">Promoción de demostración. No tiene validez comercial.</p>
+        <p className="mt-[14px] text-center text-[9px] leading-[1.7] text-[#aeb9c4]">
+          Promoción de demostración. No tiene validez comercial.
+        </p>
       )}
-      <div className="qr-steps" aria-label="Cómo disfrutar la promoción">
-        <span>
-          <b>1</b> Visita
+      <div
+        className="mx-0 mt-6 mb-1 flex items-center justify-center gap-2 text-[9px] text-[#93a5b8] max-[540px]:gap-1.5 max-[540px]:text-[8px]"
+        aria-label="Cómo disfrutar la promoción"
+      >
+        <span className="flex items-center gap-1 max-[540px]:gap-[3px]">
+          <b className="inline-flex size-5 items-center justify-center rounded-full bg-[#eef2f6] text-[9px] font-[500] max-[540px]:size-[18px]">
+            1
+          </b>{' '}
+          Visita
         </span>
-        <ArrowRight size={13} />
-        <span>
-          <b>2</b> Muestra la promoción
+        <ArrowRight size={13} className="text-[#c4cfd9]" />
+        <span className="flex items-center gap-1 max-[540px]:gap-[3px]">
+          <b className="inline-flex size-5 items-center justify-center rounded-full bg-[#eef2f6] text-[9px] font-[500] max-[540px]:size-[18px]">
+            2
+          </b>{' '}
+          Muestra la promoción
         </span>
       </div>
     </Dialog>
