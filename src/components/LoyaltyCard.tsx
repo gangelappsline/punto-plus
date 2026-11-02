@@ -29,13 +29,12 @@ import {
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import type { CSSProperties } from 'react';
-import { loyaltyCardThemeColors } from '../lib/types';
-import type {
-  FoodBrandIcon,
-  LoyaltyCard as Card,
-  LoyaltyCardTheme,
-  MenuFontFamily,
+import {
+  loyaltyCardThemeColors,
+  loyaltyCardThemeGroups,
+  loyaltyCardThemeLabels,
 } from '../lib/types';
+import type { FoodBrandIcon, LoyaltyCard as Card, MenuFontFamily } from '../lib/types';
 
 export const brandIcons: Record<FoodBrandIcon, LucideIcon> = {
   coffee: Coffee,
@@ -89,27 +88,19 @@ export const brandIconOptions: { id: FoodBrandIcon; label: string }[] = [
   { id: 'star', label: 'Estrella' },
 ];
 
-const brandThemeLabels: [LoyaltyCardTheme, string][] = [
-  ['forest', 'Bosque'],
-  ['terracotta', 'Terracota'],
-  ['lavender', 'Lavanda'],
-  ['ocean', 'Océano'],
-  ['matcha', 'Matcha'],
-  ['citrus', 'Cítrico'],
-  ['berry', 'Frutos rojos'],
-  ['rose', 'Rosa'],
-  ['chocolate', 'Cacao'],
-  ['sunset', 'Atardecer'],
-  ['sky', 'Cielo'],
-  ['midnight', 'Medianoche'],
-];
-
-export const brandThemeOptions = brandThemeLabels.map(([id, label]) => ({
-  id,
-  label,
-  ...loyaltyCardThemeColors[id],
-  swatch: loyaltyCardThemeColors[id].primaryColor,
+/** Opciones de la paleta agrupadas por familia (marca, azules, verdes…). */
+export const brandThemeOptions = loyaltyCardThemeGroups.map((group) => ({
+  ...group,
+  options: group.themes.map((id) => ({
+    id,
+    label: loyaltyCardThemeLabels[id],
+    ...loyaltyCardThemeColors[id],
+    swatch: loyaltyCardThemeColors[id].primaryColor,
+  })),
 }));
+
+/** Lista plana de temas, útil para búsquedas y pruebas. */
+export const brandThemeList = brandThemeOptions.flatMap((group) => group.options);
 
 export const fontOptions: { id: MenuFontFamily; label: string; sample: string }[] = [
   { id: 'dm-sans', label: 'DM Sans', sample: 'Moderna' },
@@ -178,13 +169,13 @@ export function LoyaltyCard({
     fontFamily: fontStack(card.fontFamily),
     ...(card.primaryColor ? { '--card-bg': card.primaryColor } : {}),
     ...(card.secondaryColor ? { '--stamp-fill': card.secondaryColor } : {}),
+    ...(card.stampIconColor ? { '--stamp-color': card.stampIconColor } : {}),
     ...(card.cardShape
       ? { borderRadius: { rounded: '13px', square: '4px', circle: '24px' }[card.cardShape] }
       : {}),
     ...(card.textColor
       ? {
           '--card-ink': card.textColor,
-          '--stamp-color': card.primaryColor ?? card.textColor,
           '--card-muted': card.textColor,
         }
       : {}),

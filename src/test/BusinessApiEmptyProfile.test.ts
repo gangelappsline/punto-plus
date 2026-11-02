@@ -46,16 +46,16 @@ const emptyBusinessProfile = {
 
 describe('Perfil de negocio recién creado', () => {
   it('normaliza valores nulos y listas vacías sin impedir abrir Mi menú', async () => {
-    apiMock.onGet('/api/business/profile').reply(200, emptyBusinessProfile);
+    apiMock.onGet('/business/profile').reply(200, emptyBusinessProfile);
 
     const business = await api.business();
 
-    expect(apiMock.history.get[0].url).toBe('/api/business/profile');
+    expect(apiMock.history.get[0].url).toBe('/business/profile');
     expect(business).toMatchObject({
       name: '',
       reward: 'Recompensa por fidelidad',
       goal: 10,
-      theme: 'sunset',
+      theme: 'mustard',
       icon: 'star',
       categories: [],
       menuItems: [],
@@ -71,7 +71,7 @@ describe('Perfil de negocio recién creado', () => {
   });
 
   it('recupera nuevas opciones de icono, paleta y tipografía para Mi negocio', async () => {
-    apiMock.onGet('/api/business/profile').reply(200, {
+    apiMock.onGet('/business/profile').reply(200, {
       ...emptyBusinessProfile,
       name: 'Taquería Chayito',
       theme: 'sunset',
@@ -93,7 +93,7 @@ describe('Perfil de negocio recién creado', () => {
   });
 
   it('restaura productos guardados con categoría por ID e imagen en el arreglo images', async () => {
-    apiMock.onGet('/api/business/profile').reply(200, {
+    apiMock.onGet('/business/profile').reply(200, {
       ...emptyBusinessProfile,
       name: 'Taqueria Chayito',
       categories: [
@@ -138,7 +138,7 @@ describe('Perfil de negocio recién creado', () => {
   });
 
   it('recupera la personalización del QR desde qr_settings', async () => {
-    apiMock.onGet('/api/business/profile').reply(200, {
+    apiMock.onGet('/business/profile').reply(200, {
       ...emptyBusinessProfile,
       name: 'Negocio con QR',
       qr_settings: {
@@ -166,7 +166,7 @@ describe('Perfil de negocio recién creado', () => {
   });
 
   it('también acepta el perfil dentro de una envoltura data', async () => {
-    apiMock.onGet('/api/business/profile').reply(200, { data: emptyBusinessProfile });
+    apiMock.onGet('/business/profile').reply(200, { data: emptyBusinessProfile });
 
     await expect(api.business()).resolves.toMatchObject({
       name: '',

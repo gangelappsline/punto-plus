@@ -626,120 +626,400 @@ main#main-content {
   --card-bg: #254865;
   --card-ink: #f1f5f8;
   --stamp-fill: #d9e5ef;
+  --stamp-border: color-mix(in srgb, var(--stamp-fill) 60%, transparent);
   --stamp-color: #2e5578;
-  --stamp-border: #9db8cc66;
-  --card-muted: #b9cbdb;
   background: var(--card-bg);
+  --card-muted: color-mix(in srgb, var(--card-ink) 72%, var(--card-bg));
   color: var(--card-ink);
 }
 .terracotta {
   --card-bg: #f5be8b;
   --card-ink: #022f53;
   --stamp-fill: #fcebd7;
+  --stamp-border: color-mix(in srgb, var(--stamp-fill) 60%, transparent);
   --stamp-color: #b5772f;
-  --stamp-border: #d9a35f88;
-  --card-muted: #f0d5ab;
   background: var(--card-bg);
+  --card-muted: color-mix(in srgb, var(--card-ink) 72%, var(--card-bg));
   color: var(--card-ink);
 }
 .lavender {
   --card-bg: #d9e6f2;
   --card-ink: #1d4160;
   --stamp-fill: #2399a0;
+  --stamp-border: color-mix(in srgb, var(--stamp-fill) 60%, transparent);
   --stamp-color: #ffffff;
-  --stamp-border: #2399a066;
-  --card-muted: #7fa0bd;
   background: var(--card-bg);
+  --card-muted: color-mix(in srgb, var(--card-ink) 72%, var(--card-bg));
   color: var(--card-ink);
 }
 .ocean {
   --card-bg: #187f87;
   --card-ink: #f2ffff;
   --stamp-fill: #e4f6f5;
+  --stamp-border: color-mix(in srgb, var(--stamp-fill) 60%, transparent);
   --stamp-color: #17666b;
-  --stamp-border: #d8ffff66;
-  --card-muted: #b8e1df;
   background: var(--card-bg);
+  --card-muted: color-mix(in srgb, var(--card-ink) 72%, var(--card-bg));
   color: var(--card-ink);
 }
 .matcha {
   --card-bg: #67845b;
   --card-ink: #fbfff5;
   --stamp-fill: #ecf2df;
+  --stamp-border: color-mix(in srgb, var(--stamp-fill) 60%, transparent);
   --stamp-color: #59744c;
-  --stamp-border: #eff9dd66;
-  --card-muted: #d3e2c4;
   background: var(--card-bg);
+  --card-muted: color-mix(in srgb, var(--card-ink) 72%, var(--card-bg));
   color: var(--card-ink);
 }
 .citrus {
   --card-bg: #e9c85d;
   --card-ink: #453a1e;
   --stamp-fill: #fff9df;
+  --stamp-border: color-mix(in srgb, var(--stamp-fill) 60%, transparent);
   --stamp-color: #6b5717;
-  --stamp-border: #947a2a66;
-  --card-muted: #796b3c;
   background: var(--card-bg);
+  --card-muted: color-mix(in srgb, var(--card-ink) 72%, var(--card-bg));
   color: var(--card-ink);
 }
 .berry {
   --card-bg: #80536f;
   --card-ink: #fff7fd;
   --stamp-fill: #f4e6ef;
+  --stamp-border: color-mix(in srgb, var(--stamp-fill) 60%, transparent);
   --stamp-color: #754461;
-  --stamp-border: #ffe7f366;
-  --card-muted: #e5bfd5;
   background: var(--card-bg);
+  --card-muted: color-mix(in srgb, var(--card-ink) 72%, var(--card-bg));
   color: var(--card-ink);
 }
 .rose {
   --card-bg: #e7a6b3;
   --card-ink: #4d2c3b;
   --stamp-fill: #fff5f5;
+  --stamp-border: color-mix(in srgb, var(--stamp-fill) 60%, transparent);
   --stamp-color: #934d65;
-  --stamp-border: #9d627066;
-  --card-muted: #805765;
   background: var(--card-bg);
+  --card-muted: color-mix(in srgb, var(--card-ink) 72%, var(--card-bg));
   color: var(--card-ink);
 }
 .chocolate {
   --card-bg: #76533f;
   --card-ink: #fff9f0;
   --stamp-fill: #f4e8d9;
+  --stamp-border: color-mix(in srgb, var(--stamp-fill) 60%, transparent);
   --stamp-color: #6a4937;
-  --stamp-border: #f9e7d466;
-  --card-muted: #e2c5a8;
   background: var(--card-bg);
+  --card-muted: color-mix(in srgb, var(--card-ink) 72%, var(--card-bg));
   color: var(--card-ink);
 }
 .sunset {
   --card-bg: #e78c62;
   --card-ink: #452d28;
   --stamp-fill: #fff2e9;
+  --stamp-border: color-mix(in srgb, var(--stamp-fill) 60%, transparent);
   --stamp-color: #a95537;
-  --stamp-border: #a3543d66;
-  --card-muted: #734f43;
   background: var(--card-bg);
+  --card-muted: color-mix(in srgb, var(--card-ink) 72%, var(--card-bg));
   color: var(--card-ink);
 }
 .sky {
   --card-bg: #82b8d0;
   --card-ink: #153c52;
   --stamp-fill: #eef9fc;
+  --stamp-border: color-mix(in srgb, var(--stamp-fill) 60%, transparent);
   --stamp-color: #24728b;
-  --stamp-border: #286a8066;
-  --card-muted: #36657a;
   background: var(--card-bg);
+  --card-muted: color-mix(in srgb, var(--card-ink) 72%, var(--card-bg));
   color: var(--card-ink);
 }
 .midnight {
   --card-bg: #39416c;
   --card-ink: #f4f5ff;
   --stamp-fill: #e8e8f5;
+  --stamp-border: color-mix(in srgb, var(--stamp-fill) 60%, transparent);
   --stamp-color: #404874;
-  --stamp-border: #e4e5ff66;
-  --card-muted: #c3c8e5;
   background: var(--card-bg);
+  --card-muted: color-mix(in srgb, var(--card-ink) 72%, var(--card-bg));
+  color: var(--card-ink);
+}
+.marine {
+  --card-bg: #1c4f7c;
+  --card-ink: #f2f8ff;
+  --stamp-fill: #e2eef8;
+  --stamp-border: color-mix(in srgb, var(--stamp-fill) 60%, transparent);
+  --stamp-color: #2a6597;
+  background: var(--card-bg);
+  --card-muted: color-mix(in srgb, var(--card-ink) 72%, var(--card-bg));
+  color: var(--card-ink);
+}
+.denim {
+  --card-bg: #3a6ea5;
+  --card-ink: #f7fbff;
+  --stamp-fill: #ebf3fb;
+  --stamp-border: color-mix(in srgb, var(--stamp-fill) 60%, transparent);
+  --stamp-color: #4a83bd;
+  background: var(--card-bg);
+  --card-muted: color-mix(in srgb, var(--card-ink) 72%, var(--card-bg));
+  color: var(--card-ink);
+}
+.steel {
+  --card-bg: #5b7186;
+  --card-ink: #f7fafc;
+  --stamp-fill: #eef2f6;
+  --stamp-border: color-mix(in srgb, var(--stamp-fill) 60%, transparent);
+  --stamp-color: #6f879c;
+  background: var(--card-bg);
+  --card-muted: color-mix(in srgb, var(--card-ink) 72%, var(--card-bg));
+  color: var(--card-ink);
+}
+.teal {
+  --card-bg: #146c72;
+  --card-ink: #f0fdfb;
+  --stamp-fill: #e0f5f3;
+  --stamp-border: color-mix(in srgb, var(--stamp-fill) 60%, transparent);
+  --stamp-color: #2399a0;
+  background: var(--card-bg);
+  --card-muted: color-mix(in srgb, var(--card-ink) 72%, var(--card-bg));
+  color: var(--card-ink);
+}
+.aqua {
+  --card-bg: #7fc6c9;
+  --card-ink: #0d3b45;
+  --stamp-fill: #f0fbfb;
+  --stamp-border: color-mix(in srgb, var(--stamp-fill) 60%, transparent);
+  --stamp-color: #3f8f93;
+  background: var(--card-bg);
+  --card-muted: color-mix(in srgb, var(--card-ink) 72%, var(--card-bg));
+  color: var(--card-ink);
+}
+.sapphire {
+  --card-bg: #28418f;
+  --card-ink: #f4f6ff;
+  --stamp-fill: #e9edfb;
+  --stamp-border: color-mix(in srgb, var(--stamp-fill) 60%, transparent);
+  --stamp-color: #3f5cad;
+  background: var(--card-bg);
+  --card-muted: color-mix(in srgb, var(--card-ink) 72%, var(--card-bg));
+  color: var(--card-ink);
+}
+.sage {
+  --card-bg: #93a98c;
+  --card-ink: #1f3326;
+  --stamp-fill: #f1f6ee;
+  --stamp-border: color-mix(in srgb, var(--stamp-fill) 60%, transparent);
+  --stamp-color: #5f7a5b;
+  background: var(--card-bg);
+  --card-muted: color-mix(in srgb, var(--card-ink) 72%, var(--card-bg));
+  color: var(--card-ink);
+}
+.moss {
+  --card-bg: #4f6b47;
+  --card-ink: #f6fbf2;
+  --stamp-fill: #eaf1e4;
+  --stamp-border: color-mix(in srgb, var(--stamp-fill) 60%, transparent);
+  --stamp-color: #65845c;
+  background: var(--card-bg);
+  --card-muted: color-mix(in srgb, var(--card-ink) 72%, var(--card-bg));
+  color: var(--card-ink);
+}
+.olive {
+  --card-bg: #7c8446;
+  --card-ink: #2e3315;
+  --stamp-fill: #f4f6e4;
+  --stamp-border: color-mix(in srgb, var(--stamp-fill) 60%, transparent);
+  --stamp-color: #949c5c;
+  background: var(--card-bg);
+  --card-muted: color-mix(in srgb, var(--card-ink) 72%, var(--card-bg));
+  color: var(--card-ink);
+}
+.pine {
+  --card-bg: #1f4d3d;
+  --card-ink: #f1fbf6;
+  --stamp-fill: #e1efe8;
+  --stamp-border: color-mix(in srgb, var(--stamp-fill) 60%, transparent);
+  --stamp-color: #2f6a53;
+  background: var(--card-bg);
+  --card-muted: color-mix(in srgb, var(--card-ink) 72%, var(--card-bg));
+  color: var(--card-ink);
+}
+.emerald {
+  --card-bg: #1c7a5c;
+  --card-ink: #f0fdf8;
+  --stamp-fill: #e3f7ef;
+  --stamp-border: color-mix(in srgb, var(--stamp-fill) 60%, transparent);
+  --stamp-color: #2ea07a;
+  background: var(--card-bg);
+  --card-muted: color-mix(in srgb, var(--card-ink) 72%, var(--card-bg));
+  color: var(--card-ink);
+}
+.mint {
+  --card-bg: #b9e3d2;
+  --card-ink: #16463a;
+  --stamp-fill: #f5fffb;
+  --stamp-border: color-mix(in srgb, var(--stamp-fill) 60%, transparent);
+  --stamp-color: #4f9d82;
+  background: var(--card-bg);
+  --card-muted: color-mix(in srgb, var(--card-ink) 72%, var(--card-bg));
+  color: var(--card-ink);
+}
+.caramel {
+  --card-bg: #b57d45;
+  --card-ink: #fffaf3;
+  --stamp-fill: #fbf1e4;
+  --stamp-border: color-mix(in srgb, var(--stamp-fill) 60%, transparent);
+  --stamp-color: #cf9a63;
+  background: var(--card-bg);
+  --card-muted: color-mix(in srgb, var(--card-ink) 72%, var(--card-bg));
+  color: var(--card-ink);
+}
+.peach {
+  --card-bg: #f6c6a8;
+  --card-ink: #5a3323;
+  --stamp-fill: #fff6ef;
+  --stamp-border: color-mix(in srgb, var(--stamp-fill) 60%, transparent);
+  --stamp-color: #c9805a;
+  background: var(--card-bg);
+  --card-muted: color-mix(in srgb, var(--card-ink) 72%, var(--card-bg));
+  color: var(--card-ink);
+}
+.coral {
+  --card-bg: #e2735f;
+  --card-ink: #4d1f18;
+  --stamp-fill: #fff0ec;
+  --stamp-border: color-mix(in srgb, var(--stamp-fill) 60%, transparent);
+  --stamp-color: #b8503c;
+  background: var(--card-bg);
+  --card-muted: color-mix(in srgb, var(--card-ink) 72%, var(--card-bg));
+  color: var(--card-ink);
+}
+.wine {
+  --card-bg: #7a2c3f;
+  --card-ink: #fff5f7;
+  --stamp-fill: #f7e6ea;
+  --stamp-border: color-mix(in srgb, var(--stamp-fill) 60%, transparent);
+  --stamp-color: #a04a5e;
+  background: var(--card-bg);
+  --card-muted: color-mix(in srgb, var(--card-ink) 72%, var(--card-bg));
+  color: var(--card-ink);
+}
+.mustard {
+  --card-bg: #d6a02c;
+  --card-ink: #40300a;
+  --stamp-fill: #fdf5df;
+  --stamp-border: color-mix(in srgb, var(--stamp-fill) 60%, transparent);
+  --stamp-color: #a87a14;
+  background: var(--card-bg);
+  --card-muted: color-mix(in srgb, var(--card-ink) 72%, var(--card-bg));
+  color: var(--card-ink);
+}
+.clay {
+  --card-bg: #b4674a;
+  --card-ink: #421f13;
+  --stamp-fill: #fbeee8;
+  --stamp-border: color-mix(in srgb, var(--stamp-fill) 60%, transparent);
+  --stamp-color: #8d4a32;
+  background: var(--card-bg);
+  --card-muted: color-mix(in srgb, var(--card-ink) 72%, var(--card-bg));
+  color: var(--card-ink);
+}
+.graphite {
+  --card-bg: #3c434b;
+  --card-ink: #f7f8f9;
+  --stamp-fill: #eef0f2;
+  --stamp-border: color-mix(in srgb, var(--stamp-fill) 60%, transparent);
+  --stamp-color: #59626c;
+  background: var(--card-bg);
+  --card-muted: color-mix(in srgb, var(--card-ink) 72%, var(--card-bg));
+  color: var(--card-ink);
+}
+.espresso {
+  --card-bg: #4a3529;
+  --card-ink: #fdf8f3;
+  --stamp-fill: #f5ece5;
+  --stamp-border: color-mix(in srgb, var(--stamp-fill) 60%, transparent);
+  --stamp-color: #6b4f3f;
+  background: var(--card-bg);
+  --card-muted: color-mix(in srgb, var(--card-ink) 72%, var(--card-bg));
+  color: var(--card-ink);
+}
+.plum {
+  --card-bg: #5b3a63;
+  --card-ink: #fdf7ff;
+  --stamp-fill: #f3eaf5;
+  --stamp-border: color-mix(in srgb, var(--stamp-fill) 60%, transparent);
+  --stamp-color: #7b5385;
+  background: var(--card-bg);
+  --card-muted: color-mix(in srgb, var(--card-ink) 72%, var(--card-bg));
+  color: var(--card-ink);
+}
+.navy {
+  --card-bg: #0d2a4a;
+  --card-ink: #f6faff;
+  --stamp-fill: #e4ecf5;
+  --stamp-border: color-mix(in srgb, var(--stamp-fill) 60%, transparent);
+  --stamp-color: #1f4771;
+  background: var(--card-bg);
+  --card-muted: color-mix(in srgb, var(--card-ink) 72%, var(--card-bg));
+  color: var(--card-ink);
+}
+.sand {
+  --card-bg: #efe2cd;
+  --card-ink: #4b3a23;
+  --stamp-fill: #fffaf1;
+  --stamp-border: color-mix(in srgb, var(--stamp-fill) 60%, transparent);
+  --stamp-color: #a78a5d;
+  background: var(--card-bg);
+  --card-muted: color-mix(in srgb, var(--card-ink) 72%, var(--card-bg));
+  color: var(--card-ink);
+}
+.paper {
+  --card-bg: #f6f4ef;
+  --card-ink: #26323c;
+  --stamp-fill: #ffffff;
+  --stamp-border: color-mix(in srgb, var(--stamp-fill) 60%, transparent);
+  --stamp-color: #8b8377;
+  background: var(--card-bg);
+  --card-muted: color-mix(in srgb, var(--card-ink) 72%, var(--card-bg));
+  color: var(--card-ink);
+}
+.linen {
+  --card-bg: #e8ded2;
+  --card-ink: #443a2f;
+  --stamp-fill: #fdf9f4;
+  --stamp-border: color-mix(in srgb, var(--stamp-fill) 60%, transparent);
+  --stamp-color: #9c8873;
+  background: var(--card-bg);
+  --card-muted: color-mix(in srgb, var(--card-ink) 72%, var(--card-bg));
+  color: var(--card-ink);
+}
+.blush {
+  --card-bg: #f7dfe2;
+  --card-ink: #5a333c;
+  --stamp-fill: #fff8f9;
+  --stamp-border: color-mix(in srgb, var(--stamp-fill) 60%, transparent);
+  --stamp-color: #b97e8b;
+  background: var(--card-bg);
+  --card-muted: color-mix(in srgb, var(--card-ink) 72%, var(--card-bg));
+  color: var(--card-ink);
+}
+.stone {
+  --card-bg: #dcdfe3;
+  --card-ink: #333c45;
+  --stamp-fill: #f7f8f9;
+  --stamp-border: color-mix(in srgb, var(--stamp-fill) 60%, transparent);
+  --stamp-color: #8a929b;
+  background: var(--card-bg);
+  --card-muted: color-mix(in srgb, var(--card-ink) 72%, var(--card-bg));
+  color: var(--card-ink);
+}
+.ice {
+  --card-bg: #ddeef3;
+  --card-ink: #1f3f4a;
+  --stamp-fill: #f8fdff;
+  --stamp-border: color-mix(in srgb, var(--stamp-fill) 60%, transparent);
+  --stamp-color: #6f9aa5;
+  background: var(--card-bg);
+  --card-muted: color-mix(in srgb, var(--card-ink) 72%, var(--card-bg));
   color: var(--card-ink);
 }
 .card-watermark {
@@ -5929,11 +6209,6 @@ main#main-content {
   }
 }
 @media (max-width: 768px) {
-
-
-
-
-
 }
 
 .customer-card-actions {
