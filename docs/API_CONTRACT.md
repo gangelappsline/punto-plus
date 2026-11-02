@@ -76,7 +76,7 @@ el rol en el servidor. Un 401 definitivo cierra la sesión y devuelve a `/login`
 
 | Método y ruta                   | Entrada | Respuesta                                                            |
 | ------------------------------- | ------- | -------------------------------------------------------------------- |
-| `GET /cards`                    | —       | `LoyaltyCard[]`, incluyendo negocios no afiliados con `joined:false` |
+| `GET /customer/cards`           | —       | Respuesta paginada `{ data, links, meta }`; cada elemento contiene `loyalty_card` y `business` anidados |
 | `GET /promotions`               | —       | `Promotion[]`                                                        |
 | `GET /me/activity`              | —       | `Activity[]`, más reciente primero                                   |
 | `GET /me/favorites`             | —       | `string[]` de IDs de promoción                                       |
@@ -84,6 +84,8 @@ el rol en el servidor. Un 401 definitivo cierra la sesión y devuelve a `/login`
 | `POST /cards/:id/join`          | —       | 2xx; alta idempotente                                                |
 | `POST /cards/:id/redeem`        | `{}`    | 2xx; transacción validada por servidor                               |
 | `POST /me/qr`                   | —       | `{ token: string, expiresAt: ISO8601 }`                              |
+
+La respuesta de tarjetas normaliza el modelo de tarjeta de cliente (`stamps_count`, `required_stamps`, `status`) junto con `loyalty_card` y el negocio asociado. La API puede devolver URLs de recursos como enlaces Markdown y también campos nulos; el adaptador extrae la URL pública y usa valores de presentación seguros cuando faltan recompensa o dirección.
 
 `LoyaltyCard`:
 
