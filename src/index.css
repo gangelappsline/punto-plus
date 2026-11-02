@@ -7039,22 +7039,62 @@ main#main-content {
   color: #8393a2;
   font-size: 9px;
 }
-.nearby-map-card.has-strip .leaflet-bottom.leaflet-right {
-  bottom: 92px;
+/* Controles propios de Google Maps: se apartan de la tira inferior de negocios. */
+.nearby-map-card.has-strip .nearby-map-canvas .gm-bundled-control-on-bottom {
+  bottom: 86px;
 }
-.nearby-map-canvas .leaflet-control-zoom a {
-  color: #254865;
-}
-.nearby-map-canvas .leaflet-control-attribution {
+.nearby-map-canvas .gm-style-cc,
+.nearby-map-canvas .gmnoprint {
   font-size: 9px;
-  background: #ffffffcc;
+}
+.nearby-map-canvas .gm-style-cc a {
+  color: #7d90a3;
+}
+.nearby-map-iframe {
+  display: block;
+  border: 0;
+}
+.nearby-map-canvas[hidden] {
+  display: none;
+}
+.nearby-map-fallback {
+  position: absolute;
+  z-index: 400;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: max-content;
+  max-width: min(320px, calc(100% - 40px));
+  padding: 14px 18px;
+  border-radius: 12px;
+  background: #fffffff2;
+  box-shadow: 0 12px 32px #022f5326;
+  color: #455a6d;
+  font-size: 12px;
+  line-height: 1.55;
+  text-align: center;
 }
 
 /* Marcadores: pin redondeado blanco con el logo del negocio. */
-.pp-map-marker,
-.leaflet-div-icon.pp-map-marker {
-  background: transparent;
+.pp-map-marker {
+  display: block;
+  width: 54px;
+  height: 64px;
+  padding: 0;
   border: 0;
+  background: transparent;
+  cursor: pointer;
+  transition: transform 0.16s ease;
+  -webkit-tap-highlight-color: transparent;
+}
+.pp-map-marker:hover,
+.pp-map-marker.is-active {
+  transform: translateY(-2px) scale(1.06);
+}
+.pp-map-marker:focus-visible {
+  outline: 2px solid #2399a0;
+  outline-offset: 3px;
+  border-radius: 50%;
 }
 .pp-map-pin {
   display: flex;
@@ -7064,10 +7104,6 @@ main#main-content {
   height: 64px;
   filter: drop-shadow(0 6px 10px #022f532e);
   transition: transform 0.16s ease;
-}
-.pp-map-pin:hover,
-.pp-map-pin.is-active {
-  transform: translateY(-2px) scale(1.06);
 }
 .pp-map-pin-bubble {
   position: relative;
@@ -7082,7 +7118,7 @@ main#main-content {
     0 0 0 2px #ffffff,
     0 0 0 3.5px #c9e3e5;
 }
-.pp-map-pin.is-active .pp-map-pin-bubble {
+.pp-map-marker.is-active .pp-map-pin-bubble {
   box-shadow:
     0 0 0 2px #ffffff,
     0 0 0 4.5px #2399a0;
@@ -7110,13 +7146,9 @@ main#main-content {
   background: #ffffff;
   transform: rotate(45deg);
 }
-.pp-map-marker-user,
-.leaflet-div-icon.pp-map-marker-user {
-  background: transparent;
-  border: 0;
-}
 .pp-map-user {
   position: relative;
+  pointer-events: none;
   display: block;
   width: 18px;
   height: 18px;

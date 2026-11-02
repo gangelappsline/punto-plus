@@ -194,7 +194,7 @@ describe('Experiencia de cliente', () => {
     expect(nearMe).not.toHaveBeenCalled();
   });
 
-  it('abre el modal del negocio al tocar su marcador en el mapa', async () => {
+  it('muestra el negocio normalizado con su distancia y logo en la lista del mapa', async () => {
     vi.spyOn(api, 'nearMe').mockResolvedValue([
       {
         id: '45',
@@ -214,13 +214,13 @@ describe('Experiencia de cliente', () => {
     stubGeolocation({ permission: 'granted', latitude: 19.3020916, longitude: -104.1540069 });
     const user = setup('/app/cerca-de-mi');
 
-    const marker = await screen.findByTitle('Taqueria Chayito');
-    expect(marker.querySelector('.pp-map-pin-bubble img')).toHaveAttribute(
-      'src',
-      'https://example.com/chayito.png',
-    );
-    await user.click(marker);
+    const business = await screen.findByRole('button', {
+      name: 'Ver información de Taqueria Chayito',
+    });
+    expect(business).toHaveTextContent('Muy cerca');
+    expect(business.querySelector('img')).toHaveAttribute('src', 'https://example.com/chayito.png');
 
+    await user.click(business);
     const dialog = await screen.findByRole('dialog', { name: 'Taqueria Chayito' });
     expect(dialog).toHaveTextContent('Muy cerca');
     expect(dialog).toHaveTextContent('Ya tienes su tarjeta');
@@ -229,6 +229,19 @@ describe('Experiencia de cliente', () => {
       'href',
       expect.stringContaining('destination=19.3020916%2C-104.1540069'),
     );
+  });
+
+  it('usa un mapa de respaldo cuando Google Maps no está configurado', async () => {
+    stubGeolocation({ permission: 'granted' });
+    setup('/app/cerca-de-mi');
+
+    expect(await screen.findByTitle('Mapa de negocios cercanos')).toHaveAttribute(
+      'src',
+      expect.stringContaining('https://www.openstreetmap.org/export/embed.html'),
+    );
+    expect(
+      await screen.findByRole('button', { name: 'Ver información de Café Avellaneda' }),
+    ).toBeInTheDocument();
   });
 
   it('abre el modal del negocio desde la lista de negocios cercanos', async () => {
