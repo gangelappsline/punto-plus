@@ -112,7 +112,7 @@ export function CardsPage() {
 
   return (
     <>
-      <div className="page-intro customer-cards-intro mt-6">
+      <div className="mt-6">
         <div>
           <h1>
             Tus tarjetas <span>de lealtad.</span>
@@ -139,7 +139,7 @@ export function CardsPage() {
       <section className="section customer-cards-section">
         <div className="section-title">
           <h2>
-            Tarjetas disponibles <span className="count-badge">{joined.length}</span>
+            Tarjetas disponibles <span className="count-badge ml-2">{joined.length}</span>
           </h2>
           <label className="sort-control">
             <span className="sr-only">Ordenar tarjetas</span>
