@@ -7019,3 +7019,129 @@ main#main-content {
     font-size: 13px;
   }
 }
+
+/* Business profile: promotion cards, date range and upload dialog remain usable on mobile. */
+.business-promotions article {
+  min-width: 0;
+  align-items: stretch;
+}
+.business-promotions article > img {
+  flex: 0 0 170px;
+  aspect-ratio: 4 / 3;
+  min-width: 0;
+  object-fit: cover;
+}
+.business-promotions article > div {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.business-promotions article small {
+  display: block;
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+  margin-top: 4px;
+}
+.promotion-date-hint {
+  line-height: 1.6;
+  margin: -2px 0 14px;
+}
+.promotion-banner-upload {
+  min-width: 0;
+  margin: 2px 0 0;
+}
+.promotion-banner-upload > span {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.promotion-banner-preview {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+  margin: -6px 0 4px;
+}
+.promotion-banner-preview img {
+  display: block;
+  width: 100%;
+  max-height: 220px;
+  aspect-ratio: 16 / 9;
+  object-fit: cover;
+  border-radius: 10px;
+}
+.promotion-date-range > label {
+  min-width: 0;
+}
+.promotion-date-range input {
+  min-width: 0;
+}
+
+@media (max-width: 768px) {
+  .section-title {
+    align-items: flex-start;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+  .section-title > h2 {
+    min-width: 0;
+    flex: 1 1 180px;
+  }
+  .section-title > .button {
+    flex: 0 0 auto;
+    white-space: nowrap;
+  }
+  .business-promotions article {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .business-promotions article > img {
+    width: 100%;
+    height: auto;
+    aspect-ratio: 16 / 9;
+  }
+  .business-promotions article > div {
+    padding: clamp(14px, 4vw, 20px);
+  }
+  .dialog-content {
+    width: min(560px, calc(100% - 24px));
+    max-height: calc(100dvh - 24px);
+    padding: clamp(16px, 4vw, 22px);
+    overscroll-behavior: contain;
+  }
+  .modal-form,
+  .modal-form label,
+  .modal-form .form-columns {
+    min-width: 0;
+  }
+  .modal-form input,
+  .modal-form select,
+  .modal-form textarea {
+    max-width: 100%;
+    min-width: 0;
+  }
+}
+
+@media (max-width: 540px) {
+  .section-title {
+    align-items: stretch;
+  }
+  .section-title > h2,
+  .section-title > .button {
+    flex-basis: 100%;
+  }
+  .section-title > .button {
+    justify-content: center;
+  }
+  .modal-form .form-columns,
+  .promotion-date-range {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0;
+  }
+  .business-promotions article > div {
+    padding: 14px;
+  }
+  .business-promotions article h3 {
+    overflow-wrap: anywhere;
+  }
+}

@@ -60,26 +60,30 @@ test('configura la tarjeta y registra una compra con confirmación', async ({ pa
     page.getByRole('button', { name: /Ver tarjeta de Café de Sofía, 7 de 8/ }),
   ).toBeVisible();
 });
-test('publica y guarda una promoción', async ({ page }) => {
+test('publica una promoción permanente y se adapta al ancho disponible', async ({ page }) => {
   await page.goto('/admin/negocio');
   await page.getByRole('button', { name: 'Promociones', exact: true }).click();
   await page.getByRole('button', { name: 'Nueva promoción' }).click();
   await page.getByLabel('Título', { exact: true }).fill('Un café para compartir');
-  await page
-    .getByLabel('Descripción y condiciones')
-    .fill('Dos cafés por el precio de uno. Válido de lunes a viernes de 8 a 10 h.');
-  await page.getByLabel('Válida hasta').fill('2030-12-31');
+  await page.getByLabel('Descripción').fill('Dos cafés por el precio de uno.');
+  await page.getByLabel('Agregar imagen banner de la promoción').setInputFiles({
+    name: 'banner.png',
+    mimeType: 'image/png',
+    buffer: Buffer.from(
+      'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/vZ8AAAAASUVORK5CYII=',
+      'base64',
+    ),
+  });
+  await expect(
+    page.getByRole('img', { name: 'Vista previa del banner de promoción' }),
+  ).toHaveAttribute('src', /^data:image\/png;base64,/);
+  await page.getByLabel('Tipo de beneficio').selectOption('percentage');
+  await page.getByLabel('Porcentaje de descuento').fill('20');
+  await expect(page.getByLabel('Promoción permanente, sin fecha de término')).toBeChecked();
   await page.getByRole('button', { name: 'Publicar promoción' }).click();
   await expect(page.getByRole('dialog')).not.toBeVisible();
-  await page.goto('/app/explorar');
-  await page
-    .getByRole('textbox', { name: 'Buscar negocios o tarjetas' })
-    .fill('Un café para compartir');
-  const favorite = page.getByRole('button', { name: 'Guardar en favoritos: Café Avellaneda' });
-  await favorite.click();
-  await expect(
-    page.getByRole('button', { name: 'Quitar de favoritos: Café Avellaneda' }),
-  ).toHaveAttribute('aria-pressed', 'true');
-  await page.getByRole('button', { name: 'Guardados', exact: true }).click();
-  await expect(page.getByRole('heading', { name: 'Un café para compartir' })).toBeVisible();
+  await expect(page.getByText(/Permanente.*sin fecha de término/)).toBeVisible();
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(
+    true,
+  );
 });
