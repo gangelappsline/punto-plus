@@ -13,18 +13,45 @@ import {
   Plus,
   Save,
   ShoppingBag,
+  Sparkles,
   Store,
   Trash2,
   Utensils,
   X,
 } from 'lucide-react';
 import { toast } from 'sonner';
-import type { BusinessConfig, MenuItem, MenuFontFamily } from '../lib/types';
+import type {
+  BusinessConfig,
+  MenuCardStyle,
+  MenuFontFamily,
+  MenuLayout,
+  MenuLogoShape,
+  MenuNavStyle,
+  MenuSurface,
+  MenuItem,
+} from '../lib/types';
 import { fontOptions, fontStack } from '../components/LoyaltyCard';
 import { useBusiness, usePublicCategories, useSaveBusinessDraft } from '../lib/queries';
 import { readImage } from '../lib/image';
 import { publicMenuUrl } from '../lib/utils';
-import { menuStylePresetFor, menuStylePresets, menuStylePresetValues } from '../lib/menuStyles';
+import {
+  cardStyleClass,
+  defaultMenuDesign,
+  logoShapeClass,
+  menuCardStyleOptions,
+  menuLayoutOptions,
+  menuLogoShapeOptions,
+  menuNavStyleOptions,
+  menuSurfaceOptions,
+  menuTemplateFor,
+  menuTemplateGroups,
+  menuTemplates,
+  menuTemplateValues,
+  menuTheme,
+  resolveMenuDesign,
+  type MenuDesign,
+  type MenuTemplate,
+} from '../lib/menuStyles';
 import type { BusinessWizardStep, PublicCategory } from '../services/api';
 import { Button } from '../components/ui/button';
 import { Dialog } from '../components/ui/dialog';
@@ -62,6 +89,11 @@ type Draft = {
   secondaryColor: string;
   fontFamily: MenuFontFamily;
   menuStyle: 'cozy' | 'compact';
+  layout: MenuLayout;
+  logoShape: MenuLogoShape;
+  cardStyle: MenuCardStyle;
+  surface: MenuSurface;
+  navStyle: MenuNavStyle;
   serviceDays: number[];
   openingTime: string;
   closingTime: string;
@@ -79,10 +111,15 @@ const initialDraft: Draft = {
   address: '',
   categories: [],
   menuItems: [],
-  primaryColor: '#187f79',
-  secondaryColor: '#f4d5b3',
-  fontFamily: 'dm-sans',
-  menuStyle: 'cozy',
+  primaryColor: defaultMenuDesign.primaryColor,
+  secondaryColor: defaultMenuDesign.secondaryColor,
+  fontFamily: defaultMenuDesign.fontFamily,
+  menuStyle: defaultMenuDesign.menuStyle,
+  layout: defaultMenuDesign.layout,
+  logoShape: defaultMenuDesign.logoShape,
+  cardStyle: defaultMenuDesign.cardStyle,
+  surface: defaultMenuDesign.surface,
+  navStyle: defaultMenuDesign.navStyle,
   serviceDays: [1, 2, 3, 4, 5, 6],
   openingTime: '09:00',
   closingTime: '18:00',
@@ -113,6 +150,11 @@ function draftFromBusiness(config: BusinessConfig): Draft {
     secondaryColor: config.secondaryColor ?? initialDraft.secondaryColor,
     fontFamily: config.fontFamily ?? initialDraft.fontFamily,
     menuStyle: config.menuStyle ?? initialDraft.menuStyle,
+    layout: config.menuLayout ?? initialDraft.layout,
+    logoShape: config.menuLogoShape ?? initialDraft.logoShape,
+    cardStyle: config.menuCardStyle ?? initialDraft.cardStyle,
+    surface: config.menuSurface ?? initialDraft.surface,
+    navStyle: config.menuNavStyle ?? initialDraft.navStyle,
     serviceDays: config.serviceDays ?? initialDraft.serviceDays,
     openingTime: config.openingTime ?? initialDraft.openingTime,
     closingTime: config.closingTime ?? initialDraft.closingTime,
@@ -178,14 +220,29 @@ export function BusinessMenuWizard() {
     });
     return [...categories.values()];
   }, [draft.categories, publicCategories.data]);
-  /** Estilo precargado que representa el diseño actual, si hay uno. */
-  const activePreset = useMemo(() => menuStylePresetFor(draft), [draft]);
-  const showDesignControls = customDesign ?? !activePreset;
+  /** Plantilla que representa el diseño actual, si hay una. */
+  const activeTemplate = useMemo(() => menuTemplateFor(draft), [draft]);
+  const showDesignControls = customDesign ?? !activeTemplate;
   const update = <K extends keyof Draft>(key: K, value: Draft[K]) => {
     draftRevision.current += 1;
     setDraftSavedAt(null);
     setDraft((current) => ({ ...current, [key]: value }));
   };
+
+  /** Aplica una plantilla completa (colores, tipografía y presentación). */
+  function applyTemplate(template: MenuTemplate) {
+    const values = menuTemplateValues(template);
+    draftRevision.current += 1;
+    setDraftSavedAt(null);
+    setDraft((current) => ({ ...current, ...values }));
+    setCustomDesign(false);
+  }
+
+  /** Cambia un ajuste suelto del diseño sin salir de «Personalizar». */
+  function updateDesign<K extends keyof MenuDesign & keyof Draft>(key: K, value: Draft[K]) {
+    update(key, value);
+    setCustomDesign(true);
+  }
 
   function toggleCategory(category: string) {
     const removing = draft.categories.includes(category);
@@ -282,6 +339,11 @@ export function BusinessMenuWizard() {
       allowOrders: draft.allowOrders,
       fontFamily: draft.fontFamily,
       menuStyle: draft.menuStyle,
+      menuLayout: draft.layout,
+      menuLogoShape: draft.logoShape,
+      menuCardStyle: draft.cardStyle,
+      menuSurface: draft.surface,
+      menuNavStyle: draft.navStyle,
       onboarded: current.onboarded ?? false,
     };
   }
@@ -317,11 +379,27 @@ export function BusinessMenuWizard() {
       };
     }
     if (index === 3) {
+      const design = resolveMenuDesign({
+        primaryColor: config.primaryColor,
+        secondaryColor: config.secondaryColor,
+        fontFamily: config.fontFamily,
+        menuStyle: config.menuStyle,
+        layout: config.menuLayout,
+        logoShape: config.menuLogoShape,
+        cardStyle: config.menuCardStyle,
+        surface: config.menuSurface,
+        navStyle: config.menuNavStyle,
+      });
       return {
-        primary_color: config.primaryColor ?? '',
-        secondary_color: config.secondaryColor ?? '',
-        font_family: config.fontFamily ?? 'dm-sans',
-        menu_style: config.menuStyle ?? 'cozy',
+        primary_color: design.primaryColor,
+        secondary_color: design.secondaryColor,
+        font_family: design.fontFamily,
+        menu_style: design.menuStyle,
+        menu_layout: design.layout,
+        logo_shape: design.logoShape,
+        card_style: design.cardStyle,
+        surface: design.surface,
+        nav_style: design.navStyle,
       };
     }
     return {
@@ -858,75 +936,52 @@ export function BusinessMenuWizard() {
             )}
 
             {step === 3 && (
-              <section className="flex flex-col gap-4">
+              <section className="flex flex-col gap-5">
                 <p className="-mt-2 mb-1 text-sm leading-6 text-slate-500">
-                  Elige un estilo y tu menú queda listo en un toque. Si ninguno te acomoda, usa
-                  «Personalizar» y ajusta todo a tu gusto.
+                  Elige una plantilla y tu menú queda listo en un toque: cambia colores, tipografía,
+                  fondo, forma del logo y estilo de tarjetas. Si prefieres combinarlo tú, abre
+                  «Personalizar».
                 </p>
-                <div
-                  className="grid grid-cols-1 gap-3 sm:grid-cols-2"
-                  role="group"
-                  aria-label="Estilos de menú"
-                >
-                  {menuStylePresets.map((preset) => {
-                    const selected = activePreset?.id === preset.id && !customDesign;
-                    return (
-                      <button
-                        type="button"
-                        key={preset.id}
-                        aria-pressed={selected}
-                        aria-label={`Estilo ${preset.label}`}
-                        className={`flex min-w-0 flex-col gap-2 rounded-xl border p-3 text-left transition ${
-                          selected
-                            ? 'border-emerald-500 bg-emerald-50 ring-2 ring-emerald-500/20'
-                            : 'border-slate-200 hover:border-emerald-300 hover:bg-slate-50'
-                        }`}
-                        onClick={() => {
-                          const values = menuStylePresetValues(preset);
-                          update('primaryColor', values.primaryColor);
-                          update('secondaryColor', values.secondaryColor);
-                          update('fontFamily', values.fontFamily);
-                          update('menuStyle', values.menuStyle);
-                          setCustomDesign(false);
-                        }}
-                      >
-                        <span
-                          className="flex w-full items-center gap-2 rounded-lg px-3 py-2"
-                          style={{ backgroundColor: preset.secondaryColor }}
-                          aria-hidden="true"
-                        >
-                          <span
-                            className="text-xl leading-none font-extrabold"
-                            style={{
-                              color: preset.primaryColor,
-                              fontFamily: fontStack(preset.fontFamily),
-                            }}
-                          >
-                            Aa
-                          </span>
-                          <span className="ml-auto flex items-center gap-1">
-                            <span
-                              className="size-3 rounded-full"
-                              style={{ backgroundColor: preset.primaryColor }}
-                            />
-                            <span
-                              className="h-1.5 w-6 rounded-full"
-                              style={{ backgroundColor: preset.primaryColor }}
-                            />
-                          </span>
-                        </span>
-                        <span className="min-w-0">
-                          <strong className="flex items-center gap-1.5 text-sm font-bold text-slate-800">
-                            {preset.label}
-                            {selected && <Check size={14} className="text-emerald-600" />}
-                          </strong>
-                          <small className="block text-xs leading-5 text-slate-500">
-                            {preset.description}
-                          </small>
-                        </span>
-                      </button>
-                    );
-                  })}
+                <div className="flex flex-col gap-4" role="group" aria-label="Estilos de menú">
+                  {menuTemplateGroups.map((group) => (
+                    <div className="flex flex-col gap-2" key={group}>
+                      <h3 className="text-[11px] font-bold tracking-[0.14em] text-slate-500 uppercase">
+                        {group}
+                      </h3>
+                      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                        {menuTemplates
+                          .filter((template) => template.group === group)
+                          .map((template) => {
+                            const selected = activeTemplate?.id === template.id && !customDesign;
+                            return (
+                              <button
+                                type="button"
+                                key={template.id}
+                                aria-pressed={selected}
+                                aria-label={`Estilo ${template.label}`}
+                                className={`flex min-w-0 flex-col gap-2 rounded-xl border p-3 text-left transition ${
+                                  selected
+                                    ? 'border-emerald-500 bg-emerald-50 ring-2 ring-emerald-500/20'
+                                    : 'border-slate-200 hover:border-emerald-300 hover:bg-slate-50'
+                                }`}
+                                onClick={() => applyTemplate(template)}
+                              >
+                                <TemplateThumb template={template} />
+                                <span className="min-w-0">
+                                  <strong className="flex items-center gap-1.5 text-sm font-bold text-slate-800">
+                                    {template.label}
+                                    {selected && <Check size={14} className="text-emerald-600" />}
+                                  </strong>
+                                  <small className="block text-xs leading-5 text-slate-500">
+                                    {template.description}
+                                  </small>
+                                </span>
+                              </button>
+                            );
+                          })}
+                      </div>
+                    </div>
+                  ))}
                   <button
                     type="button"
                     aria-pressed={showDesignControls}
@@ -954,7 +1009,7 @@ export function BusinessMenuWizard() {
                         {showDesignControls && <Check size={14} className="text-emerald-600" />}
                       </strong>
                       <small className="block text-xs leading-5 text-slate-500">
-                        Tipografía, colores y forma de presentación a tu medida.
+                        Portada, fondo, logo, tarjetas, tipografía y colores a tu medida.
                       </small>
                     </span>
                   </button>
@@ -965,9 +1020,9 @@ export function BusinessMenuWizard() {
                       <span className="text-xs font-bold tracking-wide text-slate-700 uppercase">
                         Ajustes del menú
                       </span>
-                      {activePreset && customDesign && (
+                      {activeTemplate && customDesign && (
                         <span className="text-xs text-slate-500">
-                          Partiste del estilo {activePreset.label}
+                          Partiste del estilo {activeTemplate.label}
                         </span>
                       )}
                     </div>
@@ -977,7 +1032,7 @@ export function BusinessMenuWizard() {
                         className={fieldControlClass}
                         value={draft.fontFamily}
                         onChange={(event) =>
-                          update('fontFamily', event.target.value as Draft['fontFamily'])
+                          updateDesign('fontFamily', event.target.value as Draft['fontFamily'])
                         }
                       >
                         {fontOptions.map((font) => (
@@ -988,15 +1043,47 @@ export function BusinessMenuWizard() {
                       </select>
                     </label>
                     <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                      <SelectField
+                        label="Portada"
+                        value={draft.layout}
+                        options={menuLayoutOptions}
+                        onChange={(value) => updateDesign('layout', value)}
+                      />
+                      <SelectField
+                        label="Forma del logo"
+                        value={draft.logoShape}
+                        options={menuLogoShapeOptions}
+                        onChange={(value) => updateDesign('logoShape', value)}
+                      />
+                      <SelectField
+                        label="Fondo del menú"
+                        value={draft.surface}
+                        options={menuSurfaceOptions}
+                        onChange={(value) => updateDesign('surface', value)}
+                      />
+                      <SelectField
+                        label="Estilo de tarjetas"
+                        value={draft.cardStyle}
+                        options={menuCardStyleOptions}
+                        onChange={(value) => updateDesign('cardStyle', value)}
+                      />
+                      <SelectField
+                        label="Estilo de categorías"
+                        value={draft.navStyle}
+                        options={menuNavStyleOptions}
+                        onChange={(value) => updateDesign('navStyle', value)}
+                      />
+                    </div>
+                    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                       <ColorField
                         label="Color principal"
                         value={draft.primaryColor}
-                        onChange={(value) => update('primaryColor', value)}
+                        onChange={(value) => updateDesign('primaryColor', value)}
                       />
                       <ColorField
                         label="Color secundario"
                         value={draft.secondaryColor}
-                        onChange={(value) => update('secondaryColor', value)}
+                        onChange={(value) => updateDesign('secondaryColor', value)}
                       />
                     </div>
                     <fieldset className="flex flex-col gap-2 rounded-2xl border border-slate-200 bg-white p-4">
@@ -1011,7 +1098,7 @@ export function BusinessMenuWizard() {
                           type="radio"
                           name="menu-style"
                           checked={draft.menuStyle === 'cozy'}
-                          onChange={() => update('menuStyle', 'cozy')}
+                          onChange={() => updateDesign('menuStyle', 'cozy')}
                         />
                         <span>
                           <strong className="text-sm font-bold text-slate-800">Espacioso</strong>
@@ -1028,7 +1115,7 @@ export function BusinessMenuWizard() {
                           type="radio"
                           name="menu-style"
                           checked={draft.menuStyle === 'compact'}
-                          onChange={() => update('menuStyle', 'compact')}
+                          onChange={() => updateDesign('menuStyle', 'compact')}
                         />
                         <span>
                           <strong className="text-sm font-bold text-slate-800">Compacto</strong>
@@ -1041,7 +1128,7 @@ export function BusinessMenuWizard() {
                   </div>
                 ) : (
                   <p className="text-xs leading-5 text-slate-500">
-                    Tu menú está usando el estilo <strong>{activePreset?.label}</strong>. Puedes
+                    Tu menú está usando el estilo <strong>{activeTemplate?.label}</strong>. Puedes
                     cambiarlo cuando quieras.
                   </p>
                 )}
@@ -1285,6 +1372,79 @@ function CategoryGlyph({ category, selected }: { category: PublicCategory; selec
   );
 }
 
+function SelectField<T extends string>({
+  label,
+  value,
+  options,
+  onChange,
+}: {
+  label: string;
+  value: T;
+  options: { value: T; label: string; description: string }[];
+  onChange: (value: T) => void;
+}) {
+  return (
+    <label className="flex min-w-0 flex-col gap-2 text-xs font-semibold text-slate-700">
+      {label}
+      <select
+        className={fieldControlClass}
+        value={value}
+        onChange={(event) => onChange(event.target.value as T)}
+      >
+        {options.map((option) => (
+          <option key={option.value} value={option.value}>
+            {option.label}
+          </option>
+        ))}
+      </select>
+      <span className="text-[11px] leading-4 font-normal text-slate-500">
+        {options.find((option) => option.value === value)?.description}
+      </span>
+    </label>
+  );
+}
+
+/** Miniatura de una plantilla: fondo, logo y tarjetas del estilo real. */
+function TemplateThumb({ template }: { template: MenuTemplate }) {
+  const theme = menuTheme(template);
+  return (
+    <span
+      className="flex w-full flex-col gap-1.5 overflow-hidden rounded-lg p-2"
+      style={{ backgroundColor: theme.surface, color: theme.ink }}
+      aria-hidden="true"
+    >
+      <span className="flex items-center gap-1.5">
+        <span
+          className={`grid size-5 shrink-0 place-items-center border text-[8px] font-extrabold ${logoShapeClass[template.logoShape]}`}
+          style={{ backgroundColor: template.secondaryColor, borderColor: theme.border }}
+        >
+          <span style={{ color: template.primaryColor }}>Aa</span>
+        </span>
+        <span className="h-1.5 flex-1 rounded-full" style={{ backgroundColor: theme.muted }} />
+      </span>
+      <span className="flex items-center gap-1">
+        <span
+          className="h-1.5 w-6 rounded-full"
+          style={{ backgroundColor: template.primaryColor }}
+        />
+        <span className="h-1.5 w-4 rounded-full" style={{ backgroundColor: theme.border }} />
+      </span>
+      <span className="flex gap-1">
+        {[0, 1].map((index) => (
+          <span
+            key={index}
+            className={`h-5 flex-1 ${cardStyleClass[template.cardStyle]}`}
+            style={{
+              backgroundColor: theme.card,
+              borderColor: template.cardStyle === 'flat' ? 'transparent' : theme.border,
+            }}
+          />
+        ))}
+      </span>
+    </span>
+  );
+}
+
 function ColorField({
   label,
   value,
@@ -1319,175 +1479,343 @@ function ColorField({
 }
 
 function LiveMenuPreview({ draft }: { draft: Draft }) {
+  const design = resolveMenuDesign(draft);
+  const theme = menuTheme(design);
   const categories = draft.categories.length ? draft.categories : ['Categorías'];
   const previewItems = draft.menuItems.length
     ? draft.menuItems.slice(0, 4)
     : [{ id: 'preview-one', name: 'Tu próximo favorito', category: categories[0], price: '95' }];
+  const compact = design.menuStyle === 'compact';
+  const poster = design.layout === 'poster';
+  const shortHero = design.layout === 'compact';
+
+  const dishCard = (
+    item: { id: string; name?: string; category?: string; price?: string; image?: string },
+    popular: boolean,
+  ) => (
+    <article
+      key={item.id}
+      className={`flex min-w-0 overflow-hidden ${cardStyleClass[design.cardStyle]} ${
+        popular ? 'flex-col' : 'items-center'
+      }`}
+      style={{
+        backgroundColor: theme.card,
+        borderColor: design.cardStyle === 'flat' ? 'transparent' : theme.border,
+      }}
+    >
+      {design.cardStyle === 'bold' && (
+        <span
+          className={popular ? 'h-1 w-full' : 'h-full w-1'}
+          style={{ backgroundColor: draft.primaryColor }}
+        />
+      )}
+      <span
+        className={`relative shrink-0 overflow-hidden ${popular ? 'block h-16 w-full' : 'block size-12'}`}
+        style={{ backgroundColor: theme.surfaceSoft }}
+      >
+        {item.image ? (
+          <img src={item.image} alt="" className="size-full object-cover" />
+        ) : (
+          <span className="grid size-full place-items-center" style={{ color: theme.muted }}>
+            <Utensils size={14} />
+          </span>
+        )}
+        {popular && (
+          <span
+            className="absolute top-1 left-1 rounded-full px-1.5 py-0.5 text-[7px] font-bold"
+            style={{ backgroundColor: draft.primaryColor, color: theme.onPrimary }}
+          >
+            Favorito
+          </span>
+        )}
+      </span>
+      <span className={`flex min-w-0 flex-1 flex-col gap-0.5 ${compact ? 'p-1.5' : 'p-2'}`}>
+        <span
+          className="text-[7px] font-extrabold tracking-[0.08em] uppercase"
+          style={{ color: draft.primaryColor }}
+        >
+          {item.category || 'De la casa'}
+        </span>
+        <strong className="line-clamp-2 text-[10px] leading-3 font-bold">
+          {item.name || 'Nombre del platillo'}
+        </strong>
+        <span className="text-[10px] font-extrabold tabular-nums">
+          {item.price ? `$${item.price}` : '$0.00'}
+        </span>
+      </span>
+    </article>
+  );
+
   return (
     <div
-      className={`restaurant-menu business-live-device menu-style-${draft.menuStyle}`}
+      data-testid="menu-design-preview"
+      data-layout={design.layout}
+      data-logo-shape={design.logoShape}
+      data-card-style={design.cardStyle}
+      data-surface={design.surface}
+      data-nav-style={design.navStyle}
+      data-density={design.menuStyle}
+      className="mx-auto w-full max-w-[440px] overflow-hidden rounded-[24px] border-[5px] border-slate-800 shadow-xl"
       style={
         {
+          backgroundColor: theme.surface,
+          color: theme.ink,
+          fontFamily: fontStack(draft.fontFamily),
           '--restaurant-primary': draft.primaryColor,
           '--restaurant-soft': draft.secondaryColor,
-          '--menu-font-family': fontStack(draft.fontFamily),
         } as React.CSSProperties
       }
     >
-      <header className="restaurant-hero">
-        {draft.banner ? (
-          <img src={draft.banner} alt="" className="restaurant-hero-image" />
-        ) : (
-          <div className="restaurant-hero-image restaurant-hero-fallback" />
-        )}
-        <div className="restaurant-hero-shade" />
-        <div className="restaurant-hero-top">
-          <span className="restaurant-back">
-            <ArrowLeft size={17} />
-          </span>
-          <span className="restaurant-brand-mark">
-            <span>✦</span> PUNTO PLUS
-          </span>
-          <span className="restaurant-cart-top">
-            <ShoppingBag size={16} />
-            <span>{draft.allowOrders ? '0' : '—'}</span>
-          </span>
-        </div>
-        <div className="restaurant-identity">
-          <div className="restaurant-logo-wrap" style={{ borderColor: draft.secondaryColor }}>
-            {draft.logo ? (
-              <img src={draft.logo} alt="" />
-            ) : (
-              <Utensils size={24} style={{ color: draft.primaryColor }} />
-            )}
-          </div>
-          <p className="restaurant-eyebrow">MENÚ DEL RESTAURANTE</p>
-          <h1>{draft.name || 'Tu negocio'}</h1>
-          {draft.description && <p className="restaurant-description">{draft.description}</p>}
-          <div className="restaurant-meta">
-            {draft.address && (
-              <span>
-                <MapPin size={13} />
-                {draft.address}
+      <header
+        className={shortHero ? 'relative h-28 overflow-hidden' : 'relative h-44 overflow-hidden'}
+      >
+        {design.layout === 'split' ? (
+          <span className="absolute inset-0 flex">
+            <span
+              className="flex w-1/2 flex-col justify-center gap-1 px-3"
+              style={{ backgroundColor: draft.primaryColor, color: theme.onPrimary }}
+            >
+              <span className="flex items-center gap-1">
+                <span
+                  className={`grid size-6 shrink-0 place-items-center overflow-hidden border bg-white ${logoShapeClass[design.logoShape]}`}
+                  style={{ borderColor: theme.onPrimary }}
+                >
+                  {draft.logo ? (
+                    <img src={draft.logo} alt="" className="size-full object-cover" />
+                  ) : (
+                    <Utensils size={11} style={{ color: draft.primaryColor }} />
+                  )}
+                </span>
+                <span className="text-[7px] font-bold tracking-[0.16em] uppercase opacity-80">
+                  Menú del restaurante
+                </span>
               </span>
-            )}
-            <span>
-              <Clock3 size={13} />
-              {hoursLabel(draft)}
+              <span className="line-clamp-2 text-sm leading-4 font-extrabold">
+                {draft.name || 'Tu negocio'}
+              </span>
+              <span className="text-[8px] opacity-85">{hoursLabel(draft)}</span>
             </span>
-          </div>
+            <span className="relative w-1/2">
+              {draft.banner ? (
+                <img src={draft.banner} alt="" className="size-full object-cover" />
+              ) : (
+                <span className="block size-full" style={{ background: theme.hero }} />
+              )}
+            </span>
+          </span>
+        ) : (
+          <>
+            {draft.banner ? (
+              <img src={draft.banner} alt="" className="absolute inset-0 size-full object-cover" />
+            ) : (
+              <span className="absolute inset-0" style={{ background: theme.hero }} />
+            )}
+            <span className="absolute inset-0 bg-gradient-to-b from-slate-950/40 via-slate-900/50 to-slate-950/85" />
+          </>
+        )}
+        <div className="relative z-10 flex items-center justify-between px-3 pt-2.5 text-white">
+          <span className="grid size-6 place-items-center rounded-full border border-white/40 bg-white/15">
+            <ArrowLeft size={11} />
+          </span>
+          <span className="text-[7px] font-extrabold tracking-[0.18em]">PUNTO PLUS</span>
+          <span className="inline-flex items-center gap-1 rounded-full border border-white/40 bg-white/15 px-1.5 py-0.5 text-[8px]">
+            <ShoppingBag size={9} />
+            {draft.allowOrders ? '0' : '—'}
+          </span>
         </div>
-        <div className="restaurant-hero-bottom" />
+        {design.layout !== 'split' && (
+          <div
+            className={`relative z-10 flex flex-col gap-1 px-3 pt-3 text-white ${poster ? 'items-start text-left' : 'items-center text-center'}`}
+          >
+            <span
+              className={`grid size-9 shrink-0 place-items-center overflow-hidden border-2 shadow-lg ${logoShapeClass[design.logoShape]}`}
+              style={{ borderColor: draft.secondaryColor, backgroundColor: '#ffffff' }}
+            >
+              {draft.logo ? (
+                <img src={draft.logo} alt="" className="size-full object-cover" />
+              ) : (
+                <Utensils size={14} style={{ color: draft.primaryColor }} />
+              )}
+            </span>
+            <p className="text-[6px] font-bold tracking-[0.16em] text-white/75 uppercase">
+              MENÚ DEL RESTAURANTE
+            </p>
+            <h1 className="line-clamp-2 text-lg leading-5 font-extrabold">
+              {draft.name || 'Tu negocio'}
+            </h1>
+            {draft.description && (
+              <p className="line-clamp-2 max-w-[85%] text-[8px] leading-3 text-white/85">
+                {draft.description}
+              </p>
+            )}
+            <div className="flex flex-wrap items-center justify-center gap-x-2 gap-y-0.5 text-[7px] text-white/85">
+              {draft.address && (
+                <span className="inline-flex items-center gap-0.5">
+                  <MapPin size={8} />
+                  {draft.address}
+                </span>
+              )}
+              <span className="inline-flex items-center gap-0.5">
+                <Clock3 size={8} />
+                {hoursLabel(draft)}
+              </span>
+            </div>
+          </div>
+        )}
       </header>
-      <main className="restaurant-content">
-        <section className="restaurant-welcome">
-          <div className="text-center">
-            <p className="mb-1 text-[10px] font-extrabold uppercase tracking-[0.16em] text-emerald-700">
+      <div className="flex flex-col gap-3 px-2.5 py-3">
+        <section className="flex items-center justify-between gap-2" style={{ color: theme.ink }}>
+          <div className="min-w-0 text-center">
+            <p
+              className="text-[7px] font-extrabold tracking-[0.16em] uppercase"
+              style={{ color: draft.primaryColor }}
+            >
               HECHO PARA DISFRUTAR
             </p>
-            <h2>¿Qué se te antoja?</h2>
+            <p className="text-xs font-extrabold">¿Qué se te antoja?</p>
             <p className="!hidden">{draft.welcomeMessage || 'Explora nuestro menú.'}</p>
           </div>
-          <div className="restaurant-welcome-icon">
-            <Utensils size={19} />
-          </div>
+          <span
+            className={`grid size-7 shrink-0 place-items-center ${logoShapeClass[design.logoShape]}`}
+            style={{ backgroundColor: draft.secondaryColor, color: draft.primaryColor }}
+          >
+            <Utensils size={12} />
+          </span>
         </section>
-        <div className="!hidden flex h-10 items-center gap-2 rounded-xl border border-stone-200 bg-white px-3 text-xs text-slate-400">
-          ⌕ <span>Buscar en el menú</span>
-        </div>
-        <nav className="menu-category-nav" aria-label="Vista previa de categorías">
-          {['Todos', ...categories].map((category, index) => (
-            <span className={index === 0 ? 'selected' : ''} key={category}>
-              {category}
-            </span>
-          ))}
+        <nav className="flex gap-1.5 overflow-hidden" aria-label="Vista previa de categorías">
+          {['Todos', ...categories].map((category, index) => {
+            const active = index === 0;
+            if (design.navStyle === 'tabs') {
+              return (
+                <span
+                  key={category}
+                  className="shrink-0 border-b-2 pb-1 text-[8px] font-bold"
+                  style={{
+                    borderColor: active ? draft.primaryColor : 'transparent',
+                    color: active ? draft.primaryColor : theme.muted,
+                  }}
+                >
+                  {category}
+                </span>
+              );
+            }
+            if (design.navStyle === 'cards') {
+              return (
+                <span
+                  key={category}
+                  className="flex shrink-0 flex-col items-center gap-0.5 text-[7px] font-bold"
+                  style={{ color: active ? draft.primaryColor : theme.muted }}
+                >
+                  <span
+                    className="grid size-6 place-items-center rounded-full border"
+                    style={{
+                      backgroundColor: theme.card,
+                      borderColor: active ? draft.primaryColor : theme.border,
+                    }}
+                  >
+                    <Utensils size={10} />
+                  </span>
+                  {category}
+                </span>
+              );
+            }
+            return (
+              <span
+                key={category}
+                className="shrink-0 rounded-full px-2 py-1 text-[8px] font-bold"
+                style={{
+                  backgroundColor: active ? draft.primaryColor : theme.card,
+                  color: active ? theme.onPrimary : theme.muted,
+                  border: `1px solid ${active ? draft.primaryColor : theme.border}`,
+                }}
+              >
+                {category}
+              </span>
+            );
+          })}
         </nav>
-        <section className="menu-section">
-          <div className="menu-section-heading">
+        <section className="flex flex-col gap-1.5">
+          <div className="flex items-center gap-1.5">
+            <span
+              className="grid size-5 place-items-center rounded-md"
+              style={{ backgroundColor: draft.secondaryColor, color: draft.primaryColor }}
+            >
+              <Sparkles size={10} />
+            </span>
             <div>
-              <span className="menu-section-icon">
-                <span>✦</span>
-              </span>
-              <div>
-                <p className="mb-1 text-[10px] font-extrabold uppercase tracking-[0.16em] text-emerald-700">
-                  LOS FAVORITOS
-                </p>
-                <h2>Los más pedidos</h2>
-              </div>
-            </div>
-            <span className="menu-section-caption">De la casa</span>
-          </div>
-          <div className="popular-dishes">
-            {previewItems.slice(0, 3).map((item) => (
-              <article className="dish-card dish-card-popular" key={item.id}>
-                <span className="dish-image-wrap">
-                  {item.image ? (
-                    <img src={item.image} alt="" className="dish-image" />
-                  ) : (
-                    <span className="menu-preview-image-placeholder">
-                      <Utensils size={19} />
-                    </span>
-                  )}
-                </span>
-                <span className="dish-card-copy">
-                  <span className="dish-card-category">{item.category || 'De la casa'}</span>
-                  <strong>{item.name || 'Nombre del platillo'}</strong>
-                  <span className="dish-card-price">{item.price ? `$${item.price}` : '$0.00'}</span>
-                </span>
-              </article>
-            ))}
-          </div>
-        </section>
-        <section className="menu-section">
-          <div className="menu-section-heading">
-            <div>
-              <span className="menu-section-icon">
-                <Utensils size={14} />
-              </span>
-              <div>
-                <p className="mb-1 text-[10px] font-extrabold uppercase tracking-[0.16em] text-emerald-700">
-                  EL MENÚ
-                </p>
-                <h2>{categories[0]}</h2>
-              </div>
+              <p
+                className="text-[7px] font-extrabold tracking-[0.14em] uppercase"
+                style={{ color: draft.primaryColor }}
+              >
+                LOS FAVORITOS
+              </p>
+              <p className="text-[11px] font-extrabold">Los más pedidos</p>
             </div>
           </div>
-          <div className="menu-catalog-grid">
-            {previewItems.map((item) => (
-              <article className="dish-card" key={`catalog-${item.id}`}>
-                <span className="dish-image-wrap">
-                  {item.image ? (
-                    <img src={item.image} alt="" className="dish-image" />
-                  ) : (
-                    <span className="menu-preview-image-placeholder">
-                      <Utensils size={19} />
-                    </span>
-                  )}
-                </span>
-                <span className="dish-card-copy">
-                  <span className="dish-card-category">{item.category || categories[0]}</span>
-                  <strong>{item.name || 'Nombre del platillo'}</strong>
-                  <span className="dish-card-price">{item.price ? `$${item.price}` : '$0.00'}</span>
-                </span>
-              </article>
-            ))}
+          <div className="grid grid-cols-3 gap-1.5">
+            {previewItems.slice(0, 3).map((item) =>
+              dishCard(
+                item as {
+                  id: string;
+                  name?: string;
+                  category?: string;
+                  price?: string;
+                  image?: string;
+                },
+                true,
+              ),
+            )}
           </div>
         </section>
-        <div className="menu-preview-service">
-          {draft.deliveryAvailable && <span>Reparto a domicilio</span>}
-          {draft.allowOrders ? (
-            <span>Pedidos en línea disponibles</span>
-          ) : (
-            <span>Consulta disponibilidad en el negocio</span>
+        <section className="flex flex-col gap-1.5">
+          <div className="flex items-center gap-1.5">
+            <span
+              className="grid size-5 place-items-center rounded-md"
+              style={{ backgroundColor: draft.secondaryColor, color: draft.primaryColor }}
+            >
+              <Utensils size={10} />
+            </span>
+            <div>
+              <p
+                className="text-[7px] font-extrabold tracking-[0.14em] uppercase"
+                style={{ color: draft.primaryColor }}
+              >
+                EL MENÚ
+              </p>
+              <p className="text-[11px] font-extrabold">{categories[0]}</p>
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-1.5">
+            {previewItems.map((item) => dishCard({ ...item, id: `catalog-${item.id}` }, false))}
+          </div>
+        </section>
+        <div className="flex flex-wrap gap-1">
+          {draft.deliveryAvailable && (
+            <span
+              className="rounded-md px-1.5 py-0.5 text-[7px]"
+              style={{ backgroundColor: theme.surfaceSoft, color: theme.muted }}
+            >
+              Reparto a domicilio
+            </span>
           )}
+          <span
+            className="rounded-md px-1.5 py-0.5 text-[7px]"
+            style={{ backgroundColor: theme.surfaceSoft, color: theme.muted }}
+          >
+            {draft.allowOrders ? 'Pedidos en línea disponibles' : 'Consulta disponibilidad'}
+          </span>
           {draft.phoneNumbers.filter(Boolean).map((phone) => (
-            <span key={phone}>
-              <Phone size={12} />
+            <span
+              className="inline-flex items-center gap-0.5 rounded-md px-1.5 py-0.5 text-[7px]"
+              key={phone}
+              style={{ backgroundColor: theme.surfaceSoft, color: theme.muted }}
+            >
+              <Phone size={8} />
               {phone}
             </span>
           ))}
         </div>
-      </main>
+      </div>
     </div>
   );
 }

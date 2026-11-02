@@ -96,6 +96,31 @@ export const menuFontFamilies = [
 export const loyaltyCardThemeSchema = z.enum(loyaltyCardThemes);
 export const foodBrandIconSchema = z.enum(foodBrandIcons);
 export const menuFontFamilySchema = z.enum(menuFontFamilies);
+
+/**
+ * Ajustes del menú digital (`menu_design`).
+ *
+ * `menu_style` ya existía; el resto son claves opcionales que el backend puede
+ * ignorar: si no llegan, el menú se pinta con el diseño de siempre.
+ */
+export const menuLayouts = ['spotlight', 'poster', 'split', 'compact'] as const;
+export const menuLogoShapes = ['circle', 'squircle', 'square'] as const;
+export const menuCardStyles = ['soft', 'outlined', 'flat', 'bold'] as const;
+export const menuSurfaces = ['light', 'cream', 'sand', 'tinted', 'dark'] as const;
+export const menuNavStyles = ['pills', 'tabs', 'cards'] as const;
+export const menuDensities = ['cozy', 'compact'] as const;
+export const menuLayoutSchema = z.enum(menuLayouts);
+export const menuLogoShapeSchema = z.enum(menuLogoShapes);
+export const menuCardStyleSchema = z.enum(menuCardStyles);
+export const menuSurfaceSchema = z.enum(menuSurfaces);
+export const menuNavStyleSchema = z.enum(menuNavStyles);
+export const menuDensitySchema = z.enum(menuDensities);
+export type MenuLayout = (typeof menuLayouts)[number];
+export type MenuLogoShape = (typeof menuLogoShapes)[number];
+export type MenuCardStyle = (typeof menuCardStyles)[number];
+export type MenuSurface = (typeof menuSurfaces)[number];
+export type MenuNavStyle = (typeof menuNavStyles)[number];
+export type MenuDensity = (typeof menuDensities)[number];
 export type LoyaltyCardTheme = (typeof loyaltyCardThemes)[number];
 
 export interface LoyaltyCardThemeColors {
@@ -766,7 +791,12 @@ export const publicMenuSchema = z.object({
   deliveryAvailable: z.boolean().optional(),
   allowOrders: z.boolean().optional(),
   fontFamily: menuFontFamilySchema.optional(),
-  menuStyle: z.enum(['cozy', 'compact']).optional(),
+  menuStyle: menuDensitySchema.optional(),
+  menuLayout: menuLayoutSchema.optional(),
+  menuLogoShape: menuLogoShapeSchema.optional(),
+  menuCardStyle: menuCardStyleSchema.optional(),
+  menuSurface: menuSurfaceSchema.optional(),
+  menuNavStyle: menuNavStyleSchema.optional(),
   openingHours: z.string().optional(),
 });
 export type PublicMenu = z.infer<typeof publicMenuSchema>;
@@ -843,7 +873,12 @@ export const businessSchema = z.object({
   deliveryAvailable: z.boolean().optional(),
   allowOrders: z.boolean().optional(),
   fontFamily: menuFontFamilySchema.optional(),
-  menuStyle: z.enum(['cozy', 'compact']).optional(),
+  menuStyle: menuDensitySchema.optional(),
+  menuLayout: menuLayoutSchema.optional(),
+  menuLogoShape: menuLogoShapeSchema.optional(),
+  menuCardStyle: menuCardStyleSchema.optional(),
+  menuSurface: menuSurfaceSchema.optional(),
+  menuNavStyle: menuNavStyleSchema.optional(),
 });
 export type BusinessConfig = z.infer<typeof businessSchema>;
 export const businessQRConfigurationSchema = z.object({
