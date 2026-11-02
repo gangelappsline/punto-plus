@@ -15,6 +15,7 @@ import {
   loyaltyCardThemes,
   loyaltyCardThemeColors,
   menuFontFamilies,
+  nearbyBusinessSchema,
   promotionSchema,
   publicMenuSchema,
   type AdminBusiness,
@@ -24,6 +25,7 @@ import {
   type BusinessConfig,
   type BusinessQRConfiguration,
   type LoyaltyCard,
+  type NearbyBusiness,
   type Promotion,
 } from '../lib/types';
 import { baseURL, http } from './http';
@@ -973,6 +975,72 @@ function normalizeBusinessConfig(payload: unknown) {
   };
 }
 
+function normalizeNearbyBusiness(payload: unknown, index: number): NearbyBusiness {
+  const value = record(payload);
+  const rawCategories = Array.isArray(value.categories) ? value.categories : [];
+  const categoryFromList = rawCategories
+    .map((item) => (typeof item === 'string' ? item : stringValue(record(item).name)))
+    .find((name): name is string => Boolean(name?.trim()));
+  const categoryValue = firstDefined(value, ['category', 'business_category']);
+  const category =
+    stringValue(typeof categoryValue === 'object' ? record(categoryValue).name : categoryValue) ??
+    categoryFromList ??
+    'Negocio';
+  const latitude = firstDefined(value, ['latitude', 'lat']);
+  const longitude = firstDefined(value, ['longitude', 'lng', 'lon']);
+  const address = [value.address, value.city, value.country]
+    .map(stringValue)
+    .filter((part): part is string => Boolean(part?.trim()))
+    .join(', ');
+  const distanceKm = numberValue(firstDefined(value, ['distance_km', 'distanceKm']));
+  const logo = publicAssetUrl(firstDefined(value, ['logo_url', 'logo']));
+  const background = publicAssetUrl(
+    firstDefined(value, ['background_url', 'banner', 'background']),
+  );
+  const hasCard = firstDefined(value, ['has_card', 'hasCard']);
+  const activeValue = firstDefined(value, ['is_active', 'isActive']);
+  return nearbyBusinessSchema.parse({
+    id: stringValue(firstDefined(value, ['id', 'business_id'])) ?? `nearby-${index + 1}`,
+    name: stringValue(firstDefined(value, ['name', 'business_name'])) ?? 'Negocio sin nombre',
+    slug: stringValue(value.slug),
+    description: stringValue(value.description),
+    category,
+    logo,
+    background,
+    latitude,
+    longitude,
+    address: address || undefined,
+    location:
+      address ||
+      (latitude !== undefined && latitude !== null && longitude !== undefined && longitude !== null
+        ? 'Ubicación en mapa'
+        : 'Ubicación no disponible'),
+    distanceKm,
+    hasCard: typeof hasCard === 'boolean' ? hasCard : false,
+    activeLoyaltyCardsCount:
+      numberValue(
+        firstDefined(value, [
+          'active_loyalty_cards_count',
+          'activeLoyaltyCardsCount',
+          'loyalty_cards_count',
+          'loyaltyCardsCount',
+          'cards_count',
+          'cardsCount',
+        ]),
+      ) ?? 0,
+    activePromotionsCount:
+      numberValue(
+        firstDefined(value, [
+          'active_promotions_count',
+          'activePromotionsCount',
+          'promotions_count',
+          'promotionsCount',
+        ]),
+      ) ?? 0,
+    isActive: typeof activeValue === 'boolean' ? activeValue : true,
+  });
+}
+
 function normalizeCustomerCard(payload: unknown, index: number): LoyaltyCard {
   const customerCard = record(payload);
   const loyaltyCard = record(customerCard.loyalty_card ?? customerCard.loyaltyCard);
@@ -1329,10 +1397,38 @@ export const api = {
     const { data } = await http.get('/customer/cards', { params: { per_page: 100 } });
     return unwrapResourceList(data, ['cards', 'customer_cards']).map(normalizeCustomerCard);
   },
-  nearMe: async (coordinates: { latitude: number; longitude: number }) => {
-    if (isDemo) return readDB().cards;
+  nearMe: async (coordinates: {
+    latitude: number;
+    longitude: number;
+  }): Promise<NearbyBusiness[]> => {
+    if (isDemo)
+      return readDB().cards.map((card, index) => {
+        const distance = card.distance.match(/^([\d.]+)\s*(m|km)$/i);
+        const distanceValue = distance ? Number(distance[1]) : undefined;
+        return nearbyBusinessSchema.parse({
+          id: card.businessId || `nearby-${index + 1}`,
+          name: card.name,
+          category: card.category,
+          description: card.tagline,
+          logo: card.logo,
+          latitude: card.latitude,
+          longitude: card.longitude,
+          address: card.address,
+          location: card.location,
+          distanceKm:
+            distanceValue === undefined
+              ? undefined
+              : distance?.[2].toLowerCase() === 'm'
+                ? distanceValue / 1000
+                : distanceValue,
+          hasCard: card.joined,
+          activeLoyaltyCardsCount: 1,
+          activePromotionsCount: 0,
+          isActive: true,
+        });
+      });
     const { data } = await http.get('/customer/near-me', { params: coordinates });
-    return z.array(cardSchema).parse(data);
+    return unwrapResourceList(data, ['businesses', 'results']).map(normalizeNearbyBusiness);
   },
   promotions: async () => {
     if (isDemo) return readDB().promotions;
