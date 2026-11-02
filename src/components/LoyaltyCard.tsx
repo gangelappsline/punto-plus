@@ -162,7 +162,7 @@ const coloredClasses =
   'relative isolate overflow-hidden px-[22px] pt-[21px] pb-[13px] min-[1600px]:px-[26px] min-[1600px]:pt-6 min-[1600px]:pb-4 max-[1200px]:px-[15px] max-[1200px]:pt-[18px] max-[1200px]:pb-3 min-[769px]:max-[1000px]:p-[18px] max-[768px]:px-3 max-[768px]:pt-[17px] max-[768px]:pb-3 max-[540px]:px-6 max-[540px]:pt-[22px] max-[540px]:pb-[15px]';
 
 const watermarkClasses =
-  'absolute top-0 -right-7 -z-10 -rotate-[25deg] text-[color:var(--card-ink)] opacity-[0.035] [&_svg]:size-40 [&_svg]:[stroke-width:0.7]';
+  'absolute top-0 -right-7 -z-10 -rotate-[25deg] text-[color:var(--card-ink)] opacity-[0.135] [&_svg]:size-40 [&_svg]:[stroke-width:0.7]';
 
 const brandRowClasses = 'flex items-center gap-[10px] max-[1200px]:gap-[6px] max-[540px]:gap-3';
 

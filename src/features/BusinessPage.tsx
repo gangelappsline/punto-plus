@@ -6,7 +6,6 @@ import { z } from 'zod';
 import {
   ArrowUpRight,
   Check,
-  Gift,
   ImagePlus,
   Megaphone,
   Palette,
@@ -444,14 +443,6 @@ function BusinessEditor({ config }: { config: BusinessConfig }) {
         <p>
           <Check size={15} /> Los cambios se guardan cuando tú decidas.
         </p>
-        <div className="business-tip">
-          <Gift size={22} />
-          <h3>Un motivo para volver</h3>
-          <p>
-            Una recompensa sencilla y especial puede convertir una primera visita en una bonita
-            costumbre.
-          </p>
-        </div>
       </div>
       <Dialog
         open={preview}
@@ -531,19 +522,18 @@ export function BusinessPage() {
   }
   return (
     <>
-      <div className="page-intro">
-        <div>
-          <div className="eyebrow">
-            <Store size={14} /> ESPACIO DE NEGOCIO {isDemo && '· DEMO'}
-          </div>
-          <h1>
+      <div className="w-full flex justify-center items-center">
+        <Button onClick={() => setSaleTokenOpen(true)}>
+          <QrCode size={18} /> Generar token de venta
+        </Button>
+      </div>
+      <div className="page-intro mt-3">
+        <div className="w-full">
+          <h1 className="w-full flex items-center">
             Haz que <span>quieran volver.</span>
           </h1>
           <p>Tu comunidad empieza con una buena experiencia.</p>
         </div>
-        <Button onClick={() => setSaleTokenOpen(true)}>
-          <QrCode size={18} /> Generar token de venta
-        </Button>
       </div>
       <div className="filter-tabs activity-tabs">
         <button className={tab === 'card' ? 'active' : ''} onClick={() => setTab('card')}>
