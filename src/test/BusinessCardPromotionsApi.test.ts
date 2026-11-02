@@ -148,12 +148,29 @@ describe('Tema de tarjeta y promociones del negocio', () => {
     });
   });
 
-  it('crea promociones con los nombres de campos definidos por OpenAPI', async () => {
+  it('envía fechas nulas para promociones permanentes sin vencimiento', async () => {
+    apiMock.onPost('/api/business/promotions').reply(201, { data: { id: 'promotion-permanent' } });
+
+    await api.addPromotion({
+      title: 'Café de la casa',
+      discountType: 'gift',
+      isActive: true,
+    });
+
+    expect(JSON.parse(apiMock.history.post[0].data)).toMatchObject({
+      starts_at: null,
+      ends_at: null,
+      is_active: true,
+    });
+  });
+
+  it('envía el banner base64 en el campo acordado', async () => {
     apiMock.onPost('/api/business/promotions').reply(201, { data: { id: 'promotion-2' } });
 
     await api.addPromotion({
       title: 'Dos por uno',
       description: 'Aplica los martes.',
+      imageUrl: 'data:image/png;base64,aGVsbG8=',
       loyaltyCardId: 'card-1',
       discountType: 'fixed',
       discountValue: 50,
@@ -169,6 +186,7 @@ describe('Tema de tarjeta y promociones del negocio', () => {
     expect(JSON.parse(apiMock.history.post[0].data)).toEqual({
       title: 'Dos por uno',
       description: 'Aplica los martes.',
+      banner: 'data:image/png;base64,aGVsbG8=',
       loyalty_card_id: 'card-1',
       discount_type: 'fixed',
       discount_value: 50,

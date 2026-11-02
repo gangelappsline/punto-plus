@@ -47,6 +47,7 @@ export type PromotionInput = {
 export type BusinessPromotionInput = {
   title: string;
   description?: string;
+  imageUrl?: string;
   loyaltyCardId?: string;
   discountType: 'percentage' | 'fixed' | 'gift' | 'points';
   discountValue?: number;
@@ -1032,7 +1033,7 @@ function normalizePromotion(payload: unknown): Promotion {
     title: typeof value.title === 'string' ? value.title : 'Promoción',
     description: typeof value.description === 'string' ? value.description : '',
     category: typeof value.category === 'string' ? value.category : 'Promociones',
-    image: publicAssetUrl(value.image_url ?? value.image) ?? '/images/coffee.webp',
+    image: publicAssetUrl(value.image_url ?? value.banner ?? value.image) ?? '/images/coffee.webp',
     badge: discountTypeLabel ?? (typeof value.badge === 'string' ? value.badge : 'Promoción'),
     expires: typeof endsAt === 'string' ? endsAt.slice(0, 10) : 'Sin fecha de expiración',
     discountType,
@@ -1063,10 +1064,11 @@ function normalizePromotion(payload: unknown): Promotion {
 }
 
 function businessPromotionPayload(input: PromotionInput | BusinessPromotionInput) {
-  if ('discountType' in input) {
+  if (!('type' in input)) {
     return {
       title: input.title,
       description: input.description,
+      ...('imageUrl' in input && input.imageUrl ? { banner: input.imageUrl } : {}),
       loyalty_card_id: input.loyaltyCardId || null,
       discount_type: input.discountType,
       discount_value: input.discountValue ?? null,
@@ -1096,6 +1098,7 @@ function businessPromotionPayload(input: PromotionInput | BusinessPromotionInput
   return {
     title: input.title,
     description: input.description,
+    ...(input.image ? { banner: input.image } : {}),
     discount_type: kind,
     discount_value: null,
     code: null,
@@ -1444,7 +1447,7 @@ export const api = {
   addPromotion: async (input: PromotionInput | BusinessPromotionInput) => {
     if (!isDemo) return http.post('/api/business/promotions', businessPromotionPayload(input));
     return updateDB((db) => {
-      if ('discountType' in input) {
+      if (!('type' in input)) {
         const payload = businessPromotionPayload(input);
         db.promotions.unshift(
           normalizePromotion({

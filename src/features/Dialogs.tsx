@@ -70,9 +70,11 @@ export function PromotionDialog({
 }) {
   if (!promotion) return null;
   const endDate = (promotion.endsAt ?? promotion.expires ?? '').slice(0, 10);
+  const startDate = (promotion.startsAt ?? '').slice(0, 10);
   const hasEndDate = Boolean(
     endDate && !endDate.startsWith('Sin fecha') && !Number.isNaN(Date.parse(endDate)),
   );
+  const hasStartDate = Boolean(startDate && !Number.isNaN(Date.parse(startDate)));
   return (
     <Dialog
       open={!!promotion}
@@ -110,7 +112,9 @@ export function PromotionDialog({
         <Clock3 size={16} />
         {hasEndDate
           ? `Válida hasta el ${format(new Date(`${endDate}T12:00:00`), "d 'de' MMMM 'de' yyyy", { locale: es })}`
-          : 'Vigente sin fecha de término'}
+          : hasStartDate
+            ? `Vigente desde el ${format(new Date(`${startDate}T12:00:00`), "d 'de' MMMM 'de' yyyy", { locale: es })}, sin fecha de término`
+            : 'Vigente sin fecha de término'}
       </div>
       {isDemo && (
         <p className="fine-print">Promoción de demostración. No tiene validez comercial.</p>

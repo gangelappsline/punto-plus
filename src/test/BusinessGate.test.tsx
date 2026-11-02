@@ -231,11 +231,17 @@ describe('Formulario de promoción del negocio', () => {
     expect(saved.isActive).toBe(true);
   });
 
-  it('expone las fechas opcionales y el estado activo de la promoción', async () => {
-    await openPromotionForm();
+  it('permite una promoción permanente o un rango de fechas', async () => {
+    const user = await openPromotionForm();
 
-    expect(screen.getByLabelText('Inicia (opcional)')).toHaveAttribute('type', 'datetime-local');
-    expect(screen.getByLabelText('Termina (opcional)')).toHaveAttribute('type', 'datetime-local');
+    const permanent = screen.getByLabelText('Promoción permanente, sin fecha de término');
+    expect(permanent).toBeChecked();
+    expect(screen.queryByLabelText('Inicia')).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('Termina')).not.toBeInTheDocument();
+
+    await user.click(permanent);
+    expect(screen.getByLabelText('Inicia')).toHaveAttribute('type', 'date');
+    expect(screen.getByLabelText('Termina')).toHaveAttribute('type', 'date');
     expect(screen.getByLabelText('Máximo de canjes (opcional)')).toBeInTheDocument();
     expect(screen.getByLabelText('Publicar activa')).toBeChecked();
   });

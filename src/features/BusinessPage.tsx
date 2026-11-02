@@ -53,6 +53,7 @@ const promotionFormSchema = z
   .object({
     title: z.string().trim().min(3, 'Escribe al menos 3 caracteres').max(150),
     description: z.string().trim().max(2000).optional(),
+    imageBanner: z.string().optional(),
     loyaltyCardId: z.string().optional(),
     discountType: z.enum(['percentage', 'fixed', 'gift', 'points']),
     discountValue: z.preprocess(
@@ -61,6 +62,7 @@ const promotionFormSchema = z
     ),
     code: z.string().trim().max(100).optional(),
     terms: z.string().trim().max(2000).optional(),
+    isPermanent: z.boolean(),
     startsAt: z.string().optional(),
     endsAt: z.string().optional(),
     maxRedemptions: z.preprocess(
@@ -76,30 +78,46 @@ const promotionFormSchema = z
         path: ['discountValue'],
         message: 'Escribe un valor de beneficio mayor a cero.',
       });
-    if (value.startsAt && value.endsAt && value.startsAt >= value.endsAt)
-      ctx.addIssue({
-        code: 'custom',
-        path: ['endsAt'],
-        message: 'La fecha de fin debe ser posterior al inicio.',
-      });
+    if (!value.isPermanent) {
+      if (!value.startsAt)
+        ctx.addIssue({
+          code: 'custom',
+          path: ['startsAt'],
+          message: 'Elige la fecha de inicio.',
+        });
+      if (!value.endsAt)
+        ctx.addIssue({
+          code: 'custom',
+          path: ['endsAt'],
+          message: 'Elige la fecha de término.',
+        });
+      if (value.startsAt && value.endsAt && value.startsAt > value.endsAt)
+        ctx.addIssue({
+          code: 'custom',
+          path: ['endsAt'],
+          message: 'La fecha de término no puede ser anterior al inicio.',
+        });
+    }
   });
 type PromotionForm = z.infer<typeof promotionFormSchema>;
 
-function toApiDateTime(value?: string) {
-  return value ? new Date(value).toISOString() : undefined;
+function toApiDateTime(value?: string, endOfDay = false) {
+  if (!value) return undefined;
+  return new Date(`${value}T${endOfDay ? '23:59:59' : '00:00:00'}`).toISOString();
 }
 
 function promotionPayload(value: PromotionForm): BusinessPromotionInput {
   return {
     title: value.title,
     description: value.description || undefined,
+    imageUrl: value.imageBanner || undefined,
     loyaltyCardId: value.loyaltyCardId || undefined,
     discountType: value.discountType,
     discountValue: value.discountType === 'gift' ? undefined : value.discountValue,
     code: value.code || undefined,
     terms: value.terms || undefined,
-    startsAt: toApiDateTime(value.startsAt),
-    endsAt: toApiDateTime(value.endsAt),
+    startsAt: value.isPermanent ? undefined : toApiDateTime(value.startsAt),
+    endsAt: value.isPermanent ? undefined : toApiDateTime(value.endsAt, true),
     maxRedemptions: value.maxRedemptions || undefined,
     isActive: value.isActive,
   };
@@ -375,11 +393,13 @@ export function BusinessPage() {
     defaultValues: {
       title: '',
       description: '',
+      imageBanner: '',
       loyaltyCardId: '',
       discountType: 'gift',
       discountValue: undefined,
       code: '',
       terms: '',
+      isPermanent: true,
       startsAt: '',
       endsAt: '',
       maxRedemptions: undefined,
@@ -387,6 +407,7 @@ export function BusinessPage() {
     },
   });
   const discountType = form.watch('discountType');
+  const isPermanent = form.watch('isPermanent');
 
   function promotionLabel(p: Promotion): string {
     if (p.discountTypeLabel) return p.discountTypeLabel;
@@ -505,8 +526,10 @@ export function BusinessPage() {
                   {p.code && <small>Código: {p.code}</small>}
                   {p.terms && <small>{p.terms}</small>}
                   <small>
-                    Vigencia: {p.startsAt ? p.startsAt.slice(0, 10) : 'desde su publicación'} ·{' '}
-                    {p.endsAt ? p.endsAt.slice(0, 10) : 'sin fecha de término'}
+                    Vigencia:{' '}
+                    {p.endsAt
+                      ? `${p.startsAt ? p.startsAt.slice(0, 10) : 'desde su publicación'} – ${p.endsAt.slice(0, 10)}`
+                      : `Permanente${p.startsAt ? ` desde ${p.startsAt.slice(0, 10)}` : ''} · sin fecha de término`}
                   </small>
                   {p.redemptionsCount !== undefined && (
                     <small>
@@ -592,6 +615,41 @@ export function BusinessPage() {
               placeholder="Describe brevemente el beneficio."
             />
           </label>
+          <label className="upload-label promotion-banner-upload">
+            <ImagePlus size={18} aria-hidden="true" />
+            <span>
+              {form.watch('imageBanner') ? 'Cambiar imagen banner' : 'Agregar imagen banner'}
+              <small>Opcional · Imagen horizontal · JPG, PNG o WebP · hasta 2 MB</small>
+            </span>
+            <input
+              type="file"
+              accept="image/png,image/jpeg,image/webp"
+              aria-label="Agregar imagen banner de la promoción"
+              onChange={async (event) => {
+                const file = event.target.files?.[0];
+                if (!file) return;
+                try {
+                  form.setValue('imageBanner', await readImage(file), { shouldDirty: true });
+                } catch (error) {
+                  toast.error((error as Error).message);
+                }
+                event.target.value = '';
+              }}
+            />
+          </label>
+          {form.watch('imageBanner') && (
+            <div className="promotion-banner-preview">
+              <img src={form.watch('imageBanner')} alt="Vista previa del banner de promoción" />
+              <Button
+                type="button"
+                size="sm"
+                variant="ghost"
+                onClick={() => form.setValue('imageBanner', '', { shouldDirty: true })}
+              >
+                Quitar imagen
+              </Button>
+            </div>
+          )}
           <label>
             Asociar a una tarjeta de fidelidad
             <select {...form.register('loyaltyCardId')}>
@@ -633,19 +691,33 @@ export function BusinessPage() {
             Términos y condiciones (opcional)
             <textarea {...form.register('terms')} rows={3} />
           </label>
-          <div className="form-columns">
-            <label>
-              Inicia (opcional)
-              <input type="datetime-local" {...form.register('startsAt')} />
-            </label>
-            <label>
-              Termina (opcional)
-              <input type="datetime-local" {...form.register('endsAt')} />
-              {form.formState.errors.endsAt && (
-                <span className="form-error">{form.formState.errors.endsAt.message}</span>
-              )}
-            </label>
-          </div>
+          <label className="form-check" style={{ marginBottom: 10 }}>
+            <input {...form.register('isPermanent')} type="checkbox" />
+            <span aria-hidden="true" />
+            Promoción permanente, sin fecha de término
+          </label>
+          {isPermanent ? (
+            <p className="muted promotion-date-hint">
+              Se publicará sin fechas de inicio ni término; permanecerá vigente hasta que la pauses.
+            </p>
+          ) : (
+            <div className="form-columns promotion-date-range">
+              <label>
+                Inicia
+                <input type="date" {...form.register('startsAt')} />
+                {form.formState.errors.startsAt && (
+                  <span className="form-error">{form.formState.errors.startsAt.message}</span>
+                )}
+              </label>
+              <label>
+                Termina
+                <input type="date" {...form.register('endsAt')} />
+                {form.formState.errors.endsAt && (
+                  <span className="form-error">{form.formState.errors.endsAt.message}</span>
+                )}
+              </label>
+            </div>
+          )}
           <label>
             Máximo de canjes (opcional)
             <input type="number" min="1" {...form.register('maxRedemptions')} />
