@@ -29,8 +29,8 @@ describe('Menú público de negocio', () => {
     expect(apiMock.history.get[0].url).toBe('/public/categories');
   });
 
-  it('envía el guardado de un paso con PATCH y conserva el orden de IDs de categorías', async () => {
-    apiMock.onPatch('/business/card').reply(200, { ok: true });
+  it('envía el guardado de un paso con PUT y conserva el orden de IDs de categorías', async () => {
+    apiMock.onPut('/business/card').reply(200, { ok: true });
     const config = {
       name: 'Café de prueba',
       reward: 'Bebida gratis',
@@ -47,15 +47,15 @@ describe('Menú público de negocio', () => {
       config,
     });
 
-    expect(apiMock.history.patch[0].url).toBe('/business/card');
-    expect(JSON.parse(apiMock.history.patch[0].data)).toEqual({
+    expect(apiMock.history.put[0].url).toBe('/business/card');
+    expect(JSON.parse(apiMock.history.put[0].data)).toEqual({
       step: 'categories',
       data: { category_ids: ['category-2', 'category-1'] },
     });
   });
 
   it('guarda el paso de servicio sin incluir los demás datos del negocio', async () => {
-    apiMock.onPatch('/business/card').reply(200, { ok: true });
+    apiMock.onPut('/business/card').reply(200, { ok: true });
     const config = {
       name: 'Café de prueba',
       reward: 'Bebida gratis',
@@ -76,7 +76,7 @@ describe('Menú público de negocio', () => {
 
     await api.saveBusinessStep({ step: 'service', data: serviceData, config });
 
-    expect(JSON.parse(apiMock.history.patch[0].data)).toEqual({
+    expect(JSON.parse(apiMock.history.put[0].data)).toEqual({
       step: 'service',
       data: serviceData,
     });

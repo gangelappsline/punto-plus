@@ -98,6 +98,8 @@ npm run test:e2e      # 10 pruebas: escritorio + móvil (corren en modo demo)
 6. **Colores del menú y el QR**, precargados con los del logo y ajustables; hay vista previa de la tarjeta del menú y del QR ya pintado con esos colores.
 7. **Promoción de bienvenida**, con el tipo que el dueño elija (ver abajo).
 
+**Estilos de menú precargados** (`Mi menú` → paso _Diseño_). El negocio elige entre **ocho estilos** (Natural, Artesanal, Noche, Minimalista, Dulce, Cítrico, Elegante y Océano) y el menú queda listo en un toque: cada estilo fija tipografía, color principal, color secundario y presentación (espaciado o compacto), los mismos cuatro ajustes que ya viajaban a la API —sin campos nuevos—. Si ninguno le acomoda, «Personalizar» abre los controles de siempre. Un negocio con una combinación propia aparece directamente en modo personalizado, sin que se le cambie nada. La lógica vive en `src/lib/menuStyles.ts`.
+
 El análisis de color (`src/lib/colors.ts`) ocurre por completo en el cliente: cuantiza los píxeles, descarta transparencias y fondos blancos/negros, elige el color dominante y el que mejor contraste hace con él, y oscurece el frente del QR hasta alcanzar un contraste ≥ 4.5:1. **Si la imagen no se puede decodificar, se usa la paleta de marca como respaldo** y el flujo continúa.
 
 **Promociones** — tres tipos, cada uno con sus propios campos y validación:
