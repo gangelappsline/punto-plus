@@ -507,13 +507,6 @@ export function MenuBuilder({ publicRoute = false }: { publicRoute?: boolean }) 
                   aria-current={active ? 'step' : undefined}
                   onClick={() => goToStep(index)}
                 >
-                  <span
-                    className={`grid size-5 place-items-center rounded-full text-[10px] font-extrabold ${
-                      done || active ? 'bg-emerald-600 text-white' : 'bg-slate-100 text-slate-500'
-                    }`}
-                  >
-                    {done ? <Check size={11} /> : index + 1}
-                  </span>
                   <span className="w-full truncate text-center text-[10px] leading-3 font-bold">
                     {item.title}
                   </span>
@@ -634,11 +627,11 @@ function PhoneShell({ children }: { children: ReactNode }) {
   return (
     <div
       data-testid="builder-shell"
-      className="flex min-h-dvh w-full justify-center bg-slate-200 sm:py-6"
+      className="flex min-h-screen w-full justify-center bg-slate-200"
     >
       <div
         data-testid="builder-phone"
-        className="relative flex h-[100dvh] w-full max-w-[500px] flex-col overflow-hidden bg-white sm:h-[min(94vh,940px)] sm:rounded-[42px] sm:border-[8px] sm:border-slate-900 sm:shadow-2xl"
+        className="relative flex min-h-screen w-full max-w-[450px] flex-col overflow-hidden bg-white sm:h-[min(94vh,940px)] sm:rounded-[42px] sm:border-[8px] sm:border-slate-900 sm:shadow-2xl"
       >
         <div className="flex min-h-0 flex-1 flex-col">{children}</div>
       </div>
@@ -1693,7 +1686,7 @@ function MenuPreview({
         fontFamily: fontStack(design.fontFamily),
       }}
     >
-      <header className="relative h-40 shrink-0 overflow-hidden">
+      <header className="relative h-64 shrink-0 overflow-hidden">
         {state.banner ? (
           <img src={state.banner} alt="" className="absolute inset-0 size-full object-cover" />
         ) : (
