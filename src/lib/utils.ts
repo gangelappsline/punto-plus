@@ -27,8 +27,9 @@ export function businessSlug(name: string) {
   );
 }
 
+/** Enlace público del menú: `<dominio>/menu/<slug>`. */
 export function publicMenuUrl(slug: string) {
-  return `${getAppBaseUrl()}/${encodeURIComponent(slug)}`;
+  return `${getAppBaseUrl()}/menu/${encodeURIComponent(slug)}`;
 }
 
 /** Cada panel es un layout independiente con su propia ruta raíz. */
