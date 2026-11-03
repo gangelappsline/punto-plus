@@ -12,6 +12,7 @@ import { GuestOnly, PanelGate } from './features/Guards';
 import { LandingPage } from './features/LandingPage';
 import { Login } from './features/Login';
 import { NotFoundPage } from './features/NotFoundPage';
+import { MenuPro } from './features/public-menu/MenuPro';
 const MenuBuilder = lazy(() =>
   import('./features/MenuBuilder').then((m) => ({ default: m.MenuBuilder })),
 );
@@ -115,6 +116,7 @@ export default function App() {
         />
       </Route>
       <Route path="/menu/:businessId" element={<MenuPage />} />
+      <Route path="/menu-pro" element={<MenuPro />} />
       <Route
         path="/login"
         element={
