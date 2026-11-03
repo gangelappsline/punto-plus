@@ -237,6 +237,63 @@ describe('Creador de menús: pantalla', () => {
     expect(screen.getByRole('heading', { level: 2, name: 'Diseño' })).toBeInTheDocument();
   });
 
+  it('el menú ocupa la pantalla y la hoja se pliega para verlo completo', async () => {
+    const user = setupBuilder();
+    await screen.findByRole('list', { name: 'Pasos del creador de menús' });
+
+    // El menú vive dentro del lienzo del teléfono; la configuración va en la hoja.
+    const canvas = screen.getByTestId('builder-canvas');
+    const sheet = screen.getByTestId('builder-sheet');
+    expect(within(canvas).getByTestId('builder-preview')).toBeInTheDocument();
+    expect(within(sheet).queryByTestId('builder-preview')).not.toBeInTheDocument();
+
+    // La hoja arranca abierta (se puede configurar) y se pliega para ver el menú.
+    expect(sheet).toHaveAttribute('data-open', 'true');
+    expect(screen.getByRole('group', { name: 'Estilos de menú' })).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Ver el menú' }));
+    expect(screen.getByTestId('builder-sheet')).toHaveAttribute('data-open', 'false');
+    expect(screen.queryByRole('group', { name: 'Estilos de menú' })).not.toBeInTheDocument();
+    expect(screen.getByTestId('builder-preview')).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: 'Seguir editando' }));
+    expect(screen.getByRole('group', { name: 'Estilos de menú' })).toBeInTheDocument();
+  });
+
+  it('el borrador se actualiza con cada cambio y avanza el medidor', async () => {
+    const user = setupBuilder();
+    await screen.findByRole('list', { name: 'Pasos del creador de menús' });
+    const preview = screen.getByTestId('builder-preview');
+    const before = Number(screen.getByTestId('builder-progress').getAttribute('data-progress'));
+
+    // Un estilo cambia la superficie del menú al instante.
+    await user.click(screen.getByRole('button', { name: 'Estilo Zen' }));
+    expect(preview).toHaveAttribute('data-surface', 'dark');
+
+    // El nombre del negocio se refleja en la portada del menú.
+    await goToStep(user, 'Configuración');
+    const name = await screen.findByPlaceholderText('Tacos El Güero');
+    await user.clear(name);
+    await user.type(name, 'Antojitos del Sur');
+    expect(
+      within(screen.getByTestId('builder-preview')).getByRole('heading', {
+        name: 'Antojitos del Sur',
+      }),
+    ).toBeInTheDocument();
+    expect(
+      Number(screen.getByTestId('builder-progress').getAttribute('data-progress')),
+    ).toBeGreaterThanOrEqual(before);
+
+    // Una sección vacía también toma forma en el menú, con su marcador.
+    await goToStep(user, 'Categorías');
+    await user.type(screen.getByLabelText('Nombre de la nueva sección'), 'Bebidas frías');
+    await user.click(screen.getByRole('button', { name: 'Agregar sección' }));
+    expect(
+      within(screen.getByTestId('builder-preview')).getByText(
+        /Aquí van los productos de Bebidas frías/,
+      ),
+    ).toBeInTheDocument();
+  });
+
   it('arma el menú desde las secciones y el giro de arranque', async () => {
     const user = setupBuilder();
     await goToStep(user, 'Categorías');
@@ -365,7 +422,7 @@ describe('Creador de menús: pantalla', () => {
 });
 
 describe('Creador de menús: ruta pública', () => {
-  it('se abre sin sesión en /crear-menu?codigo=…', async () => {
+  it('se abre sin sesión en /crear-menu?codigo=… con el menú en borrador', async () => {
     const queryClient = new QueryClient({
       defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
     });
@@ -377,9 +434,15 @@ describe('Creador de menús: ruta pública', () => {
       </QueryClientProvider>,
     );
 
-    expect(
-      await screen.findByRole('heading', { name: 'Arma tu menú digital' }),
-    ).toBeInTheDocument();
+    // El menú es lo primero que se ve, con su portada y el nombre del negocio.
+    const preview = await screen.findByTestId('builder-preview');
+    expect(within(preview).getByRole('heading', { level: 1 })).toBeInTheDocument();
+    expect(within(preview).getByRole('link', { name: /Pedir por WhatsApp/ })).toBeInTheDocument();
+    // El medidor del borrador arranca con lo que ya existe en la cuenta.
+    const progress = Number(screen.getByTestId('builder-progress').getAttribute('data-progress'));
+    expect(progress).toBeGreaterThanOrEqual(0);
+    expect(progress).toBeLessThanOrEqual(100);
+    expect(screen.getByText('Borrador')).toBeInTheDocument();
     expect(screen.getByTestId('builder-invite-code')).toHaveTextContent('INV-777');
     expect(screen.getByTestId('builder-phone').className).toContain('max-w-[500px]');
   });
