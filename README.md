@@ -100,16 +100,20 @@ npm run test:e2e      # 10 pruebas: escritorio + móvil (corren en modo demo)
 
 **Creador de menús** (`/crear-menu?codigo=<invitación>`, «Crear menú» en el panel). Es una ruta
 pública: cualquiera puede armarlo sin cuenta. Está diseñado para el celular y en pantallas grandes se
-centra en un marco de **500 px** que simula un móvil. El flujo tiene cinco pasos: 1) **Diseño** con las
-12 plantillas y ajustes finos; 2) **Logo y banner** para la portada del menú; 3) **Categorías**, donde
-se crean o quitan las secciones y se puede sembrar un menú de ejemplo con uno de los 12 giros
-(tacos, pizzas, café, sushi…); 4) **Productos** con precio, descripción, «quedan N», destacado,
-«nuevo» y la opción de subir la foto de la carta; 5) **Configuración** con los datos del negocio,
-WhatsApp, dirección, horario, entrega, formas de pago y promoción. La vista previa en vivo acompaña al
-formulario en la misma columna.
-Al publicar se guarda con la misma secuencia `PUT /business/card` del configurador y la pantalla
-muestra el enlace, el QR y el botón de WhatsApp; sin sesión, el botón lleva al registro conservando el
-`codigo` de invitación. La lógica vive en `src/lib/menuBuilder.ts`.
+centra en un marco de **500 px** que simula un móvil. La pantalla enseña **el menú en borrador** como
+protagonista: la hoja de configuración se pliega (asa y botón del ojo) para ver el menú completo y el
+medidor «% listo» sube con lo que ya tiene forma (nombre, secciones, productos, logo y entrega). Lo que
+falta se dibuja con marcadores punteados para anticipar el resultado. El flujo tiene cinco pasos:
+
+1. **Diseño** con las
+   12 plantillas y ajustes finos; 2) **Logo y banner** para la portada del menú; 3) **Categorías**, donde
+   se crean o quitan las secciones y se puede sembrar un menú de ejemplo con uno de los 12 giros
+   (tacos, pizzas, café, sushi…); 4) **Productos** con precio, descripción, «quedan N», destacado,
+   «nuevo» y la opción de subir la foto de la carta; 5) **Configuración** con los datos del negocio,
+   WhatsApp, dirección, horario, entrega, formas de pago y promoción.
+   Al publicar se guarda con la misma secuencia `PUT /business/card` del configurador y la pantalla
+   muestra el enlace, el QR y el botón de WhatsApp; sin sesión, el botón lleva al registro conservando el
+   `codigo` de invitación. La lógica vive en `src/lib/menuBuilder.ts`.
 
 **Diseños de menú precargados** (`Mi menú` → paso _Diseño_). Hay **doce plantillas** agrupadas por
 temperatura —Cálidos (Natural, Artesanal, Parrilla, Dulce), Oscuros (Brasa, Zen, Medianoche), Frescos

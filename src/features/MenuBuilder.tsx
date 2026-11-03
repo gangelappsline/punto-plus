@@ -11,9 +11,12 @@ import {
   Copy,
   ExternalLink,
   ImagePlus,
+  Eye,
+  Hand,
   Layers,
   MapPin,
   Palette,
+  PencilLine,
   Phone,
   Plus,
   Rocket,
@@ -76,11 +79,36 @@ import {
 
 /** Pasos del creador, en el orden en que se arma el menú. */
 const builderSteps = [
-  { title: 'Diseño', hint: 'Plantillas, colores y tipografía', icon: Palette },
-  { title: 'Logo y banner', hint: 'Tu marca en la portada del menú', icon: ImagePlus },
-  { title: 'Categorías', hint: 'Las secciones de tu carta', icon: Layers },
-  { title: 'Productos', hint: 'Precios, fotos y existencias', icon: Utensils },
-  { title: 'Configuración', hint: 'Datos, horario, entrega y pago', icon: Settings },
+  {
+    title: 'Diseño',
+    hint: 'Plantillas, colores y tipografía',
+    icon: Palette,
+    preview: 'Elige un estilo y míralo al instante en tu menú.',
+  },
+  {
+    title: 'Logo y banner',
+    hint: 'Tu marca en la portada del menú',
+    icon: ImagePlus,
+    preview: 'Tu logo y tu banner ya se ven en la portada.',
+  },
+  {
+    title: 'Categorías',
+    hint: 'Las secciones de tu carta',
+    icon: Layers,
+    preview: 'Cada sección aparece como filtro en tu menú.',
+  },
+  {
+    title: 'Productos',
+    hint: 'Precios, fotos y existencias',
+    icon: Utensils,
+    preview: 'Cada producto se suma a la sección elegida.',
+  },
+  {
+    title: 'Configuración',
+    hint: 'Datos, horario, entrega y pago',
+    icon: Settings,
+    preview: 'Nombre, horario y pagos se reflejan en tu menú.',
+  },
 ] as const;
 
 const fieldClass =
@@ -113,6 +141,8 @@ export function MenuBuilder({ publicRoute = false }: { publicRoute?: boolean }) 
   const [activeCategory, setActiveCategory] = useState('');
   const [published, setPublished] = useState(false);
   const [importedImage, setImportedImage] = useState('');
+  // La hoja de configuración se pliega para dejar ver el menú completo.
+  const [sheetOpen, setSheetOpen] = useState(true);
   const fileInput = useRef<HTMLInputElement>(null);
 
   // La pantalla es pública: si no hay sesión (o la API falla) se arranca en
@@ -152,6 +182,15 @@ export function MenuBuilder({ publicRoute = false }: { publicRoute?: boolean }) 
   const theme = useMemo(() => menuTheme(design), [design]);
   const previewSlug = publicMenuUrl(state.name.trim() ? businessSlug(state.name) : 'mi-menu');
   const guest = publicRoute && !business.data;
+  // Cuánto del menú ya tiene forma: es el medidor que ve el usuario.
+  const draftChecks = [
+    state.name.trim().length > 1,
+    state.categories.length > 0,
+    state.items.length > 0,
+    Boolean(state.logo || state.banner),
+    state.orderModes.length > 0,
+  ];
+  const progress = Math.round((draftChecks.filter(Boolean).length / draftChecks.length) * 100);
   const loginHref = `/login${inviteCode ? `?codigo=${encodeURIComponent(inviteCode)}` : ''}`;
   const registerHref = `/registro${inviteCode ? `?codigo=${encodeURIComponent(inviteCode)}` : ''}`;
 
@@ -243,12 +282,18 @@ export function MenuBuilder({ publicRoute = false }: { publicRoute?: boolean }) 
     }
   }
 
+  function goToStep(index: number) {
+    setStep(index);
+    setSheetOpen(true);
+  }
+
   function next() {
     const error = builderStepError(state, step);
     if (error) {
       toast.error(error);
       return;
     }
+    setSheetOpen(true);
     setStep((current) => Math.min(current + 1, builderSteps.length - 1));
   }
 
@@ -282,7 +327,7 @@ export function MenuBuilder({ publicRoute = false }: { publicRoute?: boolean }) 
     return (
       <PhoneShell>
         <div
-          className="grid min-h-56 place-content-center gap-3 text-center text-sm text-slate-500"
+          className="grid flex-1 place-content-center gap-3 p-6 text-center text-sm text-slate-500"
           role="status"
         >
           Preparando tu menú…
@@ -305,13 +350,15 @@ export function MenuBuilder({ publicRoute = false }: { publicRoute?: boolean }) 
   if (published)
     return (
       <PhoneShell>
-        <PublishedPanel
-          name={state.name}
-          link={previewSlug}
-          itemCount={state.items.length}
-          categoryCount={categories.length}
-          onKeepEditing={() => setPublished(false)}
-        />
+        <div className="flex-1 overflow-y-auto bg-slate-50 p-3">
+          <PublishedPanel
+            name={state.name}
+            link={previewSlug}
+            itemCount={state.items.length}
+            categoryCount={categories.length}
+            onKeepEditing={() => setPublished(false)}
+          />
+        </div>
       </PhoneShell>
     );
 
@@ -319,90 +366,90 @@ export function MenuBuilder({ publicRoute = false }: { publicRoute?: boolean }) 
   const lastStep = step === builderSteps.length - 1;
   return (
     <PhoneShell>
-      <header className="flex items-start justify-between gap-3 px-1 pt-1">
-        <div className="min-w-0">
-          <p className="text-[10px] font-extrabold tracking-[0.18em] text-emerald-700 uppercase">
-            Creador de menús
-          </p>
-          <h1 className="mt-0.5 text-xl leading-6 font-extrabold tracking-tight text-slate-900">
-            Arma tu menú digital
-          </h1>
-        </div>
-        {publicRoute ? (
-          authenticated ? (
-            <Link
-              to="/business/mi-menu"
-              className="shrink-0 rounded-xl border border-slate-200 px-2.5 py-1.5 text-[11px] font-bold text-slate-600 transition hover:bg-slate-50"
-            >
-              Mi menú
-            </Link>
-          ) : (
-            <Link
-              to={loginHref}
-              className="shrink-0 rounded-xl border border-slate-200 px-2.5 py-1.5 text-[11px] font-bold text-slate-600 transition hover:bg-slate-50"
-            >
-              Entrar
-            </Link>
-          )
-        ) : (
-          <Link
-            to="/business/mi-menu"
-            className="inline-flex shrink-0 items-center gap-1 rounded-xl border border-slate-200 px-2.5 py-1.5 text-[11px] font-bold text-slate-600 transition hover:bg-slate-50"
-          >
-            <ArrowLeft size={13} /> Editor
-          </Link>
-        )}
-      </header>
-
-      {inviteCode && (
-        <p
-          data-testid="builder-invite-code"
-          className="mx-1 flex items-center gap-1.5 rounded-xl bg-emerald-50 px-3 py-2 text-[11px] font-semibold text-emerald-800"
-        >
-          <Sparkles size={12} className="shrink-0" />
-          Invitación <span className="font-mono">{inviteCode}</span>
-        </p>
-      )}
-
-      <ol
-        className="flex items-stretch gap-1 overflow-x-auto px-0.5 pb-1"
-        aria-label="Pasos del creador de menús"
-      >
-        {builderSteps.map((item, index) => {
-          const active = index === step;
-          const done = index < step;
-          return (
-            <li key={item.title} className="min-w-0 flex-1">
-              <button
-                type="button"
-                className={`flex h-full w-full flex-col items-center gap-1 rounded-xl border px-1 py-2 transition ${
-                  active
-                    ? 'border-emerald-500 bg-emerald-50 text-emerald-900'
-                    : done
-                      ? 'border-emerald-200 bg-white text-emerald-700'
-                      : 'border-slate-200 bg-white text-slate-400 hover:bg-slate-50'
-                }`}
-                aria-current={active ? 'step' : undefined}
-                onClick={() => setStep(index)}
+      {/* El menú en borrador ocupa la pantalla: es el protagonista. */}
+      <div className="relative flex min-h-0 flex-1 flex-col overflow-hidden bg-slate-950">
+        <div className="absolute inset-x-0 top-0 z-20 flex items-start justify-between gap-2 bg-gradient-to-b from-slate-950/85 via-slate-950/45 to-transparent px-3 pt-3 pb-8">
+          <div className="flex min-w-0 flex-wrap items-center gap-1.5">
+            <span className="inline-flex items-center gap-1 rounded-full bg-amber-300 px-2 py-0.5 text-[9px] font-extrabold tracking-[0.14em] text-amber-950 uppercase">
+              <PencilLine size={10} /> Borrador
+            </span>
+            {inviteCode && (
+              <span
+                data-testid="builder-invite-code"
+                className="inline-flex items-center gap-1 rounded-full bg-white/15 px-2 py-0.5 text-[9px] font-semibold text-white backdrop-blur"
               >
-                <span
-                  className={`grid size-6 place-items-center rounded-full text-[11px] font-extrabold ${
-                    done || active ? 'bg-emerald-600 text-white' : 'bg-slate-100 text-slate-500'
-                  }`}
+                <Sparkles size={10} className="shrink-0" />
+                Invitación <span className="font-mono">{inviteCode}</span>
+              </span>
+            )}
+            <span className="w-full truncate text-[11px] font-semibold text-white/85">
+              Así se verá tu menú para tus clientes
+            </span>
+          </div>
+          <div className="flex shrink-0 items-center gap-1.5">
+            {publicRoute ? (
+              authenticated ? (
+                <Link
+                  to="/business/mi-menu"
+                  className="rounded-full bg-white/15 px-2.5 py-1 text-[10px] font-bold text-white backdrop-blur transition hover:bg-white/25"
                 >
-                  {done ? <Check size={13} /> : index + 1}
-                </span>
-                <span className="w-full truncate text-center text-[10px] leading-3 font-bold">
-                  {item.title}
-                </span>
-              </button>
-            </li>
-          );
-        })}
-      </ol>
+                  Mi menú
+                </Link>
+              ) : (
+                <Link
+                  to={loginHref}
+                  className="rounded-full bg-white/15 px-2.5 py-1 text-[10px] font-bold text-white backdrop-blur transition hover:bg-white/25"
+                >
+                  Entrar
+                </Link>
+              )
+            ) : (
+              <Link
+                to="/business/mi-menu"
+                aria-label="Ir al editor completo"
+                className="grid size-7 place-items-center rounded-full bg-white/15 text-white backdrop-blur transition hover:bg-white/25"
+              >
+                <ArrowLeft size={13} />
+              </Link>
+            )}
+          </div>
+        </div>
 
-      <section className="min-w-0 rounded-2xl border border-slate-200 bg-white shadow-sm">
-        <div className="flex items-center gap-2.5 border-b border-slate-100 px-3 py-2.5">
+        <div className="relative flex min-h-0 flex-1 flex-col" data-testid="builder-canvas">
+          <MenuPreview
+            state={state}
+            popular={popular}
+            theme={theme}
+            onCategory={setActiveCategory}
+            activeCategory={activeCategory}
+          />
+        </div>
+
+        {/* Pista que conecta lo que se edita con el menú que se ve. */}
+        {sheetOpen && (
+          <p className="pointer-events-none absolute inset-x-0 bottom-0 z-10 mx-auto w-fit max-w-[88%] -translate-y-1 rounded-full bg-slate-950/70 px-2.5 py-1 text-center text-[10px] font-semibold text-white/90 backdrop-blur">
+            {builderSteps[step].preview}
+          </p>
+        )}
+      </div>
+
+      {/* Hoja de configuración: se pliega para ver el menú completo. */}
+      <section
+        data-testid="builder-sheet"
+        data-open={sheetOpen}
+        className="relative z-30 flex max-h-[68%] min-h-0 shrink-0 flex-col rounded-t-3xl bg-white shadow-[0_-18px_40px_rgba(15,23,42,0.35)]"
+      >
+        <button
+          type="button"
+          aria-label={sheetOpen ? 'Ver el menú completo' : 'Seguir configurando'}
+          aria-expanded={sheetOpen}
+          className="flex w-full shrink-0 flex-col items-center gap-1 pt-2 pb-1"
+          onClick={() => setSheetOpen((current) => !current)}
+        >
+          <span aria-hidden="true" className="h-1.5 w-10 rounded-full bg-slate-300" />
+        </button>
+
+        <div className="flex shrink-0 items-center gap-2 px-3 pb-2">
           <span className="grid size-8 shrink-0 place-items-center rounded-xl bg-emerald-50 text-emerald-700">
             <ActiveIcon size={16} />
           </span>
@@ -412,63 +459,124 @@ export function MenuBuilder({ publicRoute = false }: { publicRoute?: boolean }) 
             </h2>
             <p className="truncate text-[11px] text-slate-500">{builderSteps[step].hint}</p>
           </div>
-          <span className="shrink-0 text-[10px] font-bold tracking-[0.1em] text-slate-400 uppercase">
-            {step + 1}/{builderSteps.length}
+          <span
+            data-testid="builder-progress"
+            data-progress={progress}
+            className="shrink-0 text-[10px] font-bold text-slate-400"
+          >
+            {progress}% listo
           </span>
+          <button
+            type="button"
+            aria-expanded={sheetOpen}
+            aria-label={sheetOpen ? 'Ver el menú' : 'Seguir editando'}
+            className="grid size-8 shrink-0 place-items-center rounded-xl border border-slate-200 text-slate-500 transition hover:bg-slate-50"
+            onClick={() => setSheetOpen((current) => !current)}
+          >
+            {sheetOpen ? <Eye size={15} /> : <Hand size={15} />}
+          </button>
         </div>
 
-        <div className="flex flex-col gap-5 p-3.5">
-          {step === 0 && (
-            <DesignStep
-              design={design}
-              onChange={(key, value) => update('design', { ...design, [key]: value })}
-              onTemplate={(template) => update('design', menuTemplateValues(template))}
+        <div className="shrink-0 px-3 pb-2">
+          <div aria-hidden="true" className="h-1 w-full overflow-hidden rounded-full bg-slate-100">
+            <span
+              className="block h-full rounded-full bg-emerald-500 transition-[width] duration-500"
+              style={{ width: `${progress}%` }}
             />
-          )}
-
-          {step === 1 && (
-            <BrandStep
-              state={state}
-              onLogo={(file) => void chooseBrandImage('logo', file)}
-              onBanner={(file) => void chooseBrandImage('banner', file)}
-              onClear={(key) => update(key, '')}
-            />
-          )}
-
-          {step === 2 && (
-            <CategoriesStep
-              state={state}
-              categories={state.categories}
-              activeCategory={activeCategory}
-              onSelectCategory={setActiveCategory}
-              onAddCategory={addCategory}
-              onRemoveCategory={removeCategory}
-              onSeedType={seedType}
-            />
-          )}
-
-          {step === 3 && (
-            <ProductsStep
-              state={state}
-              // Las secciones recién creadas se muestran aunque estén vacías.
-              categories={state.categories}
-              activeCategory={activeCategory}
-              setActiveCategory={setActiveCategory}
-              onAddItem={addItem}
-              onUpdateItem={updateItem}
-              onRemoveItem={removeItem}
-              onImport={() => fileInput.current?.click()}
-              importedImage={importedImage}
-              onClearImage={() => setImportedImage('')}
-            />
-          )}
-
-          {step === 4 && (
-            <SettingsStep state={state} onChange={update} categories={categories} guest={guest} />
-          )}
+          </div>
         </div>
 
-        <footer className="sticky bottom-0 z-10 flex items-center gap-2 rounded-b-2xl border-t border-slate-200 bg-white/95 px-3 py-2.5 backdrop-blur">
+        <ol
+          className="flex shrink-0 items-stretch gap-1 overflow-x-auto px-3 pb-2"
+          aria-label="Pasos del creador de menús"
+        >
+          {builderSteps.map((item, index) => {
+            const active = index === step;
+            const done = index < step;
+            return (
+              <li key={item.title} className="min-w-0 flex-1">
+                <button
+                  type="button"
+                  className={`flex h-full w-full flex-col items-center gap-1 rounded-xl border px-1 py-1.5 transition ${
+                    active
+                      ? 'border-emerald-500 bg-emerald-50 text-emerald-900'
+                      : done
+                        ? 'border-emerald-200 bg-white text-emerald-700'
+                        : 'border-slate-200 bg-white text-slate-400 hover:bg-slate-50'
+                  }`}
+                  aria-current={active ? 'step' : undefined}
+                  onClick={() => goToStep(index)}
+                >
+                  <span
+                    className={`grid size-5 place-items-center rounded-full text-[10px] font-extrabold ${
+                      done || active ? 'bg-emerald-600 text-white' : 'bg-slate-100 text-slate-500'
+                    }`}
+                  >
+                    {done ? <Check size={11} /> : index + 1}
+                  </span>
+                  <span className="w-full truncate text-center text-[10px] leading-3 font-bold">
+                    {item.title}
+                  </span>
+                </button>
+              </li>
+            );
+          })}
+        </ol>
+
+        {sheetOpen && (
+          <div className="flex min-h-0 flex-1 flex-col gap-5 overflow-y-auto border-t border-slate-100 px-3.5 py-3">
+            {step === 0 && (
+              <DesignStep
+                design={design}
+                onChange={(key, value) => update('design', { ...design, [key]: value })}
+                onTemplate={(template) => update('design', menuTemplateValues(template))}
+              />
+            )}
+
+            {step === 1 && (
+              <BrandStep
+                state={state}
+                onLogo={(file) => void chooseBrandImage('logo', file)}
+                onBanner={(file) => void chooseBrandImage('banner', file)}
+                onClear={(key) => update(key, '')}
+              />
+            )}
+
+            {step === 2 && (
+              <CategoriesStep
+                state={state}
+                categories={state.categories}
+                activeCategory={activeCategory}
+                onSelectCategory={setActiveCategory}
+                onAddCategory={addCategory}
+                onRemoveCategory={removeCategory}
+                onSeedType={seedType}
+              />
+            )}
+
+            {step === 3 && (
+              <ProductsStep
+                state={state}
+                // Las secciones recién creadas se muestran aunque estén vacías.
+                categories={state.categories}
+                activeCategory={activeCategory}
+                setActiveCategory={setActiveCategory}
+                onAddItem={addItem}
+                onUpdateItem={updateItem}
+                onRemoveItem={removeItem}
+                onImport={() => fileInput.current?.click()}
+                importedImage={importedImage}
+                onClearImage={() => setImportedImage('')}
+              />
+            )}
+
+            {step === 4 && (
+              <SettingsStep state={state} onChange={update} categories={categories} guest={guest} />
+            )}
+          </div>
+        )}
+
+        <footer className="flex shrink-0 items-center gap-2 border-t border-slate-200 bg-white px-3 py-2.5">
           <Button
             variant="outline"
             type="button"
@@ -479,7 +587,7 @@ export function MenuBuilder({ publicRoute = false }: { publicRoute?: boolean }) 
             <ArrowLeft size={15} /> Atrás
           </Button>
           <span className="min-w-0 flex-1 truncate text-[10px] text-slate-500">
-            {state.items.length} productos · {categories.length} secciones
+            {state.items.length} productos · {state.categories.length} secciones
           </span>
           {lastStep ? (
             <Button
@@ -503,28 +611,6 @@ export function MenuBuilder({ publicRoute = false }: { publicRoute?: boolean }) 
         </footer>
       </section>
 
-      <section className="flex min-w-0 flex-col gap-2 rounded-2xl border border-slate-200 bg-slate-50 p-2.5">
-        <div className="flex items-center justify-between gap-2 px-1">
-          <span className="inline-flex items-center gap-1.5 text-[10px] font-extrabold tracking-[0.1em] text-slate-700">
-            <span className="size-2 rounded-full bg-emerald-500 ring-4 ring-emerald-500/15" />
-            ASÍ LO VERÁN TUS CLIENTES
-          </span>
-          <small className="text-[10px] text-slate-500">En vivo</small>
-        </div>
-        <MenuPreview
-          state={state}
-          categories={categories}
-          popular={popular}
-          theme={theme}
-          onCategory={setActiveCategory}
-          activeCategory={activeCategory}
-        />
-        <p className="flex items-center justify-center gap-1.5 px-1 pb-1 text-center text-[10px] text-slate-500">
-          <Check size={13} className="shrink-0 text-emerald-700" />
-          Cada respuesta se refleja aquí y se guarda al publicar.
-        </p>
-      </section>
-
       <input
         ref={fileInput}
         type="file"
@@ -546,18 +632,15 @@ export function MenuBuilder({ publicRoute = false }: { publicRoute?: boolean }) 
  */
 function PhoneShell({ children }: { children: ReactNode }) {
   return (
-    <div data-testid="builder-shell" className="w-full bg-slate-100 sm:py-8">
+    <div
+      data-testid="builder-shell"
+      className="flex min-h-dvh w-full justify-center bg-slate-200 sm:py-6"
+    >
       <div
         data-testid="builder-phone"
-        className="mx-auto flex w-full max-w-[500px] flex-col bg-slate-100 sm:h-[min(92vh,900px)] sm:rounded-[38px] sm:border-[7px] sm:border-slate-900 sm:p-2 sm:shadow-2xl"
+        className="relative flex h-[100dvh] w-full max-w-[500px] flex-col overflow-hidden bg-white sm:h-[min(94vh,940px)] sm:rounded-[42px] sm:border-[8px] sm:border-slate-900 sm:shadow-2xl"
       >
-        <span
-          aria-hidden="true"
-          className="mx-auto mt-1.5 hidden h-1.5 w-20 shrink-0 rounded-full bg-slate-300 sm:block"
-        />
-        <div className="flex min-w-0 flex-1 flex-col gap-3 px-3 pt-4 pb-2 sm:overflow-y-auto sm:rounded-[28px] sm:bg-white sm:p-3">
-          {children}
-        </div>
+        <div className="flex min-h-0 flex-1 flex-col">{children}</div>
       </div>
     </div>
   );
@@ -1569,74 +1652,85 @@ function PublishedPanel({
   );
 }
 
-/** Vista previa en vivo: el menú público resumido, con el diseño elegido. */
+/**
+ * El menú del negocio tal como lo verán sus clientes.
+ *
+ * En el creador ocupa toda la pantalla del teléfono y se va llenando con cada
+ * paso: mientras falten datos muestra marcadores punteados para que el dueño
+ * vea desde el primer segundo la forma que tendrá su menú.
+ */
 function MenuPreview({
   state,
-  categories,
   popular,
   theme,
   activeCategory,
   onCategory,
 }: {
   state: BuilderState;
-  categories: string[];
   popular: BuilderItem[];
   theme: ReturnType<typeof menuTheme>;
   activeCategory: string;
   onCategory: (category: string) => void;
 }) {
   const design = state.design;
+  // En el borrador se ven todas las secciones: las vacías muestran su marcador.
+  const sections = state.categories;
   const dark = design.surface === 'dark';
-  const sections = categories.length ? categories : ['Tu primera sección'];
   const type = businessTypes.find((item) => item.id === state.typeId);
   const waLink = builderWhatsAppLink(state.whatsapp || '52', state.name);
+  const hasItems = state.items.length > 0;
   return (
     <div
       data-testid="builder-preview"
+      data-draft="true"
       data-surface={design.surface}
       data-logo-shape={design.logoShape}
       data-layout={design.layout}
-      className="mx-auto max-h-[min(78vh,860px)] w-full max-w-[380px] overflow-y-auto rounded-[26px] border-[5px] border-slate-800 shadow-xl"
+      className="flex min-h-0 w-full flex-1 flex-col overflow-y-auto"
       style={{
         backgroundColor: theme.surface,
         color: theme.ink,
         fontFamily: fontStack(design.fontFamily),
       }}
     >
-      <header className="relative h-36 overflow-hidden">
+      <header className="relative h-40 shrink-0 overflow-hidden">
         {state.banner ? (
           <img src={state.banner} alt="" className="absolute inset-0 size-full object-cover" />
         ) : (
           <span className="absolute inset-0" style={{ background: theme.hero }} />
         )}
         <span className="absolute inset-0 bg-gradient-to-b from-slate-950/40 via-slate-900/50 to-slate-950/85" />
-        <div className="relative z-10 flex flex-col items-center gap-1 px-3 pt-6 text-center text-white">
+        <div className="relative z-10 flex flex-col items-center gap-1 px-3 pt-11 text-center text-white">
           <span
-            className={`grid size-16 place-items-center overflow-hidden border-[3px] bg-white shadow-lg ${logoShapeClass[design.logoShape]}`}
-            style={{ borderColor: dark ? '#ffffff' : state.design.secondaryColor }}
+            className={`grid size-18 place-items-center overflow-hidden border-[3px] bg-white shadow-lg ${logoShapeClass[design.logoShape]}`}
+            style={{ borderColor: dark ? '#ffffff' : design.secondaryColor }}
           >
             {state.logo ? (
               <img src={state.logo} alt="" className="size-full object-cover" />
             ) : (
-              <span className="text-lg" aria-hidden="true">
+              <span className="text-xl" aria-hidden="true">
                 {type?.emoji ?? '🍽️'}
               </span>
             )}
           </span>
-          <p className="text-[8px] font-bold tracking-[0.18em] uppercase opacity-80">
+          <p className="text-[9px] font-bold tracking-[0.18em] uppercase opacity-80">
             {type?.label ?? 'Menú del restaurante'}
           </p>
-          <h2 className="line-clamp-1 text-lg leading-5 font-extrabold">
+          <h1
+            className={`line-clamp-1 px-2 text-xl leading-6 font-extrabold ${
+              state.name.trim() ? '' : 'opacity-60'
+            }`}
+          >
             {state.name || 'Tu negocio'}
-          </h2>
-          <div className="flex flex-wrap items-center justify-center gap-x-2 text-[8px] opacity-85">
+          </h1>
+          <div className="flex flex-wrap items-center justify-center gap-x-2 text-[9px] opacity-85">
             <span className="inline-flex items-center gap-0.5">
-              <Clock3 size={8} />
+              <Clock3 size={9} />
               {openingHoursLabel(state)}
             </span>
             {state.address && (
               <span className="inline-flex items-center gap-0.5">
-                <MapPin size={8} />
+                <MapPin size={9} />
                 {state.address}
               </span>
             )}
@@ -1644,36 +1738,36 @@ function MenuPreview({
         </div>
       </header>
 
-      <div className="flex flex-col gap-3 px-2.5 py-3">
+      <div className="flex flex-col gap-3 px-3 py-3">
         {state.promo.enabled && state.promo.text.trim() && (
           <div
-            className="flex items-center gap-2 rounded-xl px-2.5 py-2"
-            style={{ backgroundColor: state.design.secondaryColor, color: theme.ink }}
+            className="flex items-center gap-2 rounded-xl px-3 py-2"
+            style={{ backgroundColor: design.secondaryColor, color: theme.ink }}
           >
-            <Sparkles size={12} style={{ color: state.design.primaryColor }} />
-            <span className="min-w-0 flex-1 text-[9px] font-bold">
+            <Sparkles size={14} style={{ color: design.primaryColor }} />
+            <span className="min-w-0 flex-1 text-[11px] font-bold">
               {state.promo.note && <span className="block opacity-70">{state.promo.note}</span>}
               {state.promo.text}
             </span>
             {state.promo.price && (
-              <strong className="text-[10px]" style={{ color: state.design.primaryColor }}>
+              <strong className="text-xs" style={{ color: design.primaryColor }}>
                 {state.promo.price.startsWith('$') ? state.promo.price : `$${state.promo.price}`}
               </strong>
             )}
           </div>
         )}
 
-        <nav className="flex gap-1.5 overflow-x-auto pb-1" aria-label="Categorías del menú">
+        <nav className="flex gap-2 overflow-x-auto pb-1" aria-label="Categorías del menú">
           {['Todos', ...sections].map((category, index) => {
             const active = index === 0 ? activeCategory === '' : activeCategory === category;
             if (design.navStyle === 'tabs') {
               return (
                 <span
                   key={category}
-                  className="shrink-0 border-b-2 pb-1 text-[9px] font-bold"
+                  className="shrink-0 border-b-2 pb-1 text-[11px] font-bold"
                   style={{
-                    borderColor: active ? state.design.primaryColor : 'transparent',
-                    color: active ? state.design.primaryColor : theme.muted,
+                    borderColor: active ? design.primaryColor : 'transparent',
+                    color: active ? design.primaryColor : theme.muted,
                   }}
                 >
                   {category}
@@ -1684,17 +1778,17 @@ function MenuPreview({
               return (
                 <span
                   key={category}
-                  className="flex shrink-0 flex-col items-center gap-0.5 text-[8px] font-bold"
-                  style={{ color: active ? state.design.primaryColor : theme.muted }}
+                  className="flex shrink-0 flex-col items-center gap-1 text-[10px] font-bold"
+                  style={{ color: active ? design.primaryColor : theme.muted }}
                 >
                   <span
-                    className="grid size-7 place-items-center rounded-full border"
+                    className="grid size-8 place-items-center rounded-full border"
                     style={{
                       backgroundColor: theme.card,
-                      borderColor: active ? state.design.primaryColor : theme.border,
+                      borderColor: active ? design.primaryColor : theme.border,
                     }}
                   >
-                    <Utensils size={10} />
+                    <Utensils size={12} />
                   </span>
                   {category}
                 </span>
@@ -1704,10 +1798,10 @@ function MenuPreview({
               <button
                 key={category}
                 type="button"
-                className="shrink-0 rounded-full border px-2 py-1 text-[9px] font-bold"
+                className="shrink-0 rounded-full border px-2.5 py-1 text-[11px] font-bold"
                 style={{
-                  backgroundColor: active ? state.design.primaryColor : theme.card,
-                  borderColor: active ? state.design.primaryColor : theme.border,
+                  backgroundColor: active ? design.primaryColor : theme.card,
+                  borderColor: active ? design.primaryColor : theme.border,
                   color: active ? theme.onPrimary : theme.muted,
                 }}
                 onClick={() => onCategory(index === 0 ? '' : category)}
@@ -1716,17 +1810,29 @@ function MenuPreview({
               </button>
             );
           })}
+          {/* Secciones que todavía no existen: se insinúan para mostrar la forma. */}
+          {!sections.length &&
+            ['Sección 1', 'Sección 2'].map((placeholder) => (
+              <span
+                key={placeholder}
+                aria-hidden="true"
+                className="shrink-0 rounded-full border border-dashed px-2.5 py-1 text-[11px] font-bold opacity-50"
+                style={{ borderColor: theme.border, color: theme.muted }}
+              >
+                {placeholder}
+              </span>
+            ))}
         </nav>
 
         {popular.length > 0 && (
           <section className="flex flex-col gap-1.5">
             <p
-              className="text-[9px] font-extrabold tracking-[0.12em] uppercase"
-              style={{ color: state.design.primaryColor }}
+              className="text-[10px] font-extrabold tracking-[0.12em] uppercase"
+              style={{ color: design.primaryColor }}
             >
               Lo más pedido
             </p>
-            <div className="grid grid-cols-3 gap-1.5">
+            <div className="grid grid-cols-3 gap-2">
               {popular.slice(0, 3).map((item) => (
                 <PreviewCard key={`pop-${item.id}`} item={item} design={design} theme={theme} />
               ))}
@@ -1736,25 +1842,24 @@ function MenuPreview({
 
         {sections.map((category) => {
           const items = itemsOfCategory(state, category);
-          if (!items.length) return null;
           return (
             <section key={category} className="flex flex-col gap-1">
-              <p className="text-[11px] font-extrabold">{category}</p>
+              <p className="text-sm font-extrabold">{category}</p>
               {items.map((item) => (
                 <div
                   key={item.id}
-                  className="flex items-center gap-2 border-b py-1.5"
+                  className="flex items-center gap-2 border-b py-2"
                   style={{ borderColor: theme.border }}
                 >
                   <span className="min-w-0 flex-1">
-                    <span className="flex items-center gap-1">
-                      <strong className="truncate text-[10px] font-bold">
+                    <span className="flex items-center gap-1.5">
+                      <strong className="truncate text-[13px] font-bold">
                         {item.name || 'Producto sin nombre'}
                       </strong>
                       {item.isNew && (
                         <span
-                          className="rounded px-1 py-0.5 text-[7px] font-extrabold"
-                          style={{ backgroundColor: state.design.secondaryColor, color: theme.ink }}
+                          className="rounded px-1 py-0.5 text-[8px] font-extrabold"
+                          style={{ backgroundColor: design.secondaryColor, color: theme.ink }}
                         >
                           NUEVO
                         </span>
@@ -1762,56 +1867,90 @@ function MenuPreview({
                     </span>
                     {item.description && (
                       <span
-                        className="line-clamp-1 block text-[8px]"
+                        className="line-clamp-1 block text-[11px]"
                         style={{ color: theme.muted }}
                       >
                         {item.description}
                       </span>
                     )}
                     {item.stock !== null && item.stock <= 10 && (
-                      <span className="text-[7px]" style={{ color: theme.muted }}>
+                      <span className="text-[10px]" style={{ color: theme.muted }}>
                         {item.stock === 0 ? 'Agotado' : `Quedan ${item.stock}`}
                       </span>
                     )}
                   </span>
-                  <strong className="text-[10px] tabular-nums">
+                  <strong className="text-[13px] tabular-nums">
                     {item.price ? `$${item.price}` : '$0'}
                   </strong>
                   <span
-                    className="grid size-5 shrink-0 place-items-center rounded-lg"
-                    style={{ backgroundColor: state.design.primaryColor, color: theme.onPrimary }}
+                    className="grid size-7 shrink-0 place-items-center rounded-lg"
+                    style={{ backgroundColor: design.primaryColor, color: theme.onPrimary }}
                   >
-                    <Plus size={11} />
+                    <Plus size={14} />
                   </span>
                 </div>
               ))}
+              {!items.length && (
+                <p
+                  className="rounded-lg border border-dashed px-2 py-1.5 text-[11px]"
+                  style={{ borderColor: theme.border, color: theme.muted }}
+                >
+                  Aquí van los productos de {category}.
+                </p>
+              )}
             </section>
           );
         })}
 
-        {!popular.length && (
-          <p
-            className="rounded-xl border border-dashed py-6 text-center text-[10px]"
-            style={{ borderColor: theme.border, color: theme.muted }}
-          >
-            Elige un menú de arranque en categorías y tus productos aparecerán aquí.
-          </p>
+        {/* Sin productos todavía: se dibuja la silueta de las filas del menú. */}
+        {!hasItems && (
+          <section className="flex flex-col gap-1" aria-hidden="true">
+            <p className="text-sm font-extrabold">Tu carta</p>
+            {[0, 1, 2].map((row) => (
+              <div
+                key={row}
+                className="flex items-center gap-2 border-b py-2 opacity-45"
+                style={{ borderColor: theme.border }}
+              >
+                <span className="flex min-w-0 flex-1 flex-col gap-1">
+                  <span
+                    className="h-2.5 rounded-full"
+                    style={{ backgroundColor: theme.muted, width: `${70 - row * 12}%` }}
+                  />
+                  <span
+                    className="h-1.5 rounded-full"
+                    style={{ backgroundColor: theme.border, width: `${50 + row * 8}%` }}
+                  />
+                </span>
+                <span className="h-2.5 w-8 rounded-full" style={{ backgroundColor: theme.muted }} />
+                <span
+                  className="grid size-7 shrink-0 place-items-center rounded-lg border border-dashed"
+                  style={{ borderColor: theme.border }}
+                >
+                  <Plus size={13} style={{ color: theme.muted }} />
+                </span>
+              </div>
+            ))}
+            <p className="text-[11px]" style={{ color: theme.muted }}>
+              Tus productos irán apareciendo aquí mientras armas el menú.
+            </p>
+          </section>
         )}
 
         <a
           href={waLink}
           target="_blank"
           rel="noreferrer"
-          className="flex items-center justify-center gap-1.5 rounded-xl py-2 text-[10px] font-extrabold"
-          style={{ backgroundColor: state.design.primaryColor, color: theme.onPrimary }}
+          className="mt-1 flex items-center justify-center gap-1.5 rounded-xl py-2.5 text-[13px] font-extrabold"
+          style={{ backgroundColor: design.primaryColor, color: theme.onPrimary }}
         >
-          <Phone size={11} /> Pedir por WhatsApp
+          <Phone size={13} /> Pedir por WhatsApp
         </a>
         <div className="flex flex-wrap gap-1">
           {state.orderModes.map((mode) => (
             <span
               key={mode}
-              className="rounded-md px-1.5 py-0.5 text-[7px]"
+              className="rounded-md px-1.5 py-0.5 text-[9px]"
               style={{ backgroundColor: theme.surfaceSoft, color: theme.muted }}
             >
               {orderModeOptions.find((option) => option.value === mode)?.label}
@@ -1820,7 +1959,7 @@ function MenuPreview({
           {state.paymentMethods.map((method) => (
             <span
               key={method}
-              className="rounded-md px-1.5 py-0.5 text-[7px]"
+              className="rounded-md px-1.5 py-0.5 text-[9px]"
               style={{ backgroundColor: theme.surfaceSoft, color: theme.muted }}
             >
               {method}

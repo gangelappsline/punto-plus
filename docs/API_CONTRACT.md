@@ -223,7 +223,8 @@ Los valores fuera de catálogo se ignoran (`src/services/api.ts` valida contra l
 estas claves: no hay estado adicional que sincronizar.
 
 **Creador de menús (`/crear-menu?codigo=<invitación>`).** Pantalla pública de armado rápido, pensada
-para el celular (en pantallas grandes se centra en un marco de 500 px). Cualquiera puede recorrer
+para el celular (en pantallas grandes se centra en un marco de 500 px): muestra siempre el menú en
+borrador como protagonista y la hoja de configuración se pliega para verlo completo. Cualquiera puede recorrer
 los pasos —diseño, logo y banner, categorías, productos y configuración— con un menú de arranque por
 giro; publicar requiere sesión de negocio y el `codigo` de la URL se conserva hasta el registro. Al
 publicar se envían
