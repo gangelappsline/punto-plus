@@ -223,9 +223,9 @@ describe('Creador de menús: pantalla', () => {
       (title, index) => expect(items[index]).toHaveTextContent(title),
     );
 
-    // El marco simula un móvil: nunca pasa de 500 px de ancho.
+    // El marco simula un móvil: nunca pasa de 450 px de ancho.
     const phone = screen.getByTestId('builder-phone');
-    expect(phone.className).toContain('max-w-[500px]');
+    expect(phone.className).toContain('max-w-[450px]');
 
     // El código de invitación de la URL queda a la vista.
     expect(screen.getByTestId('builder-invite-code')).toHaveTextContent('INV-2026');
@@ -444,7 +444,7 @@ describe('Creador de menús: ruta pública', () => {
     expect(progress).toBeLessThanOrEqual(100);
     expect(screen.getByText('Borrador')).toBeInTheDocument();
     expect(screen.getByTestId('builder-invite-code')).toHaveTextContent('INV-777');
-    expect(screen.getByTestId('builder-phone').className).toContain('max-w-[500px]');
+    expect(screen.getByTestId('builder-phone').className).toContain('max-w-[450px]');
   });
 });
 

@@ -15,6 +15,21 @@ import { NotFoundPage } from './features/NotFoundPage';
 const MenuBuilder = lazy(() =>
   import('./features/MenuBuilder').then((m) => ({ default: m.MenuBuilder })),
 );
+const PublicMenuLayout = lazy(() =>
+  import('./features/public-menu/PublicMenuLayout').then((m) => ({ default: m.PublicMenuLayout })),
+);
+const PublicMenuOverview = lazy(() =>
+  import('./features/public-menu/Overview').then((m) => ({ default: m.Overview })),
+);
+const PublicMenuCatalog = lazy(() =>
+  import('./features/public-menu/Catalog').then((m) => ({ default: m.Catalog })),
+);
+const PublicMenuDish = lazy(() =>
+  import('./features/public-menu/DishDetail').then((m) => ({ default: m.DishDetail })),
+);
+const PublicMenuCart = lazy(() =>
+  import('./features/public-menu/Cart').then((m) => ({ default: m.Cart })),
+);
 const BusinessPage = lazy(() =>
   import('./features/BusinessPage').then((m) => ({ default: m.BusinessPage })),
 );
@@ -41,6 +56,64 @@ export default function App() {
   return (
     <Routes>
       <Route path="/" element={<LandingPage />} />
+      {/* Menú público por enlace corto: /menu/<slug>. */}
+      <Route
+        path="/menu/:businessSlug"
+        element={
+          <Suspense fallback={<AppSplash message="Preparamos algo rico para ti…" />}>
+            <PublicMenuLayout />
+          </Suspense>
+        }
+      >
+        <Route
+          index
+          element={
+            <Suspense fallback={<AppSplash message="Preparamos algo rico para ti…" />}>
+              <PublicMenuOverview />
+            </Suspense>
+          }
+        />
+        <Route
+          path="menu"
+          element={
+            <Suspense fallback={<AppSplash message="Abriendo la carta…" />}>
+              <PublicMenuCatalog />
+            </Suspense>
+          }
+        />
+        <Route
+          path="categoria/:categorySlug"
+          element={
+            <Suspense fallback={<AppSplash message="Abriendo la carta…" />}>
+              <PublicMenuCatalog />
+            </Suspense>
+          }
+        />
+        <Route
+          path="platillo/:dishSlug"
+          element={
+            <Suspense fallback={<AppSplash message="Preparando el platillo…" />}>
+              <PublicMenuDish />
+            </Suspense>
+          }
+        />
+        <Route
+          path="platillo/:dishSlug/:extra"
+          element={
+            <Suspense fallback={<AppSplash message="Preparando el platillo…" />}>
+              <PublicMenuDish />
+            </Suspense>
+          }
+        />
+        <Route
+          path="carrito"
+          element={
+            <Suspense fallback={<AppSplash message="Armando tu pedido…" />}>
+              <PublicMenuCart />
+            </Suspense>
+          }
+        />
+      </Route>
       <Route path="/menu/:businessId" element={<MenuPage />} />
       <Route
         path="/login"

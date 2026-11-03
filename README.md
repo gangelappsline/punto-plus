@@ -70,10 +70,32 @@ npm run test:e2e      # 10 pruebas: escritorio + móvil (corren en modo demo)
 
 ### Menú público y orden
 
-- Cada restaurante publica su menú en `/<business_slug>` con banner, logotipo, platillos más pedidos, categorías, búsqueda y vista de detalle.
-- Cualquier visitante puede explorar. Solo una sesión con rol `customer` puede agregar platillos al borrador de orden; al iniciar sesión se regresa al menú.
-- La orden se mantiene en memoria del navegador. El envío/checkout requiere un endpoint de órdenes que aún debe acordarse con el backend.
-- En modo API, el frontend espera el endpoint público sin autenticación `GET /public/business/:slug/menu` (contrato propuesto, pendiente de confirmar).
+Hay **dos pantallas públicas** que leen los mismos datos (`GET /public/business/:slug`, contrato
+propuesto pendiente de confirmar):
+
+| Ruta           | Pantalla                                         | Para qué                                                                                                                                                                                                        |
+| -------------- | ------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `/menu/<slug>` | **Menú editorial** (`src/features/public-menu/`) | Portada nocturna con saludo según la hora, recomendación del día, categorías con emoji, populares, la carta completa, ficha del platillo y pedido por WhatsApp. Es el enlace que comparten el QR y los paneles. |
+| `/<slug>`      | Menú anterior (`src/features/MenuPage.tsx`)      | Se conserva para los enlaces ya compartidos y para las cuentas de cliente que arman su orden con sesión.                                                                                                        |
+
+Subpantallas del menú editorial (todas dentro del mismo layout y sin sesión):
+
+- `/menu/<slug>/menu` — carta completa con búsqueda (`?q=`) y filtros por categoría.
+- `/menu/<slug>/categoria/<categoria>` — misma carta abierta en una categoría.
+- `/menu/<slug>/platillo/<platillo>` — ficha con foto, descripción, notas, cantidad y sugerencias.
+- `/menu/<slug>/carrito` — cantidades, notas por platillo, forma de entrega, subtotal, envío y total.
+
+El diseño respeta la identidad de cada negocio: el color principal se usa como acento, el
+secundario como superficie suave y la portada cambia a papel cálido si el negocio eligió un fondo
+claro (`cream`, `sand` o `light`). Los colores y la tipografía salen de `menu_design`, igual que en
+el menú anterior.
+
+**Pedido sin registro.** El carrito vive en `localStorage` por negocio
+(`punto-plus-public-cart-v1:<slug>`), así que el cliente puede cerrar el navegador y volver. Al
+enviar, se arma un mensaje con platillos, notas, subtotal, envío, total, forma de entrega y nombre,
+y se abre `wa.me` con el WhatsApp del negocio. No requiere backend de órdenes; si el negocio no
+tiene teléfono, la pantalla lo indica. El enlace del QR y de los paneles ahora se genera con
+`publicMenuUrl()` en `/menu/<slug>`.
 
 ### Cliente
 
@@ -183,7 +205,17 @@ src/
 │   ├── AdminDashboard.tsx     # Resumen del negocio
 │   ├── BusinessPage.tsx       # Configuración, compras y promociones (lazy)
 │   ├── BusinessOnboarding.tsx # Asistente por pasos: logo, banner, menú, colores, promoción (lazy)
-│   ├── MenuPage.tsx           # Menú público por slug, búsqueda y borrador de orden
+│   ├── MenuPage.tsx           # Menú público anterior por slug y borrador de orden con sesión
+│   ├── public-menu/           # Menú editorial `/menu/<slug>`:
+│   │   ├── PublicMenuLayout.tsx # Carga el negocio, tema, carrito y barra de pedido
+│   │   ├── Overview.tsx         # Portada: saludo, recomendación, categorías y populares
+│   │   ├── Catalog.tsx          # Carta completa con búsqueda y filtro por categoría
+│   │   ├── DishDetail.tsx       # Ficha del platillo con notas y cantidad
+│   │   ├── DishSheet.tsx        # Hoja inferior para agregar sin salir de la carta
+│   │   ├── Cart.tsx             # Pedido, entrega y envío por WhatsApp
+│   │   ├── parts.tsx            # Tarjetas, precios, distintivos y estados vacíos
+│   │   ├── context.tsx / store.ts / theme.ts
+│   │   └── (tema por colores del negocio y carrito persistente)
 │   ├── Dialogs.tsx            # QR, detalle, canje y promoción
 │   ├── AuthLayout.tsx         # Columna de marca + formulario (login y registro)
 │   ├── Login.tsx              # Inicio de sesión
@@ -191,6 +223,7 @@ src/
 │   └── NotFoundPage.tsx       # Ruta inexistente
 ├── lib/
 │   ├── types.ts              # Schemas Zod y tipos inferidos
+│   ├── publicMenu.ts         # Precios, slugs, emojis, carrito y mensaje de WhatsApp del menú público
 │   ├── queries.ts            # Consultas y mutaciones de datos (TanStack Query)
 │   ├── colors.ts             # Paleta extraída del logo en el cliente (contraste del QR)
 │   ├── image.ts              # Lectura y validación de imágenes subidas
